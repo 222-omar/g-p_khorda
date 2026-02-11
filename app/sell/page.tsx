@@ -23,6 +23,10 @@ export default function SellPage() {
         condition: 'good',
         description: '',
         location: '',
+        phone_number: '',
+        is_auction: false,
+        auction_start_time: '',
+        auction_end_time: '',
     });
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -82,6 +86,12 @@ export default function SellPage() {
         setImagePreviews((prev) => prev.filter((_, i) => i !== index));
     };
 
+    const getCurrentLocalTime = () => {
+        const now = new Date();
+        const offset = now.getTimezoneOffset() * 60000;
+        return new Date(now.getTime() - offset).toISOString().slice(0, 16);
+    };
+
     const validateStep = (currentStep: number) => {
         setError(null);
         if (currentStep === 2) {
@@ -89,6 +99,14 @@ export default function SellPage() {
             if (!formData.price || Number(formData.price) <= 0) return 'يرجى إدخال سعر صحيح';
             if (!formData.category) return 'يرجى اختيار القسم';
             if (!formData.location.trim()) return 'يرجى إدخال الموقع';
+            if (!formData.phone_number.trim()) return 'يرجى إدخال رقم الهاتف للتواصل';
+            if (formData.is_auction) {
+                if (!formData.auction_start_time) return 'يرجى تحديد وقت وتاريخ بدء المزاد بالكامل';
+                if (!formData.auction_end_time) return 'يرجى تحديد وقت وتاريخ انتهاء المزاد بالكامل';
+                if (new Date(formData.auction_start_time) >= new Date(formData.auction_end_time)) {
+                    return 'تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء';
+                }
+            }
             return null;
         }
         return null;
@@ -107,7 +125,6 @@ export default function SellPage() {
         e.preventDefault();
         setError(null);
 
-        // Final validation
         if (!formData.description.trim()) {
             setError('يرجى إضافة وصف للمنتج');
             return;
@@ -123,16 +140,55 @@ export default function SellPage() {
             formDataToSend.append('condition', formData.condition);
             formDataToSend.append('description', formData.description);
             formDataToSend.append('location', formData.location);
+            formDataToSend.append('phone_number', formData.phone_number);
+            formDataToSend.append('is_auction', formData.is_auction.toString());
+            if (formData.is_auction && formData.auction_end_time) {
+                formDataToSend.append('auction_start_time', new Date(formData.auction_start_time).toISOString());
+                formDataToSend.append('auction_end_time', new Date(formData.auction_end_time).toISOString());
+            }
 
             uploadedImages.forEach((file) => {
                 formDataToSend.append('uploaded_images', file);
             });
 
-            await productsAPI.create(formDataToSend);
-            router.push('/dashboard');
+            const token = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('access_token='))
+                ?.split('=')[1];
+
+            const response = await fetch('http://localhost:8000/api/products/', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formDataToSend,
+            });
+
+            if (response.status >= 200 && response.status < 300) {
+                // Redirect based on product type
+                if (formData.is_auction) {
+                    router.push('/auctions');
+                } else {
+                    router.push('/dashboard');
+                }
+                return;
+            }
+
+            const errorText = await response.text();
+            let errorMessage = 'Failed to create product';
+
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorMessage = errorJson.detail || errorJson.message || 'Failed to create product';
+            } catch (parseError) {
+                errorMessage = errorText || 'Failed to create product';
+            }
+
+            setError(errorMessage);
+            setSubmitting(false);
         } catch (err: any) {
             console.error('Error creating product:', err);
-            setError(err.message || 'Failed to create product');
+            setError('حدث خطأ في الاتصال بالخادم');
             setSubmitting(false);
         }
     };
@@ -273,6 +329,76 @@ export default function SellPage() {
                                                 </select>
                                             </div>
                                         </div>
+
+
+                                        {/* Phone Number */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">رقم الهاتف للتواصل</label>
+                                            <input
+                                                type="tel"
+                                                value={formData.phone_number}
+                                                onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                                                placeholder="مثلاً: 010xxxxxxxx"
+                                                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900"
+                                            />
+                                        </div>
+
+                                        {/* Listing Type Toggle */}
+                                        <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">نوع الإعلان</label>
+                                            <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, is_auction: false })}
+                                                    className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${!formData.is_auction
+                                                        ? 'bg-primary text-white shadow-sm'
+                                                        : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                                        }`}
+                                                >
+                                                    بيع مباشر
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, is_auction: true })}
+                                                    className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${formData.is_auction
+                                                        ? 'bg-primary text-white shadow-sm'
+                                                        : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                                        }`}
+                                                >
+                                                    مزاد علني
+                                                </button>
+                                            </div>
+
+                                            {/* Auction Dates */}
+                                            {formData.is_auction && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                    className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4"
+                                                >
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">تاريخ ووقت بدء المزاد</label>
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={formData.auction_start_time}
+                                                            onChange={(e) => setFormData({ ...formData, auction_start_time: e.target.value })}
+                                                            min={getCurrentLocalTime()}
+                                                            className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900 ltr-input"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">تاريخ ووقت انتهاء المزاد</label>
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={formData.auction_end_time}
+                                                            onChange={(e) => setFormData({ ...formData, auction_end_time: e.target.value })}
+                                                            min={formData.auction_start_time || getCurrentLocalTime()}
+                                                            className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900 ltr-input"
+                                                        />
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </div>
                                         <div>
                                             <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">الموقع</label>
                                             <input
@@ -372,7 +498,7 @@ export default function SellPage() {
                         </form>
                     </div>
                 </div>
-            </main>
+            </main >
             <Footer />
         </>
     );

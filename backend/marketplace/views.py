@@ -107,6 +107,9 @@ class ProductViewSet(viewsets.ModelViewSet):
         # Filter active auctions only
         if self.request.query_params.get('auctions_only') == 'true':
             queryset = queryset.filter(is_auction=True, auction__is_active=True)
+        elif self.request.query_params.get('is_auction') is None:
+            # Default to regular products only if listing type not specified
+            queryset = queryset.filter(is_auction=False)
         
         return queryset
     
@@ -124,16 +127,6 @@ class ProductViewSet(viewsets.ModelViewSet):
         
         # Generate AI price analysis
         self.generate_ai_analysis(product)
-        
-        # Create auction if requested
-        if product.is_auction and 'auction_end_time' in self.request.data:
-            end_time = self.request.data.get('auction_end_time')
-            Auction.objects.create(
-                product=product,
-                starting_bid=product.price,
-                current_bid=product.price,
-                end_time=end_time
-            )
     
     def generate_ai_analysis(self, product):
         """Generate AI price analysis for a product"""

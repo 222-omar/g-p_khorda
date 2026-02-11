@@ -77,7 +77,9 @@ async function apiFetch<T>(
             if (messages) errorMessage = messages;
         }
 
-        throw new Error(errorMessage || 'Request failed');
+        const error = new Error(errorMessage || 'Request failed');
+        (error as any).response = { data: errorData, status: response.status };
+        throw error;
     }
 
     if (response.status === 204) {
@@ -180,32 +182,30 @@ export const productsAPI = {
             body: data,
         });
 
-        if (!response.ok) {
-            if (response.status === 401) {
-                clearAuthTokens();
-                if (typeof window !== 'undefined') {
-                    window.location.href = '/login';
-                }
+        if (response.status >= 200 && response.status < 300) {
+            try {
+                return await response.json();
+            } catch (parseError) {
+                return { success: true };
             }
-            const errorData = await response.json().catch(() => ({ detail: 'Failed to create product' }));
-
-            let errorMessage = errorData.detail || errorData.message;
-
-            if (!errorMessage && typeof errorData === 'object' && errorData !== null) {
-                const messages = Object.entries(errorData)
-                    .map(([key, value]) => {
-                        const msg = Array.isArray(value) ? value.join(', ') : String(value);
-                        return `${key}: ${msg}`;
-                    })
-                    .join(' | ');
-
-                if (messages) errorMessage = messages;
-            }
-
-            throw new Error(errorMessage || 'Failed to create product');
         }
 
-        return response.json();
+        const errorData = await response.json().catch(() => ({ detail: 'Failed to create product' }));
+        let errorMessage = errorData.detail || errorData.message;
+
+        if (!errorMessage && typeof errorData === 'object' && errorData !== null) {
+            const messages = Object.entries(errorData)
+                .map(([key, value]) => {
+                    const msg = Array.isArray(value) ? value.join(', ') : String(value);
+                    return `${key}: ${msg}`;
+                })
+                .join(' | ');
+            if (messages) errorMessage = messages;
+        }
+
+        const error = new Error(errorMessage || 'Failed to create product');
+        (error as any).response = { data: errorData, status: response.status };
+        throw error;
     },
 
     async update(id: string, data: Partial<any>) {

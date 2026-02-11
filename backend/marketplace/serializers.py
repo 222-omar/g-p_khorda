@@ -79,8 +79,8 @@ class ProductListSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'title', 'price', 'category', 'condition', 'status',
-            'location', 'is_auction', 'primary_image', 'owner_name',
-            'views_count', 'created_at'
+            'location', 'phone_number', 'is_auction', 'auction_start_time',
+            'auction_end_time', 'primary_image', 'owner_name', 'views_count', 'created_at'
         ]
         read_only_fields = ['id', 'owner_name', 'views_count', 'created_at']
     
@@ -106,8 +106,8 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'owner', 'owner_profile', 'title', 'description', 
             'price', 'category', 'condition', 'status', 'location',
-            'is_auction', 'views_count', 'images', 'auction', 
-            'ai_analysis', 'created_at', 'updated_at'
+            'phone_number', 'is_auction', 'auction_start_time', 'auction_end_time', 
+            'views_count', 'images', 'auction', 'ai_analysis', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'owner', 'views_count', 'created_at', 'updated_at']
     
@@ -137,25 +137,59 @@ class ProductCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'title', 'description', 'price', 'category', 
-            'condition', 'location', 'is_auction', 'images', 'uploaded_images'
+            'id', 'title', 'description', 'price', 'category', 'condition', 
+            'location', 'phone_number', 'is_auction', 'auction_start_time', 
+            'auction_end_time', 'images', 'uploaded_images'
         ]
         read_only_fields = ['id']
     
     def create(self, validated_data):
-        uploaded_images = validated_data.pop('uploaded_images', [])
-        product = Product.objects.create(**validated_data)
-        
-        # Create product images
-        for idx, image in enumerate(uploaded_images):
-            ProductImage.objects.create(
-                product=product,
-                image=image,
-                is_primary=(idx == 0),
-                order=idx
-            )
-        
-        return product
+        try:
+            uploaded_images = validated_data.pop('uploaded_images', [])
+            product = Product.objects.create(**validated_data)
+            
+            # Create Auction if is_auction and end_time provided
+            if product.is_auction and product.auction_end_time:
+                Auction.objects.create(
+                    product=product,
+                    starting_bid=product.price,
+                    current_bid=product.price,
+                    start_time=product.auction_start_time,
+                    end_time=product.auction_end_time,
+                    is_active=True
+                )
+            
+            # Create product images
+            for idx, image in enumerate(uploaded_images):
+                ProductImage.objects.create(
+                    product=product,
+                    image=image,
+                    is_primary=(idx == 0),
+                    order=idx
+                )
+            
+            return product
+        except Exception as e:
+            if 'product' in locals():
+                product.delete()
+            # Log error for server-side debugging
+            import traceback
+            traceback.print_exc()
+            # Return error to client
+            raise serializers.ValidationError({"detail": f"Server Error: {str(e)}"})
+
+    def to_representation(self, instance):
+        try:
+            return super().to_representation(instance)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {
+                "id": instance.id, 
+                "title": instance.title, 
+                "warning": "Product created but failed to serialize response",
+                "error": str(e)
+            }
 
 
 class RegisterSerializer(serializers.ModelSerializer):
