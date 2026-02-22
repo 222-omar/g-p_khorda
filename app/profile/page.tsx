@@ -6,26 +6,29 @@ import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { useLanguage } from '@/components/providers/language-provider';
-import { Plus, ShoppingCart, LogOut, Star, TrendingUp, Package, Loader2 } from 'lucide-react';
+import { Plus, ShoppingCart, LogOut, Star, TrendingUp, Package, Loader2, Heart, Pencil } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { profilesAPI, productsAPI, authAPI } from '@/lib/api';
+import { profilesAPI, productsAPI, authAPI, wishlistAPI } from '@/lib/api';
 
 export default function ProfilePage() {
     const router = useRouter();
     const { dict } = useLanguage();
     const [profile, setProfile] = useState<any>(null);
     const [myListings, setMyListings] = useState<any[]>([]);
+    const [wishlistItems, setWishlistItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [profileData, listingsData] = await Promise.all([
+                const [profileData, listingsData, wishlistData] = await Promise.all([
                     profilesAPI.getMe(),
-                    productsAPI.getMyListings()
+                    productsAPI.getMyListings(),
+                    wishlistAPI.list().catch(() => []),
                 ]);
                 setProfile(profileData);
                 setMyListings(listingsData);
+                setWishlistItems(wishlistData || []);
             } catch (err) {
                 console.error('Failed to fetch profile', err);
                 // If unauthorized, redirect might happen in apiFetch, but good to be safe
@@ -111,6 +114,13 @@ export default function ProfilePage() {
                                             <ShoppingCart size={16} />
                                         </div>
                                         {dict.profile.myPurchases}
+                                    </button>
+
+                                    <button className="w-full text-right p-3 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl text-sm font-bold flex items-center gap-3 transition-colors group">
+                                        <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-lg group-hover:bg-red-500 group-hover:text-white transition-colors">
+                                            <Heart size={16} />
+                                        </div>
+                                        المفضلة <span className="text-xs bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-full">{wishlistItems.length}</span>
                                     </button>
 
                                     <button
@@ -218,17 +228,19 @@ export default function ProfilePage() {
                                         {myListings.slice(0, 5).map((item, i) => (
                                             <div
                                                 key={item.id || i}
-                                                className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-                                                onClick={() => router.push(`/product/${item.id}`)}
+                                                className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
                                             >
-                                                <div className="w-12 h-12 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
+                                                <div
+                                                    className="w-12 h-12 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer"
+                                                    onClick={() => router.push(`/product/${item.id}`)}
+                                                >
                                                     {item.images?.[0]?.image ? (
                                                         <img src={item.images[0].image} alt={item.title} className="w-full h-full object-cover" />
                                                     ) : (
                                                         <Package size={24} className="m-auto mt-3 text-slate-400" />
                                                     )}
                                                 </div>
-                                                <div className="flex-1">
+                                                <div className="flex-1 cursor-pointer" onClick={() => router.push(`/product/${item.id}`)}>
                                                     <p className="font-semibold text-sm">{item.title}</p>
                                                     <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">{item.price} {dict.currency}</p>
                                                 </div>
@@ -236,11 +248,70 @@ export default function ProfilePage() {
                                                     }`}>
                                                     {item.status === 'active' ? 'نشط' : item.status}
                                                 </div>
+                                                <button
+                                                    onClick={() => router.push(`/product/edit/${item.id}`)}
+                                                    className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                                    title="تعديل الإعلان"
+                                                >
+                                                    <Pencil size={16} />
+                                                </button>
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
                                     <p className="text-slate-500 text-sm py-4 text-center">لا توجد إعلانات حتى الآن</p>
+                                )}
+                            </div>
+
+                            {/* Wishlist / Favorites */}
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                                    <Heart size={20} className="text-red-500" />
+                                    المفضلة ({wishlistItems.length})
+                                </h3>
+                                {wishlistItems.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {wishlistItems.map((item: any, i: number) => (
+                                            <div
+                                                key={item.id || i}
+                                                className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                                            >
+                                                <div
+                                                    className="flex-1 flex items-center gap-3"
+                                                    onClick={() => router.push(`/product/${item.id}`)}
+                                                >
+                                                    <div className="w-12 h-12 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
+                                                        {item.primary_image ? (
+                                                            <img src={item.primary_image} alt={item.title} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <Package size={24} className="m-auto mt-3 text-slate-400" />
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="font-semibold text-sm">{item.title}</p>
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">{item.price} {dict.currency}</p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        try {
+                                                            await wishlistAPI.toggle(item.id);
+                                                            setWishlistItems(prev => prev.filter(w => w.id !== item.id));
+                                                        } catch (err) {
+                                                            console.error(err);
+                                                        }
+                                                    }}
+                                                    className="text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg transition-colors"
+                                                    title="إزالة من المفضلة"
+                                                >
+                                                    <Heart size={16} fill="currentColor" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-slate-500 text-sm py-4 text-center">لسه مضفتش حاجة للمفضلة ❤️</p>
                                 )}
                             </div>
 

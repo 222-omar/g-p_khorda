@@ -6,10 +6,10 @@ import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { AuctionTimer } from '@/components/ui/auction-timer';
 import { useLanguage } from '@/components/providers/language-provider';
-import { ArrowRight, ShoppingCart, MapPin, Star, Loader2, Edit, Trash2 } from 'lucide-react';
+import { ArrowRight, ShoppingCart, MapPin, Star, Loader2, Edit, Trash2, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { productsAPI, auctionsAPI, authAPI } from '@/lib/api';
+import { productsAPI, auctionsAPI, authAPI, chatAPI } from '@/lib/api';
 
 const categoryLabels: Record<string, string> = {
     scrap_metals: 'خردة ومعادن',
@@ -17,6 +17,7 @@ const categoryLabels: Record<string, string> = {
     furniture: 'أثاث وديكور',
     cars: 'سيارات للبيع',
     real_estate: 'عقارات',
+    books: 'كتب',
     other: 'أخرى',
 };
 
@@ -41,6 +42,7 @@ export default function ProductPage() {
     const [bidError, setBidError] = useState<string | null>(null);
     const [bidSuccess, setBidSuccess] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [chatLoading, setChatLoading] = useState(false);
 
     // Fetch product and user details
     useEffect(() => {
@@ -242,19 +244,35 @@ export default function ProductPage() {
                                 <>
                                     <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
                                         <p className="text-slate-500 dark:text-slate-400 text-xs uppercase font-bold mb-2">
-                                            المزايدة الحالية
+                                            {product.auction.is_active ? 'المزايدة الحالية' : 'السعر النهائي'}
                                         </p>
                                         <p className="text-4xl md:text-5xl font-black text-primary">
                                             {parseFloat(product.auction.current_bid || product.price).toLocaleString()}
                                             <span className="text-lg mr-2">{dict.currency}</span>
                                         </p>
+                                        {product.auction.total_bids !== undefined && (
+                                            <p className="text-xs text-slate-500 mt-2">
+                                                {product.auction.total_bids} مزايدة
+                                            </p>
+                                        )}
                                     </div>
 
-                                    {/* Auction Timer */}
-                                    <AuctionTimer endTime={product.auction.end_time} />
+                                    {/* Auction Timer or Ended State */}
+                                    {product.auction.is_active ? (
+                                        <AuctionTimer endTime={product.auction.end_time} />
+                                    ) : (
+                                        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-center">
+                                            <p className="text-red-600 dark:text-red-400 font-bold text-lg mb-1">🔴 المزاد انتهى</p>
+                                            {product.auction.highest_bidder_name && (
+                                                <p className="text-sm text-slate-600 dark:text-slate-400">
+                                                    الفائز: <span className="font-bold text-primary">{product.auction.highest_bidder_name}</span>
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
 
-                                    {/* Bid Form (Only show if NOT owner) */}
-                                    {!isOwner && (
+                                    {/* Bid Form (Only show if NOT owner AND auction is active) */}
+                                    {!isOwner && product.auction.is_active && (
                                         <div className="space-y-3">
                                             {bidSuccess && (
                                                 <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
@@ -284,6 +302,47 @@ export default function ProductPage() {
                                                     {bidding && <Loader2 className="animate-spin" size={18} />}
                                                     {bidding ? 'جار المزایدة...' : 'زايد الآن'}
                                                 </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Bid History */}
+                                    {product.auction.bids && product.auction.bids.length > 0 && (
+                                        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden">
+                                            <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                                                <h3 className="font-bold text-sm flex items-center gap-2">
+                                                    📋 سجل المزايدات ({product.auction.bids.length})
+                                                </h3>
+                                            </div>
+                                            <div className="max-h-64 overflow-y-auto">
+                                                {product.auction.bids
+                                                    .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                                                    .map((bid: any, index: number) => (
+                                                        <div
+                                                            key={bid.id || index}
+                                                            className={`flex items-center justify-between p-3 px-4 ${index === 0 ? 'bg-orange-50 dark:bg-orange-900/10' : ''} ${index !== product.auction.bids.length - 1 ? 'border-b border-slate-100 dark:border-slate-700/50' : ''}`}
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${index === 0 ? 'bg-orange-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
+                                                                    {index === 0 ? '👑' : index + 1}
+                                                                </div>
+                                                                <div>
+                                                                    <p className={`text-sm font-bold ${index === 0 ? 'text-orange-600' : ''}`}>
+                                                                        {bid.bidder_name || 'مستخدم'}
+                                                                    </p>
+                                                                    <p className="text-xs text-slate-400">
+                                                                        {new Date(bid.created_at).toLocaleString('ar-EG', {
+                                                                            month: 'short', day: 'numeric',
+                                                                            hour: '2-digit', minute: '2-digit'
+                                                                        })}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <span className={`font-black text-sm ${index === 0 ? 'text-orange-600' : 'text-slate-700 dark:text-slate-300'}`}>
+                                                                {parseFloat(bid.amount).toLocaleString()} {dict.currency}
+                                                            </span>
+                                                        </div>
+                                                    ))}
                                             </div>
                                         </div>
                                     )}
@@ -335,7 +394,7 @@ export default function ProductPage() {
                             {isOwner ? (
                                 <div className="flex gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                                     <button
-                                        onClick={() => router.push(`/sell?edit=${product.id}`)} // Assuming edit flow exists or reused sell page
+                                        onClick={() => router.push(`/product/edit/${product.id}`)}
                                         className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                                     >
                                         <Edit size={20} />
@@ -351,16 +410,29 @@ export default function ProductPage() {
                                     </button>
                                 </div>
                             ) : (
-                                !product.is_auction && (
-                                    <div className="flex gap-4">
-                                        <button className="flex-1 bg-primary hover:bg-primary-700 text-white py-4 rounded-xl font-bold transition-all shadow-md hover:shadow-lg">
-                                            {dict.product.contactSeller}
-                                        </button>
-                                        <button className="px-6 py-4 border-2 border-slate-300 dark:border-slate-700 hover:border-primary dark:hover:border-primary rounded-xl transition-all hover:bg-primary-50 dark:hover:bg-primary-900/20">
-                                            <ShoppingCart size={20} />
-                                        </button>
-                                    </div>
-                                )
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={async () => {
+                                            if (!user) { router.push('/login'); return; }
+                                            setChatLoading(true);
+                                            try {
+                                                await chatAPI.startConversation(product.id);
+                                                router.push('/messages');
+                                            } catch (err) {
+                                                console.error('Failed to start conversation:', err);
+                                                setChatLoading(false);
+                                            }
+                                        }}
+                                        disabled={chatLoading}
+                                        className="flex-1 bg-primary hover:bg-primary-700 text-white py-4 rounded-xl font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                        {chatLoading ? <Loader2 className="animate-spin" size={20} /> : <MessageCircle size={20} />}
+                                        {dict.product.contactSeller}
+                                    </button>
+                                    <button className="px-6 py-4 border-2 border-slate-300 dark:border-slate-700 hover:border-primary dark:hover:border-primary rounded-xl transition-all hover:bg-primary-50 dark:hover:bg-primary-900/20">
+                                        <ShoppingCart size={20} />
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>

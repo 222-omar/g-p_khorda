@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import UserProfile, Product, ProductImage, Auction, Bid, AIPriceAnalysis
+from django.utils import timezone
+from .models import UserProfile, Product, ProductImage, Auction, Bid, Conversation, Message
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -48,25 +49,30 @@ class AuctionSerializer(serializers.ModelSerializer):
     """Auction serializer with bidding history"""
     bids = BidSerializer(many=True, read_only=True)
     highest_bidder_name = serializers.CharField(source='highest_bidder.username', read_only=True, allow_null=True)
+    total_bids = serializers.SerializerMethodField()
+    product_title = serializers.CharField(source='product.title', read_only=True)
+    product_image = serializers.SerializerMethodField()
     
     class Meta:
         model = Auction
         fields = [
-            'id', 'starting_bid', 'current_bid', 'highest_bidder', 
-            'highest_bidder_name', 'end_time', 'is_active', 'bids'
+            'id', 'product', 'product_title', 'product_image',
+            'starting_bid', 'current_bid', 'highest_bidder', 
+            'highest_bidder_name', 'start_time', 'end_time', 
+            'is_active', 'total_bids', 'bids'
         ]
         read_only_fields = ['id', 'current_bid', 'highest_bidder']
 
+    def get_total_bids(self, obj):
+        return obj.bids.count()
 
-class AIPriceAnalysisSerializer(serializers.ModelSerializer):
-    """AI price analysis serializer"""
-    class Meta:
-        model = AIPriceAnalysis
-        fields = [
-            'id', 'market_average', 'price_difference', 'recommendation',
-            'similar_products_count', 'confidence_score', 'created_at'
-        ]
-        read_only_fields = ['id', 'created_at']
+    def get_product_image(self, obj):
+        primary_img = obj.product.images.filter(is_primary=True).first()
+        if primary_img:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(primary_img.image.url)
+        return None
 
 
 class ProductListSerializer(serializers.ModelSerializer):
@@ -79,7 +85,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'title', 'price', 'category', 'condition', 'status',
-            'location', 'phone_number', 'is_auction', 'auction_start_time',
+            'location', 'phone_number', 'is_auction',
             'auction_end_time', 'primary_image', 'owner_name', 'views_count', 'created_at'
         ]
         read_only_fields = ['id', 'owner_name', 'views_count', 'created_at']
@@ -99,15 +105,14 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     owner_profile = serializers.SerializerMethodField()
     images = ProductImageSerializer(many=True, read_only=True)
     auction = AuctionSerializer(read_only=True)
-    ai_analysis = AIPriceAnalysisSerializer(read_only=True)
     
     class Meta:
         model = Product
         fields = [
             'id', 'owner', 'owner_profile', 'title', 'description', 
             'price', 'category', 'condition', 'status', 'location',
-            'phone_number', 'is_auction', 'auction_start_time', 'auction_end_time', 
-            'views_count', 'images', 'auction', 'ai_analysis', 'created_at', 'updated_at'
+            'phone_number', 'is_auction', 'auction_end_time', 
+            'views_count', 'images', 'auction', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'owner', 'views_count', 'created_at', 'updated_at']
     
@@ -138,7 +143,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'title', 'description', 'price', 'category', 'condition', 
-            'location', 'phone_number', 'is_auction', 'auction_start_time', 
+            'location', 'phone_number', 'is_auction',
             'auction_end_time', 'images', 'uploaded_images'
         ]
         read_only_fields = ['id']
@@ -149,12 +154,13 @@ class ProductCreateSerializer(serializers.ModelSerializer):
             product = Product.objects.create(**validated_data)
             
             # Create Auction if is_auction and end_time provided
+            # Auction starts NOW (at creation time)
             if product.is_auction and product.auction_end_time:
                 Auction.objects.create(
                     product=product,
                     starting_bid=product.price,
                     current_bid=product.price,
-                    start_time=product.auction_start_time,
+                    start_time=timezone.now(),
                     end_time=product.auction_end_time,
                     is_active=True
                 )
@@ -225,3 +231,109 @@ class RegisterSerializer(serializers.ModelSerializer):
         UserProfile.objects.create(user=user, city=city, phone=phone)
         
         return user
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    """Serializer for individual chat messages"""
+    sender_name = serializers.CharField(source='sender.username', read_only=True)
+    sender_avatar = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Message
+        fields = ['id', 'conversation', 'sender', 'sender_name', 'sender_avatar', 'content', 'is_read', 'created_at']
+        read_only_fields = ['id', 'sender', 'created_at']
+
+    def get_sender_avatar(self, obj):
+        try:
+            if obj.sender.profile.avatar:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(obj.sender.profile.avatar.url)
+        except UserProfile.DoesNotExist:
+            pass
+        return None
+
+
+class ConversationListSerializer(serializers.ModelSerializer):
+    """Lightweight conversation serializer for list views"""
+    last_message = serializers.SerializerMethodField()
+    unread_count = serializers.SerializerMethodField()
+    other_participant = serializers.SerializerMethodField()
+    product_title = serializers.CharField(source='product.title', read_only=True)
+    product_image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Conversation
+        fields = [
+            'id', 'product', 'product_title', 'product_image',
+            'other_participant', 'last_message', 'unread_count',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_last_message(self, obj):
+        last_msg = obj.messages.order_by('-created_at').first()
+        if last_msg:
+            return {
+                'content': last_msg.content[:100],
+                'sender_name': last_msg.sender.username,
+                'created_at': last_msg.created_at.isoformat(),
+                'is_read': last_msg.is_read,
+            }
+        return None
+
+    def get_unread_count(self, obj):
+        request = self.context.get('request')
+        if request and request.user:
+            return obj.messages.filter(is_read=False).exclude(sender=request.user).count()
+        return 0
+
+    def get_other_participant(self, obj):
+        request = self.context.get('request')
+        if request and request.user:
+            other_user = obj.seller if request.user == obj.buyer else obj.buyer
+            avatar_url = None
+            try:
+                if other_user.profile.avatar:
+                    avatar_url = request.build_absolute_uri(other_user.profile.avatar.url)
+            except UserProfile.DoesNotExist:
+                pass
+            return {
+                'id': other_user.id,
+                'username': other_user.username,
+                'avatar': avatar_url,
+            }
+        return None
+
+    def get_product_image(self, obj):
+        primary_img = obj.product.images.filter(is_primary=True).first()
+        if primary_img:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(primary_img.image.url)
+        return None
+
+
+class ConversationDetailSerializer(serializers.ModelSerializer):
+    """Full conversation serializer with all messages"""
+    messages = MessageSerializer(many=True, read_only=True)
+    buyer = UserSerializer(read_only=True)
+    seller = UserSerializer(read_only=True)
+    product_title = serializers.CharField(source='product.title', read_only=True)
+    product_image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Conversation
+        fields = [
+            'id', 'product', 'product_title', 'product_image',
+            'buyer', 'seller', 'messages', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_product_image(self, obj):
+        primary_img = obj.product.images.filter(is_primary=True).first()
+        if primary_img:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(primary_img.image.url)
+        return None

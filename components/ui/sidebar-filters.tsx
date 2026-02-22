@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Filter, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -10,6 +10,7 @@ const categories = [
     { id: 'furniture', label: 'أثاث وديكور' },
     { id: 'cars', label: 'سيارات للبيع' },
     { id: 'real_estate', label: 'عقارات' },
+    { id: 'books', label: 'كتب' },
     { id: 'other', label: 'أخرى' },
 ];
 
@@ -41,29 +42,30 @@ export function SidebarFilters({ onFilterChange }: SidebarFiltersProps) {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [selectedPriceRange, setSelectedPriceRange] = useState<string | null>(null);
     const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
+    const onFilterChangeRef = useRef(onFilterChange);
+    onFilterChangeRef.current = onFilterChange;
 
-    // Notify parent of filter changes
     useEffect(() => {
-        if (onFilterChange) {
-            const priceRange = priceRanges.find(r => r.id === selectedPriceRange);
+        const cb = onFilterChangeRef.current;
+        if (!cb) return;
 
-            const filters: {
-                category?: string;
-                min_price?: number;
-                max_price?: number;
-                condition?: string;
-            } = {};
+        const priceRange = priceRanges.find(r => r.id === selectedPriceRange);
+        const filters: {
+            category?: string;
+            min_price?: number;
+            max_price?: number;
+            condition?: string;
+        } = {};
 
-            if (selectedCategories.length > 0) filters.category = selectedCategories[0];
-            if (priceRange) {
-                filters.min_price = priceRange.min;
-                if (priceRange.max !== Infinity) filters.max_price = priceRange.max;
-            }
-            if (selectedConditions.length > 0) filters.condition = selectedConditions[0];
-
-            onFilterChange(filters);
+        if (selectedCategories.length > 0) filters.category = selectedCategories[0];
+        if (priceRange) {
+            filters.min_price = priceRange.min;
+            if (priceRange.max !== Infinity) filters.max_price = priceRange.max;
         }
-    }, [selectedCategories, selectedPriceRange, selectedConditions, onFilterChange]);
+        if (selectedConditions.length > 0) filters.condition = selectedConditions[0];
+
+        cb(filters);
+    }, [selectedCategories, selectedPriceRange, selectedConditions]);
 
     const toggleCategory = (id: string) => {
         setSelectedCategories((prev) =>
@@ -140,8 +142,8 @@ export function SidebarFilters({ onFilterChange }: SidebarFiltersProps) {
                         <label
                             key={range.id}
                             className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer group transition-colors ${selectedPriceRange === range.id
-                                    ? 'bg-primary/10 border border-primary/30'
-                                    : 'hover:bg-slate-50 dark:hover:bg-slate-800'
+                                ? 'bg-primary/10 border border-primary/30'
+                                : 'hover:bg-slate-50 dark:hover:bg-slate-800'
                                 }`}
                             onClick={(e) => {
                                 e.preventDefault();

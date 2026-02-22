@@ -273,3 +273,84 @@ export const generalAPI = {
         }>('/general-stats/');
     },
 };
+
+// Chat API
+export const chatAPI = {
+    async getConversations() {
+        return apiFetch<any[]>('/conversations/');
+    },
+
+    async getConversation(id: number) {
+        return apiFetch<any>(`/conversations/${id}/`);
+    },
+
+    async startConversation(productId: number) {
+        return apiFetch<any>('/conversations/start_conversation/', {
+            method: 'POST',
+            body: JSON.stringify({ product_id: productId }),
+        });
+    },
+
+    async sendMessage(conversationId: number, content: string) {
+        return apiFetch<any>(`/conversations/${conversationId}/send_message/`, {
+            method: 'POST',
+            body: JSON.stringify({ content }),
+        });
+    },
+
+    async getUnreadCount() {
+        return apiFetch<{ unread_count: number }>('/conversations/unread_count/');
+    },
+};
+
+// Wishlist API
+export const wishlistAPI = {
+    async list() {
+        return apiFetch<any[]>('/wishlist/');
+    },
+
+    async toggle(productId: number) {
+        return apiFetch<{ status: string; is_wishlisted: boolean }>(`/wishlist/toggle/${productId}/`, {
+            method: 'POST',
+        });
+    },
+
+    async check(productId: number) {
+        return apiFetch<{ is_wishlisted: boolean }>(`/wishlist/check/${productId}/`);
+    },
+
+    async getIds() {
+        return apiFetch<{ product_ids: number[] }>('/wishlist/ids/');
+    },
+};
+
+export const classifyAPI = {
+    async classifyImage(file: File): Promise<{
+        category: string;
+        category_label: string;
+        confidence: number;
+        detected_class: string | null;
+    }> {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const token = getAuthToken();
+        const headers: Record<string, string> = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/classify-image/`, {
+            method: 'POST',
+            headers,
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error('Classification failed');
+        }
+
+        return response.json();
+    },
+};
+

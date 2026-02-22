@@ -13,12 +13,45 @@ import random
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from .models import Product, ProductImage, Auction, Bid, UserProfile, AIPriceAnalysis
+from .models import Product, ProductImage, Auction, Bid, UserProfile, Conversation, Message, Wishlist
 from .serializers import (
     ProductListSerializer, ProductDetailSerializer, ProductCreateSerializer,
     AuctionSerializer, BidSerializer, UserProfileSerializer, UserSerializer,
-    RegisterSerializer, AIPriceAnalysisSerializer
+    RegisterSerializer, ConversationListSerializer, ConversationDetailSerializer,
+    MessageSerializer
 )
+
+
+def close_expired_auctions():
+    """Auto-close expired auctions and notify winners"""
+    expired = Auction.objects.filter(is_active=True, end_time__lte=timezone.now())
+    for auction in expired:
+        auction.is_active = False
+        auction.save(update_fields=['is_active'])
+        # Mark the product as sold
+        auction.product.status = 'sold'
+        auction.product.save(update_fields=['status'])
+        # Send auto-message to winner
+        if auction.highest_bidder:
+            send_winner_message(auction)
+
+
+def send_winner_message(auction):
+    """Send a congratulations message to the auction winner via the chat system"""
+    try:
+        conversation, _ = Conversation.objects.get_or_create(
+            product=auction.product,
+            buyer=auction.highest_bidder,
+            defaults={'seller': auction.product.owner}
+        )
+        Message.objects.create(
+            conversation=conversation,
+            sender=auction.product.owner,
+            content=f'🎉 تهانينا! لقد فزت بالمزاد على "{auction.product.title}" بمبلغ {auction.current_bid} جنيه. تواصل مع البائع لإتمام عملية الشراء.'
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -88,7 +121,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'list':
             return ProductListSerializer
-        elif self.action == 'create' or self.action == 'update':
+        elif self.action == 'create' or self.action == 'update' or self.action == 'partial_update':
             return ProductCreateSerializer
         return ProductDetailSerializer
     
@@ -104,12 +137,12 @@ class ProductViewSet(viewsets.ModelViewSet):
         if max_price:
             queryset = queryset.filter(price__lte=max_price)
         
-        # Filter active auctions only
-        if self.request.query_params.get('auctions_only') == 'true':
-            queryset = queryset.filter(is_auction=True, auction__is_active=True)
-        elif self.request.query_params.get('is_auction') is None:
-            # Default to regular products only if listing type not specified
-            queryset = queryset.filter(is_auction=False)
+        # On list view, default to non-auction products unless specified
+        if self.action == 'list':
+            if self.request.query_params.get('auctions_only') == 'true':
+                queryset = queryset.filter(is_auction=True, auction__is_active=True)
+            elif self.request.query_params.get('is_auction') is None:
+                queryset = queryset.filter(is_auction=False)
         
         return queryset
     
@@ -125,52 +158,6 @@ class ProductViewSet(viewsets.ModelViewSet):
         """Set owner to current user when creating product"""
         serializer.save(owner=self.request.user)
     
-    def generate_ai_analysis(self, product):
-        """Generate AI price analysis for a product"""
-        # Simulate AI analysis (in production, this would call actual AI model)
-        similar_products = Product.objects.filter(
-            category=product.category,
-            status='sold'
-        ).exclude(id=product.id)[:20]
-        
-        if similar_products.exists():
-            avg_price = similar_products.aggregate(models.Avg('price'))['price__avg']
-            market_avg = Decimal(str(avg_price)) if avg_price else product.price
-        else:
-            market_avg = product.price * Decimal('0.95')
-        
-        difference = ((product.price - market_avg) / market_avg) * 100
-        
-        if abs(difference) < 5:
-            recommendation = 'excellent'
-        elif difference < 0:
-            recommendation = 'good'
-        else:
-            recommendation = 'high'
-        
-        AIPriceAnalysis.objects.create(
-            product=product,
-            market_average=market_avg,
-            price_difference=difference,
-            recommendation=recommendation,
-            similar_products_count=similar_products.count() or random.randint(15, 50),
-            confidence_score=random.randint(85, 98)
-        )
-    
-    @action(detail=True, methods=['get'])
-    def ai_analysis(self, request, pk=None):
-        """Get or generate AI price analysis for a product"""
-        product = self.get_object()
-        
-        try:
-            analysis = product.ai_analysis
-        except AIPriceAnalysis.DoesNotExist:
-            self.generate_ai_analysis(product)
-            analysis = product.ai_analysis
-        
-        serializer = AIPriceAnalysisSerializer(analysis)
-        return Response(serializer.data)
-    
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def my_listings(self, request):
         """Get current user's products"""
@@ -181,18 +168,24 @@ class ProductViewSet(viewsets.ModelViewSet):
 
 class AuctionViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for viewing auctions"""
-    queryset = Auction.objects.select_related('product', 'highest_bidder').prefetch_related('bids')
+    queryset = Auction.objects.select_related(
+        'product', 'product__owner', 'highest_bidder'
+    ).prefetch_related('bids', 'product__images')
     serializer_class = AuctionSerializer
     permission_classes = [AllowAny]
     
     def get_queryset(self):
+        # Auto-close expired auctions first
+        close_expired_auctions()
+        
         queryset = super().get_queryset()
         
-        # Only active auctions
-        if self.request.query_params.get('active_only') == 'true':
+        # Only filter active auctions if explicitly requested
+        active_only = self.request.query_params.get('active_only', 'false')
+        if active_only == 'true':
             queryset = queryset.filter(is_active=True, end_time__gt=timezone.now())
         
-        return queryset
+        return queryset.order_by('-is_active', '-end_time')
     
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def place_bid(self, request, pk=None):
@@ -201,21 +194,26 @@ class AuctionViewSet(viewsets.ReadOnlyModelViewSet):
         
         # Validation
         if not auction.is_active:
-            return Response({'error': 'Auction is not active'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'المزاد غير نشط'}, status=status.HTTP_400_BAD_REQUEST)
         
         if auction.end_time < timezone.now():
+            # Auto-close this auction
             auction.is_active = False
-            auction.save()
-            return Response({'error': 'Auction has ended'}, status=status.HTTP_400_BAD_REQUEST)
+            auction.save(update_fields=['is_active'])
+            auction.product.status = 'sold'
+            auction.product.save(update_fields=['status'])
+            if auction.highest_bidder:
+                send_winner_message(auction)
+            return Response({'error': 'المزاد انتهى'}, status=status.HTTP_400_BAD_REQUEST)
         
         if auction.product.owner == request.user:
-            return Response({'error': 'Cannot bid on your own auction'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'لا يمكنك المزايدة على مزادك الخاص'}, status=status.HTTP_400_BAD_REQUEST)
         
         amount = Decimal(str(request.data.get('amount', 0)))
         
         if amount <= auction.current_bid:
             return Response({
-                'error': f'Bid must be higher than current bid of {auction.current_bid}'
+                'error': f'يجب أن تكون المزايدة أعلى من السعر الحالي ({auction.current_bid} جنيه)'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Create bid
@@ -253,6 +251,90 @@ class UserProfileViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+class ConversationViewSet(viewsets.ModelViewSet):
+    """ViewSet for chat conversations"""
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ConversationListSerializer
+        return ConversationDetailSerializer
+
+    def get_queryset(self):
+        return Conversation.objects.filter(
+            models.Q(buyer=self.request.user) | models.Q(seller=self.request.user)
+        ).select_related(
+            'product', 'buyer', 'seller', 'buyer__profile', 'seller__profile'
+        ).prefetch_related('messages', 'product__images')
+
+    def retrieve(self, request, *args, **kwargs):
+        """Get conversation and mark messages as read"""
+        instance = self.get_object()
+        # Mark all messages from the other user as read
+        instance.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def start_conversation(self, request):
+        """Start a new conversation or return existing one for a product"""
+        product_id = request.data.get('product_id')
+        if not product_id:
+            return Response({'error': 'product_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        product = get_object_or_404(Product, id=product_id)
+
+        # Can't start a conversation with yourself
+        if product.owner == request.user:
+            return Response({'error': 'Cannot start a conversation with yourself'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get or create conversation
+        conversation, created = Conversation.objects.get_or_create(
+            product=product,
+            buyer=request.user,
+            defaults={'seller': product.owner}
+        )
+
+        serializer = ConversationDetailSerializer(conversation, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def send_message(self, request, pk=None):
+        """Send a message in a conversation"""
+        conversation = self.get_object()
+
+        # Verify user is a participant
+        if request.user not in [conversation.buyer, conversation.seller]:
+            return Response({'error': 'You are not a participant in this conversation'}, status=status.HTTP_403_FORBIDDEN)
+
+        content = request.data.get('content', '').strip()
+        if not content:
+            return Response({'error': 'Message content is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        message = Message.objects.create(
+            conversation=conversation,
+            sender=request.user,
+            content=content
+        )
+
+        # Update conversation timestamp
+        conversation.save()  # triggers auto_now on updated_at
+
+        serializer = MessageSerializer(message, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['get'])
+    def unread_count(self, request):
+        """Get total unread message count for the current user"""
+        count = Message.objects.filter(
+            conversation__in=Conversation.objects.filter(
+                models.Q(buyer=request.user) | models.Q(seller=request.user)
+            ),
+            is_read=False
+        ).exclude(sender=request.user).count()
+        return Response({'unread_count': count})
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_general_stats(request):
@@ -279,3 +361,108 @@ def get_general_stats(request):
         'scrap_count': scrap_count,
         'active_governorates': active_governorates
     })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def wishlist_list(request):
+    """Get user's wishlist products"""
+    wishlist_items = Wishlist.objects.filter(user=request.user).select_related(
+        'product', 'product__owner'
+    ).prefetch_related('product__images')
+    
+    products_data = []
+    for item in wishlist_items:
+        product = item.product
+        primary_image = product.images.filter(is_primary=True).first()
+        if not primary_image:
+            primary_image = product.images.first()
+        
+        products_data.append({
+            'id': product.id,
+            'title': product.title,
+            'price': str(product.price),
+            'category': product.category,
+            'condition': product.condition,
+            'status': product.status,
+            'is_auction': product.is_auction,
+            'primary_image': request.build_absolute_uri(primary_image.image.url) if primary_image else None,
+            'owner_name': product.owner.username,
+            'created_at': product.created_at.isoformat(),
+            'wishlisted_at': item.created_at.isoformat(),
+        })
+    
+    return Response(products_data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def wishlist_toggle(request, product_id):
+    """Add or remove a product from wishlist"""
+    try:
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        return Response({'error': 'المنتج غير موجود'}, status=status.HTTP_404_NOT_FOUND)
+    
+    wishlist_item, created = Wishlist.objects.get_or_create(
+        user=request.user,
+        product=product
+    )
+    
+    if not created:
+        wishlist_item.delete()
+        return Response({'status': 'removed', 'is_wishlisted': False})
+    
+    return Response({'status': 'added', 'is_wishlisted': True}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def wishlist_check(request, product_id):
+    """Check if a product is in user's wishlist"""
+    is_wishlisted = Wishlist.objects.filter(
+        user=request.user,
+        product_id=product_id
+    ).exists()
+    return Response({'is_wishlisted': is_wishlisted})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def wishlist_ids(request):
+    """Get all wishlisted product IDs for current user"""
+    ids = list(Wishlist.objects.filter(user=request.user).values_list('product_id', flat=True))
+    return Response({'product_ids': ids})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def classify_image_view(request):
+    """
+    Accept an image file and return the predicted product category
+    using the YOLO model.
+    """
+    image_file = request.FILES.get('image')
+    if not image_file:
+        return Response(
+            {'error': 'No image file provided'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    import tempfile
+    import os
+    from ai.classifier import classify_image
+
+    # Save to temp file for YOLO inference
+    suffix = os.path.splitext(image_file.name)[1] or '.jpg'
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix, mode='wb') as tmp:
+        for chunk in image_file.chunks():
+            tmp.write(chunk)
+        tmp_path = tmp.name
+
+    try:
+        result = classify_image(tmp_path)
+        return Response(result)
+    finally:
+        os.unlink(tmp_path)
+

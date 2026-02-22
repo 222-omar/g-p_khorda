@@ -6,9 +6,9 @@ import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { useLanguage } from '@/components/providers/language-provider';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Camera, Sparkles, Upload, X, Loader2 } from 'lucide-react';
+import { Camera, Sparkles, Upload, X, Loader2, Bot } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { productsAPI } from '@/lib/api';
+import { productsAPI, classifyAPI } from '@/lib/api';
 
 export default function SellPage() {
     const router = useRouter();
@@ -26,12 +26,13 @@ export default function SellPage() {
         location: '',
         phone_number: '',
         is_auction: false,
-        auction_start_time: '',
         auction_end_time: '',
     });
     const { user, loading: authLoading } = useAuth();
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [classifying, setClassifying] = useState(false);
+    const [aiCategory, setAiCategory] = useState<{ category: string; category_label: string; confidence: number; detected_class: string | null } | null>(null);
 
     // Redirect if not authenticated
     if (!authLoading && !user) {
@@ -74,6 +75,25 @@ export default function SellPage() {
             };
             reader.readAsDataURL(file);
         });
+
+        // Auto-classify the first image uploaded
+        if (imageFiles.length > 0 && uploadedImages.length === 0) {
+            setClassifying(true);
+            setAiCategory(null);
+            classifyAPI.classifyImage(imageFiles[0])
+                .then((result) => {
+                    setAiCategory(result);
+                    if (result.category && result.category !== 'other') {
+                        setFormData(prev => ({ ...prev, category: result.category }));
+                    }
+                })
+                .catch((err) => {
+                    console.error('AI classification failed:', err);
+                })
+                .finally(() => {
+                    setClassifying(false);
+                });
+        }
     };
 
     const removeImage = (index: number) => {
@@ -96,10 +116,9 @@ export default function SellPage() {
             if (!formData.location.trim()) return 'يرجى إدخال الموقع';
             if (!formData.phone_number.trim()) return 'يرجى إدخال رقم الهاتف للتواصل';
             if (formData.is_auction) {
-                if (!formData.auction_start_time) return 'يرجى تحديد وقت وتاريخ بدء المزاد بالكامل';
-                if (!formData.auction_end_time) return 'يرجى تحديد وقت وتاريخ انتهاء المزاد بالكامل';
-                if (new Date(formData.auction_start_time) >= new Date(formData.auction_end_time)) {
-                    return 'تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء';
+                if (!formData.auction_end_time) return 'يرجى تحديد وقت وتاريخ انتهاء المزاد';
+                if (new Date(formData.auction_end_time) <= new Date()) {
+                    return 'تاريخ الانتهاء يجب أن يكون في المستقبل';
                 }
             }
             return null;
@@ -138,7 +157,6 @@ export default function SellPage() {
             formDataToSend.append('phone_number', formData.phone_number);
             formDataToSend.append('is_auction', formData.is_auction.toString());
             if (formData.is_auction && formData.auction_end_time) {
-                formDataToSend.append('auction_start_time', new Date(formData.auction_start_time).toISOString());
                 formDataToSend.append('auction_end_time', new Date(formData.auction_end_time).toISOString());
             }
 
@@ -244,10 +262,24 @@ export default function SellPage() {
                                                 <p className="text-red-600 dark:text-red-400 text-sm text-center">{error}</p>
                                             </div>
                                         )}
+                                        {classifying && (
+                                            <div className="flex items-center justify-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+                                                <Loader2 className="animate-spin text-blue-500" size={18} />
+                                                <span className="text-blue-600 dark:text-blue-400 text-sm font-bold">🤖 جاري تحليل الصورة بالذكاء الاصطناعي...</span>
+                                            </div>
+                                        )}
+                                        {aiCategory && !classifying && (
+                                            <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
+                                                <Bot className="text-green-500" size={18} />
+                                                <span className="text-green-700 dark:text-green-400 text-sm font-bold">
+                                                    🤖 تم التصنيف: {aiCategory.category_label} ({Math.round(aiCategory.confidence * 100)}%)
+                                                </span>
+                                            </div>
+                                        )}
                                         <button
                                             type="button"
                                             onClick={() => setStep(2)}
-                                            disabled={imagePreviews.length === 0}
+                                            disabled={imagePreviews.length === 0 || classifying}
                                             className="w-full bg-primary hover:bg-primary-700 text-white py-4 rounded-xl font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             التالي
@@ -285,11 +317,21 @@ export default function SellPage() {
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">{dict.addItem.category}</label>
+                                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">
+                                                    {dict.addItem.category}
+                                                    {aiCategory && (
+                                                        <span className="mr-2 text-green-600 dark:text-green-400 text-[10px]">🤖 AI</span>
+                                                    )}
+                                                </label>
                                                 <select
                                                     value={formData.category}
-                                                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                                    className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900"
+                                                    onChange={(e) => {
+                                                        setFormData({ ...formData, category: e.target.value });
+                                                    }}
+                                                    className={`w-full border rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900 ${aiCategory && formData.category === aiCategory.category
+                                                            ? 'border-green-300 dark:border-green-700'
+                                                            : 'border-slate-200 dark:border-slate-700'
+                                                        }`}
                                                 >
                                                     <option value="">اختر التصنيف</option>
                                                     <option value="scrap_metals">خردة ومعادن</option>
@@ -297,6 +339,7 @@ export default function SellPage() {
                                                     <option value="furniture">أثاث وديكور</option>
                                                     <option value="cars">سيارات للبيع</option>
                                                     <option value="real_estate">عقارات</option>
+                                                    <option value="books">كتب</option>
                                                     <option value="other">أخرى</option>
                                                 </select>
                                             </div>
@@ -346,27 +389,18 @@ export default function SellPage() {
                                                 <motion.div
                                                     initial={{ opacity: 0, height: 0 }}
                                                     animate={{ opacity: 1, height: 'auto' }}
-                                                    className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4"
+                                                    className="mt-4"
                                                 >
-                                                    <div>
-                                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">تاريخ ووقت بدء المزاد</label>
-                                                        <input
-                                                            type="datetime-local"
-                                                            value={formData.auction_start_time}
-                                                            onChange={(e) => setFormData({ ...formData, auction_start_time: e.target.value })}
-                                                            min={getCurrentLocalTime()}
-                                                            className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900 ltr-input"
-                                                        />
-                                                    </div>
                                                     <div>
                                                         <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">تاريخ ووقت انتهاء المزاد</label>
                                                         <input
                                                             type="datetime-local"
                                                             value={formData.auction_end_time}
                                                             onChange={(e) => setFormData({ ...formData, auction_end_time: e.target.value })}
-                                                            min={formData.auction_start_time || getCurrentLocalTime()}
+                                                            min={getCurrentLocalTime()}
                                                             className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900 ltr-input"
                                                         />
+                                                        <p className="text-xs text-slate-400 mt-2">⏱️ المزاد سيبدأ فوراً بعد نشر الإعلان</p>
                                                     </div>
                                                 </motion.div>
                                             )}

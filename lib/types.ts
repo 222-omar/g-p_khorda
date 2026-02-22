@@ -43,3 +43,40 @@ export interface Category {
     icon: any;
     count: number;
 }
+
+export interface ChatParticipant {
+    id: number;
+    username: string;
+    avatar: string | null;
+}
+
+export interface ChatMessage {
+    id: number;
+    conversation: number;
+    sender: number;
+    sender_name: string;
+    sender_avatar: string | null;
+    content: string;
+    is_read: boolean;
+    created_at: string;
+}
+
+export interface Conversation {
+    id: number;
+    product: number;
+    product_title: string;
+    product_image: string | null;
+    other_participant: ChatParticipant | null;
+    last_message: {
+        content: string;
+        sender_name: string;
+        created_at: string;
+        is_read: boolean;
+    } | null;
+    unread_count: number;
+    buyer?: any;
+    seller?: any;
+    messages?: ChatMessage[];
+    created_at: string;
+    updated_at: string;
+}

@@ -78,8 +78,8 @@ export function Hero() {
                     >
                         <div className="relative rounded-3xl overflow-hidden shadow-2xl">
                             <img
-                                src="https://images.unsplash.com/photo-1592492159418-39f319320569?auto=format&fit=crop&q=80&w=800"
-                                alt="Sustainable marketplace"
+                                src="/hero-bg.jpg"
+                                alt="4Sale marketplace"
                                 className="w-full h-auto"
                             />
 

@@ -30,7 +30,7 @@ export const dictionaries = {
             books: 'كتب',
         },
         features: {
-            title: 'ليه تختار RefurbAI؟',
+            title: 'ليه تختار 4Sale؟',
             subtitle: 'مميزات ذكية بتغير طريقة البيع والشراء',
             aiPricing: {
                 title: 'تسعير ذكي',
@@ -124,7 +124,7 @@ export const dictionaries = {
             books: 'Books',
         },
         features: {
-            title: 'Why Choose RefurbAI?',
+            title: 'Why Choose 4Sale?',
             subtitle: 'Smart features changing the way you buy and sell',
             aiPricing: {
                 title: 'Smart Pricing',

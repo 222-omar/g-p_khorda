@@ -18,13 +18,13 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
-  title: "RefurbAI - سوقك الذكي للمستعمل والخردة",
+  title: "4Sale - سوقك الذكي للمستعمل والخردة",
   description: "وفر فلوسك وساهم في حماية البيئة. منصة ذكية لبيع المستعمل والخردة في مصر مدعومة بالذكاء الاصطناعي",
   keywords: "بيع مستعمل، خردة، مصر، ذكاء اصطناعي، سوق، marketplace, refurb, sustainable",
-  authors: [{ name: "RefurbAI Team" }],
+  authors: [{ name: "4Sale Team" }],
 
   openGraph: {
-    title: "RefurbAI - سوقك الذكي للمستعمل والخردة",
+    title: "4Sale - سوقك الذكي للمستعمل والخردة",
     description: "منصة ذكية لبيع المستعمل والخردة في مصر",
     type: "website",
   },

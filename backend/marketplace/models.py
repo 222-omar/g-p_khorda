@@ -38,6 +38,7 @@ class Product(models.Model):
         ('furniture', 'أثاث وديكور'),
         ('cars', 'سيارات للبيع'),
         ('real_estate', 'عقارات'),
+        ('books', 'كتب'),
         ('other', 'أخرى'),
     ]
     
@@ -65,7 +66,6 @@ class Product(models.Model):
     location = models.CharField(max_length=200)
     phone_number = models.CharField(max_length=20, blank=True, default='')
     is_auction = models.BooleanField(default=False)
-    auction_start_time = models.DateTimeField(null=True, blank=True)
     auction_end_time = models.DateTimeField(null=True, blank=True)
     views_count = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -136,22 +136,52 @@ class Bid(models.Model):
         return f"Bid of {self.amount} by {self.bidder.username}"
 
 
-class AIPriceAnalysis(models.Model):
-    """AI-generated price analysis for products"""
-    product = models.OneToOneField(Product, on_delete=models.CASCADE, related_name='ai_analysis')
-    market_average = models.DecimalField(max_digits=10, decimal_places=2)
-    price_difference = models.DecimalField(max_digits=5, decimal_places=2)  # Percentage
-    recommendation = models.CharField(max_length=20, choices=[
-        ('excellent', 'Excellent'),
-        ('good', 'Good'),
-        ('high', 'High'),
-    ])
-    similar_products_count = models.IntegerField()
-    confidence_score = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(100)])
+class Conversation(models.Model):
+    """Chat conversation between buyer and seller about a product"""
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='conversations')
+    buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversations_as_buyer')
+    seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversations_as_seller')
     created_at = models.DateTimeField(auto_now_add=True)
-    
+    updated_at = models.DateTimeField(auto_now=True)
+
     class Meta:
-        db_table = 'ai_price_analyses'
-    
+        db_table = 'conversations'
+        ordering = ['-updated_at']
+        unique_together = ['product', 'buyer']
+
     def __str__(self):
-        return f"AI Analysis for {self.product.title}"
+        return f"Chat: {self.buyer.username} → {self.seller.username} about {self.product.title}"
+
+
+class Message(models.Model):
+    """Individual message within a conversation"""
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    content = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'messages'
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['conversation', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.sender.username}: {self.content[:50]}"
+
+
+class Wishlist(models.Model):
+    """User's favorite/saved products"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='wishlist')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='wishlisted_by')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'wishlists'
+        unique_together = ['user', 'product']
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.product.title}"

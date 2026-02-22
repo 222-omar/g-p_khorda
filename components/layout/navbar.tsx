@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useLanguage } from '@/components/providers/language-provider';
 import {
-    Moon, Sun, Languages, User, Leaf, Menu, X, LogOut
+    Moon, Sun, Languages, User, Menu, X, LogOut, MessageCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { authAPI, profilesAPI } from '@/lib/api';
+import { authAPI, profilesAPI, chatAPI } from '@/lib/api';
 import { useRouter, usePathname } from 'next/navigation';
 
 export function Navbar() {
@@ -17,6 +17,7 @@ export function Navbar() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [unreadCount, setUnreadCount] = useState(0);
     const router = useRouter();
     const pathname = usePathname();
 
@@ -45,6 +46,17 @@ export function Navbar() {
         };
 
         fetchUser();
+
+        // Fetch unread count
+        const fetchUnread = async () => {
+            try {
+                const data = await chatAPI.getUnreadCount();
+                setUnreadCount(data.unread_count);
+            } catch (e) { /* not logged in */ }
+        };
+        fetchUnread();
+        const interval = setInterval(fetchUnread, 30000);
+        return () => clearInterval(interval);
     }, []);
 
     const handleLogout = () => {
@@ -61,11 +73,8 @@ export function Navbar() {
                 <div className="flex justify-between items-center h-16">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2 group">
-                        <div className="bg-primary p-2 rounded-xl text-white transition-transform group-hover:scale-110">
-                            <Leaf size={20} />
-                        </div>
                         <span className="text-xl font-bold">
-                            Refurb<span className="text-primary">AI</span>
+                            <span className="text-primary">4</span>Sale
                         </span>
                     </Link>
 
@@ -92,6 +101,20 @@ export function Navbar() {
                         >
                             {dict.nav.auctions}
                         </Link>
+                        {isLoggedIn && (
+                            <Link
+                                href="/messages"
+                                className={`text-sm font-semibold transition-colors relative pb-1 flex items-center gap-1 ${pathname === '/messages' ? 'text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-full' : 'hover:text-primary'}`}
+                            >
+                                <MessageCircle size={16} />
+                                الرسائل
+                                {unreadCount > 0 && (
+                                    <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                                        {unreadCount}
+                                    </span>
+                                )}
+                            </Link>
+                        )}
                     </div>
 
                     {/* Actions */}
@@ -191,7 +214,7 @@ export function Navbar() {
                                     {dict.nav.home}
                                 </Link>
                                 <Link
-                                    href="/dashboard"
+                                    href={isLoggedIn ? "/dashboard" : "/login?redirect=/dashboard"}
                                     className={`px-4 py-2 rounded-lg font-semibold ${pathname === '/dashboard' ? 'bg-primary/10 text-primary border-r-4 border-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
                                         }`}
                                     onClick={() => setMobileMenuOpen(false)}
@@ -199,13 +222,28 @@ export function Navbar() {
                                     {dict.nav.shop}
                                 </Link>
                                 <Link
-                                    href="/auctions"
+                                    href={isLoggedIn ? "/auctions" : "/login?redirect=/auctions"}
                                     className={`px-4 py-2 rounded-lg font-semibold ${pathname === '/auctions' ? 'bg-primary/10 text-primary border-r-4 border-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
                                         }`}
                                     onClick={() => setMobileMenuOpen(false)}
                                 >
                                     {dict.nav.auctions}
                                 </Link>
+                                {isLoggedIn && (
+                                    <Link
+                                        href="/messages"
+                                        className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 ${pathname === '/messages' ? 'bg-primary/10 text-primary border-r-4 border-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                    >
+                                        <MessageCircle size={18} />
+                                        الرسائل
+                                        {unreadCount > 0 && (
+                                            <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                                                {unreadCount}
+                                            </span>
+                                        )}
+                                    </Link>
+                                )}
                                 {!loading && (
                                     <>
                                         {!isLoggedIn ? (
