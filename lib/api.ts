@@ -400,3 +400,24 @@ export const notificationsAPI = {
     },
 };
 
+// RAG Smart Search API
+export const ragAPI = {
+    async query(queryText: string) {
+        return apiFetch<{
+            answer: {
+                summary: string;
+                items: (number | string)[];
+                suggested_action: string;
+            };
+            meta: {
+                latency_ms: number;
+                sql_results: number;
+                vector_results: number;
+                merged_results: number;
+            };
+        }>('/rag/query/', {
+            method: 'POST',
+            body: JSON.stringify({ query: queryText }),
+        });
+    },
+};

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useLanguage } from '@/components/providers/language-provider';
 import {
-    Moon, Sun, Languages, User, Menu, X, LogOut, MessageCircle, Bot
+    Moon, Sun, Languages, User, Menu, X, LogOut, MessageCircle, Bot, Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authAPI, profilesAPI, chatAPI } from '@/lib/api';
@@ -111,6 +111,13 @@ export function Navbar() {
                                 الوكيل الذكي
                             </Link>
                         )}
+                        <Link
+                            href="/search"
+                            className={`text-sm font-semibold transition-colors relative pb-1 flex items-center gap-1 ${pathname === '/search' ? 'text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-full' : 'hover:text-primary'}`}
+                        >
+                            <Sparkles size={16} />
+                            بحث ذكي
+                        </Link>
                     </div>
 
                     {/* Actions */}

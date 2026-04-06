@@ -31,6 +31,14 @@ A full-stack marketplace platform built as a graduation project, enabling users 
 - YOLO model (`ai/classifier.py`) detects the item type and auto-fills the category
 - Supports: electronics, furniture, scrap metals, cars, books, real estate, and more
 
+### 🔍 Hybrid RAG Smart Search (`/search`)
+- Natural language searching in Egyptian Arabic (e.g., "عايز غسالة رخيصة")
+- **Dual-Track Retrieval:**
+  - **Vector Track:** Semantic search via Gemini Embeddings and pure numpy cosine similarity (no pgvector required)
+  - **SQL Track:** Text-to-SQL powered by Groq (Llama-3.3-70B) for exact price/category filtering
+- **Synthesis:** Llama-3.3 summarizes the merged outputs into a casual, conversational Arabic response
+- Zero-downtime handling of invalid queries or empty results
+
 ### 💬 Chat System (`/messages`)
 - Buyer-to-seller direct messaging per product
 - Unread count badge in the navbar
@@ -217,6 +225,7 @@ Create `backend/.env` for the Django backend (SECRET_KEY, DEBUG, etc.)
 | GET | `/api/notifications/` | User notifications |
 | POST | `/api/notifications/mark-read/` | Mark all as read |
 | GET | `/api/general-stats/` | Platform statistics |
+| POST| `/api/rag/query/` | Hybrid RAG natural language search |
 
 ---
 
