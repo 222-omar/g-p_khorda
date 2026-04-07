@@ -65,7 +65,9 @@ export default function ProductPage() {
                     setBidAmount((parseFloat(productData.auction.current_bid || productData.price) + 10).toString());
                 }
             } catch (err: any) {
-                console.error('Error fetching data:', err);
+                if (err.message !== 'Not found.') {
+                    console.error('Error fetching data:', err);
+                }
                 setError(err.message || 'Failed to load product');
             } finally {
                 setLoading(false);

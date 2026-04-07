@@ -20,7 +20,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         interval = options['interval']
-        self.stdout.write(self.style.SUCCESS(f"🚀 AI Agent Loop started (Interval: {interval}s)"))
+        self.stdout.write(self.style.SUCCESS(f"AI Agent Loop started (Interval: {interval}s)"))
         self.stdout.write("Press Ctrl+C to stop.")
 
         try:
@@ -28,7 +28,7 @@ class Command(BaseCommand):
                 self.process_auctions()
                 time.sleep(interval)
         except KeyboardInterrupt:
-            self.stdout.write(self.style.WARNING("\n👋 Agent loop stopped."))
+            self.stdout.write(self.style.WARNING("\nAgent loop stopped."))
 
     def process_auctions(self):
         """Find active auctions and trigger agent check for each."""

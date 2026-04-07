@@ -188,6 +188,19 @@ def run_auto_bidding(auction, detected_item):
          .select_related('user')
     )
     
+    # Filter out agents already notified about this product (bid or rejection)
+    # This prevents duplicate LLM calls and notifications on every loop cycle
+    already_notified_user_ids = set(
+        Notification.objects.filter(
+            related_product=auction.product,
+            user__in=[a.user for a in potential_agents]
+        ).values_list('user_id', flat=True)
+    )
+    potential_agents = [a for a in potential_agents if a.user_id not in already_notified_user_ids]
+    
+    if not potential_agents:
+        return
+    
     # --- LLM Evaluation Step ---
     from ai.agent_graph import smart_agent_evaluator
     matching_agents = []
@@ -203,15 +216,22 @@ def run_auto_bidding(auction, detected_item):
                 "product_price": str(product.price),
                 "agent_requirements": agent.requirements_prompt,
             })
-            if eval_result.get("is_match"):
-                logger.info(f"[AgentGraph] MATCH: {eval_result.get('reasoning')}")
+            
+            reason = eval_result.get("reason", "") if isinstance(eval_result, dict) else getattr(eval_result, 'reason', '')
+            is_match = eval_result.get("is_match", False) if isinstance(eval_result, dict) else getattr(eval_result, 'is_match', False)
+
+            if is_match:
+                logger.info(f"[AgentGraph] MATCH: {reason}")
+                # Store reasoning on the agent object temporarily for notification
+                agent._ai_reasoning = reason
                 matching_agents.append(agent)
             else:
-                logger.info(f"[AgentGraph] REJECT: {eval_result.get('reasoning')}")
-                # Optional: notify user it was rejected? 
-                pass
+                logger.info(f"[AgentGraph] REJECT: {reason}")
+                # Send a rejection notification so the user knows why it didn't bid
+                _notify_agent_rejection(agent, product, reason)
         else:
             # No specific requirements, automatically match
+            agent._ai_reasoning = "طابق الفئة المطلوبة (تلقائي)"
             matching_agents.append(agent)
             
     # Sort agents by budget for the bidding war logic
@@ -303,12 +323,18 @@ def _notify_agent_bid(agent, auction, amount, detected_item, outbid=False):
         )
     
     # Create notification record
+    reasoning = getattr(agent, '_ai_reasoning', '')
     Notification.objects.create(
         user=agent.user,
         title=title,
         message=message,
-        related_product=product
+        related_product=product,
+        reasoning=reasoning
     )
+    
+    # Optional: Add reasoning to the message for more clarity
+    if reasoning:
+        message += f"\n\nسبب المزايدة: {reasoning}"
     
     # Also send a chat message via the existing Conversation system
     try:
@@ -324,6 +350,28 @@ def _notify_agent_bid(agent, auction, amount, detected_item, outbid=False):
         )
     except Exception as e:
         logger.error(f"[Agent] Failed to send chat notification: {e}")
+
+def _notify_agent_rejection(agent, product, reason):
+    """Notify the user that their agent matched the category but was rejected by LLM."""
+    # Prevent duplicate rejection notifications for same user+product
+    already_notified = Notification.objects.filter(
+        user=agent.user,
+        related_product=product,
+        title__contains='تخطى منتج'
+    ).exists()
+    if already_notified:
+        return
+    
+    title = f"\U0001f916 الوكيل تخطى منتج: {product.title}"
+    message = f"الوكيل وجد منتج من نفس الفئة المطلوبة ولكن لم يزايد عليه بناءً على شروطك."
+    
+    Notification.objects.create(
+        user=agent.user,
+        title=title,
+        message=message,
+        related_product=product,
+        reasoning=reason
+    )
 
 
 BID_INCREMENT = 50  # Agent counter-bid increment in EGP
@@ -635,14 +683,37 @@ class ConversationDetailSerializer(serializers.ModelSerializer):
     seller = UserSerializer(read_only=True)
     product_title = serializers.CharField(source='product.title', read_only=True)
     product_image = serializers.SerializerMethodField()
+    other_participant = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Conversation
         fields = [
             'id', 'product', 'product_title', 'product_image',
-            'buyer', 'seller', 'messages', 'created_at', 'updated_at'
+            'buyer', 'seller', 'other_participant', 'messages', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_other_participant(self, obj):
+        request = self.context.get('request')
+        if request and request.user:
+            other_user = obj.seller if request.user == obj.buyer else obj.buyer
+            # Handle case where user is neither buyer nor seller (e.g. admin)
+            if not other_user:
+                return None
+                
+            avatar_url = None
+            try:
+                if hasattr(other_user, 'profile') and other_user.profile.avatar:
+                    avatar_url = request.build_absolute_uri(other_user.profile.avatar.url)
+            except Exception:
+                pass
+            return {
+                'id': other_user.id,
+                'username': other_user.username,
+                'avatar': avatar_url,
+            }
+        return None
 
     def get_product_image(self, obj):
         primary_img = obj.product.images.filter(is_primary=True).first()
@@ -682,5 +753,5 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Notification
-        fields = ['id', 'title', 'message', 'is_read', 'related_product', 'product_title', 'created_at']
-        read_only_fields = ['id', 'title', 'message', 'related_product', 'created_at']
+        fields = ['id', 'title', 'message', 'reasoning', 'is_read', 'related_product', 'product_title', 'created_at']
+        read_only_fields = ['id', 'title', 'message', 'reasoning', 'related_product', 'created_at']

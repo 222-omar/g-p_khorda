@@ -2,12 +2,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { ragAPI, productsAPI } from '@/lib/api';
+import { useAuth } from '@/components/providers/auth-provider';
 import { Navbar } from '@/components/layout/navbar';
 import Link from 'next/link';
 import {
-    Search, Bot, Loader2, Sparkles, ArrowLeft,
+    Bot, Loader2, Sparkles,
     ShoppingBag, Gavel, BarChart3, Settings,
-    Clock, Zap, Database, Brain, Send
+    Send, MapPin, Tag
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -35,12 +36,12 @@ interface ChatMessage {
 }
 
 const SUGGESTED_QUERIES = [
-    'عايز غسالة رخيصة',
-    'ورييني كل العربيات',
-    'لابتوب اقل من 5000 جنيه',
-    'خردة حديد في القاهرة',
-    'كتب مدرسية مستعملة',
-    'تلاجة حالة كويسة',
+    { emoji: '🏠', text: 'عايز غسالة رخيصة' },
+    { emoji: '🚗', text: 'ورييني كل العربيات' },
+    { emoji: '💻', text: 'لابتوب اقل من 5000 جنيه' },
+    { emoji: '🔩', text: 'خردة حديد في القاهرة' },
+    { emoji: '📚', text: 'كتب مدرسية مستعملة' },
+    { emoji: '❄️', text: 'تلاجة حالة كويسة' },
 ];
 
 const ACTION_ICONS: Record<string, any> = {
@@ -57,16 +58,34 @@ const ACTION_LABELS: Record<string, string> = {
     set_agent: 'إعداد وكيل ذكي',
 };
 
+function formatTime(date: Date) {
+    return date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+}
+
 export default function SmartSearchPage() {
+    const { user } = useAuth();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
+
+    const userName = user?.user?.first_name || user?.user?.username || 'أنت';
+    const userAvatar = user?.avatar
+        ? (user.avatar.startsWith('http') ? user.avatar : `http://localhost:8000${user.avatar}`)
+        : `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.user?.username || 'user'}`;
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [messages, loading]);
+
+    // Auto-resize textarea
+    useEffect(() => {
+        if (inputRef.current) {
+            inputRef.current.style.height = 'auto';
+            inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 120) + 'px';
+        }
+    }, [input]);
 
     const handleSearch = async (query: string) => {
         if (!query.trim() || loading) return;
@@ -84,17 +103,22 @@ export default function SmartSearchPage() {
         try {
             const result = await ragAPI.query(query);
 
-            // Fetch product details for the returned IDs
             let products: any[] = [];
             if (result.answer.items && result.answer.items.length > 0) {
                 const productPromises = result.answer.items.slice(0, 6).map(async (id) => {
                     try {
-                        return await productsAPI.getById(Number(id));
+                        return await productsAPI.get(String(id));
                     } catch {
                         return null;
                     }
                 });
-                products = (await Promise.all(productPromises)).filter(Boolean);
+                const allProducts = (await Promise.all(productPromises)).filter(p => p && p.id);
+                const uniqueIds = new Set();
+                products = allProducts.filter(p => {
+                    if (uniqueIds.has(p.id)) return false;
+                    uniqueIds.add(p.id);
+                    return true;
+                });
             }
 
             const assistantMsg: ChatMessage = {
@@ -110,7 +134,7 @@ export default function SmartSearchPage() {
             const errorMsg: ChatMessage = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: 'حصلت مشكلة في البحث. جرب تاني بعد شوية.',
+                content: 'عذراً، حصلت مشكلة. جرب تاني بعد شوية 🙏',
                 timestamp: new Date(),
             };
             setMessages(prev => [...prev, errorMsg]);
@@ -124,174 +148,205 @@ export default function SmartSearchPage() {
         handleSearch(input);
     };
 
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSearch(input);
+        }
+    };
+
     return (
         <>
             <Navbar />
-            <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 pt-20">
-                <div className="max-w-4xl mx-auto px-4 py-6 flex flex-col" style={{ height: 'calc(100vh - 80px)' }}>
+            <style jsx global>{`
+                #chat-scroll::-webkit-scrollbar { width: 4px; }
+                #chat-scroll::-webkit-scrollbar-track { background: transparent; }
+                #chat-scroll::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.3); border-radius: 99px; }
+                #chat-scroll::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.5); }
+            `}</style>
+            <main className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-100 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pt-[64px]">
+                <div className="max-w-3xl mx-auto flex flex-col h-[calc(100vh-64px)]">
 
-                    {/* Header */}
-                    <div className="text-center mb-4 flex-shrink-0">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-violet-500/10 to-indigo-500/10 dark:from-violet-500/20 dark:to-indigo-500/20 border border-violet-200/50 dark:border-violet-700/30 mb-3">
-                            <Sparkles className="w-4 h-4 text-violet-500" />
-                            <span className="text-sm font-medium text-violet-700 dark:text-violet-300">
-                                بحث ذكي بالذكاء الاصطناعي
-                            </span>
-                        </div>
-                        <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
-                            اسأل 4Sale أي حاجة
-                        </h1>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                            اكتب اللي بتدور عليه بالعامي وأنا هلاقيهولك
-                        </p>
-                    </div>
+                    {/* ─── Chat Messages Area ─── */}
+                    <div className="flex-1 overflow-y-auto px-4 py-6 space-y-1" id="chat-scroll">
 
-                    {/* Chat Area */}
-                    <div className="flex-1 overflow-y-auto space-y-4 mb-4 px-1">
-                        {/* Empty state */}
+                        {/* Empty State — shown when no messages */}
                         {messages.length === 0 && (
                             <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="flex flex-col items-center justify-center h-full"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.5 }}
+                                className="flex flex-col items-center justify-center h-full select-none"
                             >
-                                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center mb-6 shadow-xl shadow-violet-500/20">
-                                    <Brain className="w-10 h-10 text-white" />
+                                {/* Bot Avatar */}
+                                <div className="relative mb-6">
+                                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-violet-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-violet-500/30">
+                                        <Bot className="w-12 h-12 text-white" />
+                                    </div>
+                                    <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-emerald-500 border-4 border-slate-100 dark:border-slate-950 flex items-center justify-center">
+                                        <Sparkles className="w-3.5 h-3.5 text-white" />
+                                    </div>
                                 </div>
-                                <p className="text-slate-500 dark:text-slate-400 mb-6 text-center">
-                                    جرب تسأل عن أي حاجة... غسالة، عربية، خردة، كتب
+
+                                <h1 className="text-2xl font-bold text-slate-800 dark:text-white mb-1">
+                                   أهلاً {userName} 👋
+                                </h1>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm mb-8">
+                                    أنا بوت 4Sale الذكي، اسألني عن أي حاجة عايز تشتريها
                                 </p>
-                                <div className="flex flex-wrap justify-center gap-2 max-w-lg">
+
+                                {/* Suggested Queries */}
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-md w-full">
                                     {SUGGESTED_QUERIES.map((q, i) => (
-                                        <button
+                                        <motion.button
                                             key={i}
-                                            onClick={() => handleSearch(q)}
-                                            className="px-4 py-2 text-sm rounded-full border border-slate-200 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all text-slate-600 dark:text-slate-300 hover:text-violet-700 dark:hover:text-violet-300"
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: i * 0.07 }}
+                                            onClick={() => handleSearch(q.text)}
+                                            className="group flex items-center gap-2 px-3 py-2.5 text-xs sm:text-sm rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/60 hover:border-violet-400 dark:hover:border-violet-500 hover:shadow-lg hover:shadow-violet-500/5 transition-all duration-200 text-slate-600 dark:text-slate-300 text-right"
                                         >
-                                            {q}
-                                        </button>
+                                            <span className="text-base flex-shrink-0">{q.emoji}</span>
+                                            <span className="truncate">{q.text}</span>
+                                        </motion.button>
                                     ))}
                                 </div>
                             </motion.div>
                         )}
 
-                        {/* Messages */}
+                        {/* ─── Messages ─── */}
                         <AnimatePresence>
                             {messages.map((msg) => (
                                 <motion.div
                                     key={msg.id}
-                                    initial={{ opacity: 0, y: 10 }}
+                                    initial={{ opacity: 0, y: 12 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                    transition={{ duration: 0.3 }}
                                 >
                                     {msg.role === 'user' ? (
-                                        /* User Message */
-                                        <div className="max-w-[80%] bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-2xl rounded-tr-md px-5 py-3 shadow-lg">
-                                            <p className="text-sm">{msg.content}</p>
+                                        /* ══════ User Bubble ══════ */
+                                        <div className="flex items-start gap-2 justify-end mb-4">
+                                            <div className="flex flex-col items-end max-w-[75%]">
+                                                <div className="bg-gradient-to-br from-violet-600 to-indigo-600 text-white px-4 py-2.5 rounded-2xl rounded-br-md shadow-md shadow-violet-500/10">
+                                                    <p className="text-[14px] leading-relaxed">{msg.content}</p>
+                                                </div>
+                                                <span className="text-[10px] text-slate-400 mt-1 mr-1">{formatTime(msg.timestamp)}</span>
+                                            </div>
+                                            <img
+                                                src={userAvatar}
+                                                alt={userName}
+                                                className="w-8 h-8 rounded-full object-cover border-2 border-white dark:border-slate-800 shadow-sm flex-shrink-0"
+                                            />
                                         </div>
                                     ) : (
-                                        /* Assistant Message */
-                                        <div className="max-w-[90%] space-y-3">
-                                            <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-tl-md px-5 py-4 shadow-md border border-slate-100 dark:border-slate-700">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
-                                                        <Bot className="w-3.5 h-3.5 text-white" />
-                                                    </div>
-                                                    <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">4Sale AI</span>
-                                                </div>
-                                                <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">{msg.content}</p>
-
-                                                {/* Suggested Action */}
-                                                {msg.result?.answer.suggested_action && (
-                                                    <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-                                                        {(() => {
-                                                            const action = msg.result!.answer.suggested_action;
-                                                            const Icon = ACTION_ICONS[action] || ShoppingBag;
-                                                            const label = ACTION_LABELS[action] || action;
-                                                            return (
-                                                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5 rounded-full">
-                                                                    <Icon className="w-3.5 h-3.5" />
-                                                                    {label}
-                                                                </span>
-                                                            );
-                                                        })()}
-                                                    </div>
-                                                )}
-
-                                                {/* Meta Stats */}
-                                                {msg.result?.meta && (
-                                                    <div className="mt-3 flex gap-3 text-[10px] text-slate-400">
-                                                        <span className="flex items-center gap-1">
-                                                            <Clock className="w-3 h-3" />
-                                                            {(msg.result.meta.latency_ms / 1000).toFixed(1)}s
-                                                        </span>
-                                                        <span className="flex items-center gap-1">
-                                                            <Brain className="w-3 h-3" />
-                                                            Vector: {msg.result.meta.vector_results}
-                                                        </span>
-                                                        <span className="flex items-center gap-1">
-                                                            <Database className="w-3 h-3" />
-                                                            SQL: {msg.result.meta.sql_results}
-                                                        </span>
-                                                    </div>
-                                                )}
+                                        /* ══════ Bot Bubble ══════ */
+                                        <div className="flex items-start gap-2 justify-start mb-4">
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-sm border-2 border-white dark:border-slate-800">
+                                                <Bot className="w-4 h-4 text-white" />
                                             </div>
+                                            <div className="flex flex-col items-start max-w-[85%] space-y-2">
+                                                {/* Main text bubble */}
+                                                <div className="bg-white dark:bg-slate-800 px-4 py-3 rounded-2xl rounded-bl-md shadow-sm border border-slate-200/60 dark:border-slate-700/60">
+                                                    <p className="text-[14px] text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
 
-                                            {/* Product Cards */}
-                                            {msg.products && msg.products.length > 0 && (
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                    {msg.products.map((product: any) => (
-                                                        <Link
-                                                            key={product.id}
-                                                            href={`/product/${product.id}`}
-                                                            className="group flex gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-violet-300 dark:hover:border-violet-600 hover:shadow-md transition-all"
-                                                        >
-                                                            {product.images?.[0] && (
-                                                                <img
-                                                                    src={product.images[0].image?.startsWith('http') ? product.images[0].image : `http://localhost:8000${product.images[0].image}`}
-                                                                    alt={product.title}
-                                                                    className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-                                                                />
-                                                            )}
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
-                                                                    {product.title}
-                                                                </p>
-                                                                <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
-                                                                    {Number(product.price).toLocaleString('ar-EG')} جنيه
-                                                                </p>
-                                                                <p className="text-xs text-slate-400 mt-0.5 truncate">
-                                                                    {product.location}
-                                                                </p>
-                                                            </div>
-                                                        </Link>
-                                                    ))}
+                                                    {/* Suggested Action pill */}
+                                                    {msg.result?.answer.suggested_action && (
+                                                        <div className="mt-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-700/60">
+                                                            {(() => {
+                                                                const action = msg.result!.answer.suggested_action;
+                                                                const Icon = ACTION_ICONS[action] || ShoppingBag;
+                                                                const label = ACTION_LABELS[action] || action;
+                                                                return (
+                                                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 px-3 py-1.5 rounded-full">
+                                                                        <Icon className="w-3.5 h-3.5" />
+                                                                        {label}
+                                                                    </span>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
+
+                                                {/* Product Cards */}
+                                                {msg.products && msg.products.length > 0 && (
+                                                    <div className="w-full space-y-1.5">
+                                                        {msg.products.map((product: any) => (
+                                                            <Link
+                                                                key={product.id}
+                                                                href={`/product/${product.id}`}
+                                                            >
+                                                                <motion.div
+                                                                    whileHover={{ scale: 1.01 }}
+                                                                    whileTap={{ scale: 0.99 }}
+                                                                    className="group flex gap-3 p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 hover:border-violet-300 dark:hover:border-violet-600 hover:shadow-md transition-all duration-200 cursor-pointer"
+                                                                >
+                                                                    {/* Product Image */}
+                                                                    <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex-shrink-0">
+                                                                        {product.images?.[0] ? (
+                                                                            <img
+                                                                                src={product.images[0].image?.startsWith('http') ? product.images[0].image : `http://localhost:8000${product.images[0].image}`}
+                                                                                alt={product.title}
+                                                                                className="w-full h-full object-cover"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-full h-full flex items-center justify-center">
+                                                                                <ShoppingBag className="w-5 h-5 text-slate-400" />
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    {/* Product Info */}
+                                                                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                                                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+                                                                            {product.title}
+                                                                        </p>
+                                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                                            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                                                                                {Number(product.price).toLocaleString('ar-EG')} جنيه
+                                                                            </span>
+                                                                            {product.location && (
+                                                                                <span className="flex items-center gap-0.5 text-[10px] text-slate-400">
+                                                                                    <MapPin className="w-2.5 h-2.5" />
+                                                                                    {product.location}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        {product.condition && (
+                                                                            <span className="flex items-center gap-0.5 text-[10px] text-slate-400 mt-0.5">
+                                                                                <Tag className="w-2.5 h-2.5" />
+                                                                                {product.condition === 'new' ? 'جديد' : product.condition === 'like-new' ? 'كالجديد' : product.condition === 'good' ? 'جيد' : 'مقبول'}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </motion.div>
+                                                            </Link>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {/* Timestamp */}
+                                                <span className="text-[10px] text-slate-400 ml-1">{formatTime(msg.timestamp)}</span>
+                                            </div>
                                         </div>
                                     )}
                                 </motion.div>
                             ))}
                         </AnimatePresence>
 
-                        {/* Loading indicator */}
+                        {/* ─── Typing Indicator ─── */}
                         {loading && (
                             <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="flex justify-start"
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-start gap-2 justify-start mb-4"
                             >
-                                <div className="bg-white dark:bg-slate-800 rounded-2xl rounded-tl-md px-5 py-4 shadow-md border border-slate-100 dark:border-slate-700">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
-                                            <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
-                                        </div>
-                                        <div className="flex gap-1">
-                                            <span className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                                            <span className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                                            <span className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                                        </div>
-                                        <span className="text-xs text-slate-400">بدور في {'>'}30 منتج...</span>
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-sm border-2 border-white dark:border-slate-800">
+                                    <Bot className="w-4 h-4 text-white" />
+                                </div>
+                                <div className="bg-white dark:bg-slate-800 px-5 py-3.5 rounded-2xl rounded-bl-md shadow-sm border border-slate-200/60 dark:border-slate-700/60">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                                        <span className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                        <span className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                                     </div>
                                 </div>
                             </motion.div>
@@ -300,37 +355,35 @@ export default function SmartSearchPage() {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Input Area */}
-                    <div className="flex-shrink-0 pb-4">
-                        <form onSubmit={handleSubmit} className="relative">
-                            <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 focus-within:border-violet-400 dark:focus-within:border-violet-500 shadow-lg transition-all px-4 py-2">
-                                <Search className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                                <input
+                    {/* ─── Input Bar ─── */}
+                    <div className="flex-shrink-0 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3">
+                        <form onSubmit={handleSubmit} className="flex items-end gap-2 max-w-3xl mx-auto">
+                            <div className="flex-1 relative">
+                                <textarea
                                     ref={inputRef}
-                                    type="text"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
-                                    placeholder="اكتب اللي بتدور عليه... مثلاً: غسالة توشيبا رخيصة"
-                                    className="flex-1 bg-transparent text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none py-2"
+                                    onKeyDown={handleKeyDown}
+                                    placeholder="اكتب رسالتك..."
+                                    rows={1}
+                                    className="w-full resize-none bg-slate-100 dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none rounded-2xl px-4 py-3 pr-4 border border-transparent focus:border-violet-300 dark:focus:border-violet-600 focus:bg-white dark:focus:bg-slate-800 transition-all duration-200"
                                     disabled={loading}
                                     dir="rtl"
+                                    style={{ maxHeight: '120px' }}
                                 />
-                                <button
-                                    type="submit"
-                                    disabled={loading || !input.trim()}
-                                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-700 hover:to-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex-shrink-0 shadow-md"
-                                >
-                                    {loading ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                        <Send className="w-4 h-4" />
-                                    )}
-                                </button>
                             </div>
+                            <button
+                                type="submit"
+                                disabled={loading || !input.trim()}
+                                className="w-11 h-11 flex items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 text-white hover:from-violet-700 hover:to-indigo-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0 shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 active:scale-95"
+                            >
+                                {loading ? (
+                                    <Loader2 className="w-4.5 h-4.5 animate-spin" />
+                                ) : (
+                                    <Send className="w-4.5 h-4.5 rotate-180" />
+                                )}
+                            </button>
                         </form>
-                        <p className="text-center text-[10px] text-slate-400 mt-2">
-                            مدعوم بـ Gemini AI • بحث هجين (Vector + SQL)
-                        </p>
                     </div>
                 </div>
             </main>

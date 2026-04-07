@@ -26,11 +26,26 @@ export const clearAuthTokens = () => {
     document.cookie = 'refresh_token=; path=/; max-age=0';
 };
 
+// Global flag to prevent further API calls after auth is invalidated
+let _authInvalidated = false;
+
+// Reset auth state (called after successful login)
+export const resetAuthState = () => {
+    _authInvalidated = false;
+};
+
 // Generic fetch wrapper with auth
 async function apiFetch<T>(
     endpoint: string,
     options: RequestInit = {}
 ): Promise<T> {
+    // If auth was invalidated, reject immediately without hitting the server
+    if (_authInvalidated) {
+        const error = new Error('Auth invalidated');
+        (error as any).response = { data: { detail: 'Auth invalidated' }, status: 401 };
+        throw error;
+    }
+
     const token = getAuthToken();
 
     const headers: Record<string, string> = {
@@ -49,8 +64,9 @@ async function apiFetch<T>(
 
     if (!response.ok) {
         if (response.status === 401) {
-            // Clear invalid tokens silently — no redirect needed
+            // Clear invalid tokens and set global flag to stop all future requests
             clearAuthTokens();
+            _authInvalidated = true;
         }
         const errorData = await response.json().catch(() => ({ detail: 'An error occurred' }));
 
@@ -94,6 +110,7 @@ export const authAPI = {
         city: string;
         phone?: string;
     }) {
+        resetAuthState(); // Allow API calls for registration
         const response = await apiFetch<{
             user: any;
             tokens: { access: string; refresh: string };
@@ -109,6 +126,7 @@ export const authAPI = {
     },
 
     async login(username: string, password: string) {
+        resetAuthState(); // Allow API calls for login
         const response = await apiFetch<{ access: string; refresh: string }>(
             '/auth/login/',
             {
@@ -293,6 +311,25 @@ export const chatAPI = {
 
     async getUnreadCount() {
         return apiFetch<{ unread_count: number }>('/conversations/unread_count/');
+    },
+
+    async deleteConversation(conversationId: number) {
+        return apiFetch<any>(`/conversations/${conversationId}/delete_conversation/`, {
+            method: 'DELETE',
+        });
+    },
+
+    async deleteMessage(conversationId: number, messageId: number) {
+        return apiFetch<any>(`/conversations/${conversationId}/delete_message/${messageId}/`, {
+            method: 'DELETE',
+        });
+    },
+
+    async editMessage(conversationId: number, messageId: number, content: string) {
+        return apiFetch<any>(`/conversations/${conversationId}/edit_message/${messageId}/`, {
+            method: 'PATCH',
+            body: JSON.stringify({ content }),
+        });
     },
 };
 

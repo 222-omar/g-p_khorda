@@ -231,6 +231,7 @@ class Notification(models.Model):
     message = models.TextField()
     is_read = models.BooleanField(default=False)
     related_product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
+    reasoning = models.TextField(blank=True, default='', help_text="AI reasoning for match or rejection")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

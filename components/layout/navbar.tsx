@@ -31,6 +31,7 @@ export function Navbar() {
 
     // Fetch unread count periodically
     useEffect(() => {
+        let interval: NodeJS.Timeout;
         if (!user) {
             setUnreadCount(0);
             return;
@@ -38,13 +39,25 @@ export function Navbar() {
 
         const fetchUnread = async () => {
             try {
+                // Check if token still exists before polling
+                const token = document.cookie.split(';').find(c => c.trim().startsWith('access_token='));
+                if (!token) {
+                    clearInterval(interval);
+                    return;
+                }
                 const data = await chatAPI.getUnreadCount();
                 setUnreadCount(data.unread_count);
-            } catch (e) { /* ignore errors */ }
+            } catch (e: any) {
+                // If unauthorized, stop polling
+                const status = e?.response?.status || e?.status;
+                if (status === 401) {
+                    clearInterval(interval);
+                }
+            }
         };
 
         fetchUnread();
-        const interval = setInterval(fetchUnread, 60000); // Poll every 60 seconds
+        interval = setInterval(fetchUnread, 60000); // Poll every 60 seconds
         return () => clearInterval(interval);
     }, [user]);
 
@@ -103,21 +116,23 @@ export function Navbar() {
                             </Link>
                         )}
                         {isLoggedIn && (
-                            <Link
-                                href="/agent"
-                                className={`text-sm font-semibold transition-colors relative pb-1 flex items-center gap-1 ${pathname === '/agent' ? 'text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-full' : 'hover:text-primary'}`}
-                            >
-                                <Bot size={16} />
-                                الوكيل الذكي
-                            </Link>
+                            <>
+                                <Link
+                                    href="/agent"
+                                    className={`text-sm font-semibold transition-colors relative pb-1 flex items-center gap-1 ${pathname === '/agent' ? 'text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-full' : 'hover:text-primary'}`}
+                                >
+                                    <Bot size={16} />
+                                    الوكيل الذكي
+                                </Link>
+                                <Link
+                                    href="/search"
+                                    className={`text-sm font-semibold transition-colors relative pb-1 flex items-center gap-1 ${pathname === '/search' ? 'text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-full' : 'hover:text-primary'}`}
+                                >
+                                    <Sparkles size={16} />
+                                    بوت ذكي
+                                </Link>
+                            </>
                         )}
-                        <Link
-                            href="/search"
-                            className={`text-sm font-semibold transition-colors relative pb-1 flex items-center gap-1 ${pathname === '/search' ? 'text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-full' : 'hover:text-primary'}`}
-                        >
-                            <Sparkles size={16} />
-                            بحث ذكي
-                        </Link>
                     </div>
 
                     {/* Actions */}
@@ -246,14 +261,24 @@ export function Navbar() {
                                     </Link>
                                 )}
                                 {isLoggedIn && (
-                                    <Link
-                                        href="/agent"
-                                        className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 ${pathname === '/agent' ? 'bg-primary/10 text-primary border-r-4 border-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-                                        onClick={() => setMobileMenuOpen(false)}
-                                    >
-                                        <Bot size={18} />
-                                        الوكيل الذكي
-                                    </Link>
+                                    <>
+                                        <Link
+                                            href="/agent"
+                                            className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 ${pathname === '/agent' ? 'bg-primary/10 text-primary border-r-4 border-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                                            onClick={() => setMobileMenuOpen(false)}
+                                        >
+                                            <Bot size={18} />
+                                            الوكيل الذكي
+                                        </Link>
+                                        <Link
+                                            href="/search"
+                                            className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 ${pathname === '/search' ? 'bg-primary/10 text-primary border-r-4 border-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                                            onClick={() => setMobileMenuOpen(false)}
+                                        >
+                                            <Sparkles size={18} />
+                                            بوت ذكي
+                                        </Link>
+                                    </>
                                 )}
                                 {!loading && (
                                     <>

@@ -348,6 +348,40 @@ class ConversationViewSet(viewsets.ModelViewSet):
         ).exclude(sender=request.user).count()
         return Response({'unread_count': count})
 
+    @action(detail=True, methods=['delete'])
+    def delete_conversation(self, request, pk=None):
+        """Delete an entire conversation (only for participants)"""
+        conversation = self.get_object()
+        if request.user not in [conversation.buyer, conversation.seller]:
+            return Response({'error': 'You are not a participant in this conversation'}, status=status.HTTP_403_FORBIDDEN)
+        conversation.delete()
+        return Response({'status': 'deleted'}, status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['delete'], url_path='delete_message/(?P<message_id>[0-9]+)')
+    def delete_message(self, request, pk=None, message_id=None):
+        """Delete a specific message (only the sender can delete)"""
+        conversation = self.get_object()
+        message = get_object_or_404(Message, id=message_id, conversation=conversation)
+        if message.sender != request.user:
+            return Response({'error': 'You can only delete your own messages'}, status=status.HTTP_403_FORBIDDEN)
+        message.delete()
+        return Response({'status': 'deleted'}, status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['patch'], url_path='edit_message/(?P<message_id>[0-9]+)')
+    def edit_message(self, request, pk=None, message_id=None):
+        """Edit a specific message (only the sender can edit)"""
+        conversation = self.get_object()
+        message = get_object_or_404(Message, id=message_id, conversation=conversation)
+        if message.sender != request.user:
+            return Response({'error': 'You can only edit your own messages'}, status=status.HTTP_403_FORBIDDEN)
+        content = request.data.get('content', '').strip()
+        if not content:
+            return Response({'error': 'Message content is required'}, status=status.HTTP_400_BAD_REQUEST)
+        message.content = content
+        message.save()
+        serializer = MessageSerializer(message, context={'request': request})
+        return Response(serializer.data)
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

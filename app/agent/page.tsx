@@ -34,6 +34,7 @@ interface Notification {
     id: number;
     title: string;
     message: string;
+    reasoning?: string;
     is_read: boolean;
     product_title: string | null;
     created_at: string;
@@ -495,7 +496,17 @@ export default function AgentPage() {
                                                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 leading-relaxed">
                                                         {notif.message}
                                                     </p>
-                                                    <p className="text-slate-400 text-xs mt-2">
+                                                    {notif.reasoning && (
+                                                        <div className="mt-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700">
+                                                            <p className="text-[10px] font-bold text-violet-500 uppercase tracking-wider mb-1">
+                                                                تحليل الذكاء الاصطناعي:
+                                                            </p>
+                                                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed italic">
+                                                                "{notif.reasoning}"
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    <p className="text-slate-400 text-xs mt-3">
                                                         {new Date(notif.created_at).toLocaleString('ar-EG')}
                                                     </p>
                                                 </div>

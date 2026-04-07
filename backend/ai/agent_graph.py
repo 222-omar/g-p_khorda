@@ -1,6 +1,6 @@
 import os
 from typing import TypedDict
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from langgraph.graph import StateGraph, END
@@ -23,15 +23,12 @@ class AgentState(TypedDict):
     reason: str
 
 def evaluate_node(state: AgentState):
-    # Gemini model initialization (using gemini-1.5-flash as it's very fast and has a free tier)
-    if "GOOGLE_API_KEY" in os.environ:
-        del os.environ["GOOGLE_API_KEY"]
-        
-    api_key = os.environ.get("GEMINI_API_KEY")
+    # Groq model initialization (using llama-3.3-70b-versatile - fast and free)
+    api_key = os.environ.get("GROQ_AGENT_API_KEY", "").strip('"').strip("'")
     
-    llm = ChatGoogleGenerativeAI(
+    llm = ChatGroq(
         api_key=api_key, 
-        model="gemini-flash-latest",
+        model="llama-3.3-70b-versatile",
         temperature=0.1
     )
     
@@ -43,9 +40,9 @@ Your ONLY job is to determine if a listed product specifically matches a user's 
 STRICT MATCHING RULES:
 1. BRAND / NAME / AUTHOR: If the user mentions a specific brand, person, or author, it MUST appear (or be clearly implied) in the product title or description. A generic category is NOT a match.
 2. CONDITION: If the user specifies "used" or "new", it must match exactly. Contradiction = no match.
-3. PRICE: If the user mentions a max budget, the starting price must be ≤ that budget. If price is unknown, be skeptical.
+3. PRICE: If the user mentions a max budget, the starting price must be <= that budget. If price is unknown, be skeptical.
 4. SPECIFICITY: Match on specific attributes (model, size, color, edition) if mentioned by the user.
-5. DOUBT RULE: If information is missing, vague, or contradictory → return is_match: false.
+5. DOUBT RULE: If information is missing, vague, or contradictory -> return is_match: false.
 
 OUTPUT FORMAT (strict JSON only, no extra text):
 {{
@@ -66,7 +63,7 @@ User's Buying Requirements:
 Does this product specifically and strongly match the user's requirements? Reply in JSON only.""")
     ])
     
-    # Using LangChain structured output for Gemini
+    # Using LangChain structured output for Groq
     structured_llm = llm.with_structured_output(EvaluationResult)
     chain = prompt | structured_llm
     
@@ -86,7 +83,7 @@ Does this product specifically and strongly match the user's requirements? Reply
     except Exception as e:
         import traceback
         traceback.print_exc()
-        print(f"[AgentGraph] Gemini Evaluation Failed: {e}")
+        print(f"[AgentGraph] Groq Evaluation Failed: {e}")
         # Default to False for safety
         return {
             "is_match": False, 
