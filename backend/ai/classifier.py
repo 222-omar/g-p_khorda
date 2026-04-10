@@ -121,8 +121,12 @@ def classify_image(image_path: str) -> dict:
 
     hf_space_url = os.getenv("HF_SPACE_URL")
     if not hf_space_url:
-        logger.error("HF_SPACE_URL is not set. Cannot run AI categorization.")
+        logger.error("HF_SPACE_URL is not set.")
         return fallback
+
+    # If the image path is actually a Cloudinary URL, gradio_client can handle it directly!
+    # Sometimes image.path raises NotImplementedError, so we fallback to image.url
+    is_url = image_path.startswith("http://") or image_path.startswith("https://")
 
     try:
         from gradio_client import Client, file
@@ -130,10 +134,12 @@ def classify_image(image_path: str) -> dict:
         # Connect to HF Space API
         client = Client(hf_space_url)
         
-        # Call the predict function
-        # The Gradio app we gave the user takes an image file and returns a string
+        # In gradio-client, passing the file pos-arg is sometimes safer than kwargs
+        # If it's a URL, file() handles it automatically.
+        target_file = file(image_path)
+        
         result_class = client.predict(
-            image=file(image_path),
+            target_file,
             api_name="/predict"
         )
         

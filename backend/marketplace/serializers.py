@@ -513,7 +513,13 @@ class ProductCreateSerializer(serializers.ModelSerializer):
                 try:
                     first_image = product.images.filter(is_primary=True).first()
                     if first_image and first_image.image:
-                        image_path = first_image.image.path
+                        try:
+                            # Local storage uses path
+                            image_path = first_image.image.path
+                        except NotImplementedError:
+                            # Cloud storage (Cloudinary) uses url
+                            image_path = first_image.image.url
+                            
                         from ai.classifier import classify_image
                         result = classify_image(image_path)
                         detected_item = result.get('detected_class')
