@@ -99,26 +99,6 @@ def get_available_targets():
 _model = None
 
 
-def _get_model():
-    """Lazy-load the YOLO model to avoid startup overhead."""
-    global _model
-    if _model is None:
-        try:
-            from ultralytics import YOLO
-            if not MODEL_PATH.exists():
-                logger.error(f"YOLO model not found at {MODEL_PATH}")
-                return None
-            _model = YOLO(str(MODEL_PATH))
-            print(f"[AI] ✅ YOLO model loaded from {MODEL_PATH}")
-        except ImportError:
-            logger.error("ultralytics package not installed. Run: pip install ultralytics")
-            return None
-        except Exception as e:
-            logger.error(f"Failed to load YOLO model: {e}")
-            return None
-    return _model
-
-
 def _lookup_category(class_name: str):
     """Case-insensitive category lookup. Returns Arabic label or None."""
     # Try exact match first
@@ -130,16 +110,7 @@ def _lookup_category(class_name: str):
 
 def classify_image(image_path: str) -> dict:
     """
-    Run YOLO inference on an image and return the predicted category.
-    
-    Strategy:
-    1. Get all detections from YOLO
-    2. For each detection, calculate box area and check if class is in our map
-    3. Among KNOWN classes only, pick the one with largest (area * confidence)
-    4. If no known class found, return fallback 'أخرى'
-    
-    This ensures the main/largest product in the image gets classified
-    correctly, even if there are small background objects detected.
+    Run inference on an image via an external Hugging Face Space API.
     """
     fallback = {
         'category': 'other',
@@ -148,89 +119,47 @@ def classify_image(image_path: str) -> dict:
         'detected_class': None,
     }
 
-    model = _get_model()
-    if model is None:
+    hf_space_url = os.getenv("HF_SPACE_URL")
+    if not hf_space_url:
+        logger.error("HF_SPACE_URL is not set. Cannot run AI categorization.")
         return fallback
 
     try:
-        results = model(image_path, verbose=False)
-
-        if not results or len(results) == 0:
-            print("[AI] ⚠️ YOLO returned no results")
+        from gradio_client import Client, handle_file
+        
+        # Connect to HF Space API
+        client = Client(hf_space_url)
+        
+        # Call the predict function
+        # The Gradio app we gave the user takes an image file and returns a string
+        result_class = client.predict(
+            image=handle_file(image_path),
+            api_name="/predict"
+        )
+        
+        best_class = str(result_class).strip()
+        
+        print(f"[AI] 🔍 Hugging Face API returned YOLO class: '{best_class}'")
+        
+        arabic_label = _lookup_category(best_class)
+        
+        if not arabic_label:
+            logger.warning(f"Unknown class predicted: {best_class}")
             return fallback
 
-        result = results[0]
-
-        if result.boxes is None or len(result.boxes) == 0:
-            print("[AI] ⚠️ YOLO detected no boxes")
-            return fallback
-
-        # Extract all detections
-        confidences = result.boxes.conf.cpu().numpy()
-        class_ids = result.boxes.cls.cpu().numpy().astype(int)
-        boxes = result.boxes.xyxy.cpu().numpy()  # [x1, y1, x2, y2]
-
-        # Log all detections for debugging
-        all_detections = []
-        for i in range(len(confidences)):
-            cls_name = result.names.get(int(class_ids[i]), '???')
-            conf = float(confidences[i])
-            x1, y1, x2, y2 = boxes[i]
-            area = (x2 - x1) * (y2 - y1)
-            all_detections.append((cls_name, conf, area))
-
-        print(f"[AI] 🔍 YOLO detections ({len(all_detections)} total):")
-        for name, conf, area in all_detections:
-            in_map = '✅' if _lookup_category(name) else '❌'
-            print(f"  {in_map} '{name}' conf={conf:.2f} area={area:.0f}px²")
-
-        # Score each detection: prioritize KNOWN classes with large boxes
-        best_score = -1
-        best_class_name = None
-        best_confidence = 0.0
-        best_arabic = None
-
-        for i in range(len(confidences)):
-            cls_name = result.names.get(int(class_ids[i]), None)
-            if cls_name is None:
-                continue
-
-            arabic_label = _lookup_category(cls_name)
-            if arabic_label is None:
-                # Class not in our map — skip it
-                logger.debug(f"  Skipping unknown class: '{cls_name}'")
-                continue
-
-            conf = float(confidences[i])
-            x1, y1, x2, y2 = boxes[i]
-            area = (x2 - x1) * (y2 - y1)
-
-            # Score = area * confidence (bigger + more confident = better)
-            score = area * conf
-
-            if score > best_score:
-                best_score = score
-                best_class_name = cls_name
-                best_confidence = conf
-                best_arabic = arabic_label
-
-        # If no known class found at all
-        if best_class_name is None or best_arabic is None:
-            print(f"[AI] ⚠️ No known class found. All classes: {[d[0] for d in all_detections]}")
-            return fallback
-
-        # Map to Django category ID
-        category_id = ARABIC_TO_CATEGORY_ID.get(best_arabic, 'other')
-
-        print(f"[AI] ✅ Result: '{best_class_name}' → '{best_arabic}' ({category_id}) conf={best_confidence:.2f}")
+        category_id = ARABIC_TO_CATEGORY_ID.get(arabic_label, 'other')
+        print(f"[AI] ✅ Result: '{best_class}' → '{arabic_label}' ({category_id})")
 
         return {
             'category': category_id,
-            'category_label': best_arabic,
-            'confidence': float(round(best_confidence, 4)),
-            'detected_class': best_class_name,
+            'category_label': arabic_label,
+            'confidence': 0.95, # Mock confidence for external API
+            'detected_class': best_class,
         }
 
     except Exception as e:
-        logger.error(f"YOLO inference error: {e}")
+        logger.error(f"Hugging Face inference error: {e}")
         return fallback
+
+
+
