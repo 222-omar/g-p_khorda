@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { ProductCard } from '@/components/ui/product-card';
+import { ProductCardSkeleton } from '@/components/ui/product-skeleton';
 import { SidebarFilters } from '@/components/ui/sidebar-filters';
 import { useLanguage } from '@/components/providers/language-provider';
 import { useAuth } from '@/components/providers/auth-provider';
@@ -265,10 +266,11 @@ export default function DashboardPage() {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="flex flex-col items-center justify-center py-32 gap-4"
+                                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 py-8"
                             >
-                                <Loader2 className="animate-spin text-primary" size={40} />
-                                <p className="text-slate-500 text-sm animate-pulse">جاري تحميل المنتجات...</p>
+                                {[...Array(8)].map((_, i) => (
+                                    <ProductCardSkeleton key={`skeleton-${i}`} />
+                                ))}
                             </motion.div>
                         )}
 

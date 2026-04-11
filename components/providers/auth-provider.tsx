@@ -16,6 +16,7 @@ interface User {
     city: string;
     trust_score: number;
     is_verified: boolean;
+    is_admin: boolean;
     avatar: string | null;
     wallet_balance: string;
     total_sales: number;
@@ -25,6 +26,7 @@ interface User {
 interface AuthContextType {
     user: User | null;
     loading: boolean;
+    isAdmin: boolean;
     login: (username: string, password: string) => Promise<void>;
     logout: () => void;
     refreshUser: () => Promise<void>;
@@ -35,6 +37,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+
+    const isAdmin = user?.is_admin ?? false;
 
     const loadUser = async () => {
         try {
@@ -69,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
+        <AuthContext.Provider value={{ user, loading, isAdmin, login, logout, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

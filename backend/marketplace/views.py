@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
@@ -55,6 +55,9 @@ def send_winner_message(auction):
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
+        print(f"\n[Backend Auth] Login attempt received")
+        print(f"[Backend Auth] Request data keys: {list(attrs.keys())}")
+        
         # Determine if the input is email or username
         login_input = attrs.get('username')
         password = attrs.get('password')
@@ -66,10 +69,18 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                     user = User.objects.get(email=login_input)
                     attrs['username'] = user.username
                 except User.DoesNotExist:
-                    # If email doesn't exist, let it fail naturally or handle error
+                    print(f"[Backend Auth] Email {login_input} not found, falling back to username")
                     pass
-        
-        return super().validate(attrs)
+                
+        try:
+            result = super().validate(attrs)
+            # Include admin status in login response
+            result['is_admin'] = self.user.is_staff
+            print(f"[Backend Auth] Login successful for user: {attrs.get('username')} (is_admin={self.user.is_staff})")
+            return result
+        except Exception as e:
+            print(f"[Backend Auth] Login failed: {str(e)}")
+            raise
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -78,9 +89,13 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 @permission_classes([AllowAny])
 def register_view(request):
     """User registration endpoint"""
+    print(f"\n[Backend Auth] Registration attempt received")
+    print(f"[Backend Auth] Request data: {request.data}")
+    
     serializer = RegisterSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()
+        print(f"[Backend Auth] Registration successful for user: {user.username}")
         refresh = RefreshToken.for_user(user)
         
         return Response({
@@ -91,6 +106,7 @@ def register_view(request):
             }
         }, status=status.HTTP_201_CREATED)
     
+    print(f"[Backend Auth] Registration failed with errors: {serializer.errors}")
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -100,7 +116,10 @@ def current_user_view(request):
     """Get current authenticated user with profile"""
     try:
         profile = UserProfileSerializer(request.user.profile, context={'request': request})
-        return Response(profile.data)
+        data = profile.data
+        # Include admin status in me response
+        data['is_admin'] = request.user.is_staff
+        return Response(data)
     except UserProfile.DoesNotExist:
         return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -157,6 +176,22 @@ class ProductViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Set owner to current user when creating product"""
         serializer.save(owner=self.request.user)
+    
+    def perform_update(self, serializer):
+        """Allow admin to update any product"""
+        if self.request.user.is_staff or serializer.instance.owner == self.request.user:
+            serializer.save()
+        else:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('You do not have permission to edit this product.')
+    
+    def perform_destroy(self, instance):
+        """Allow admin to delete any product"""
+        if self.request.user.is_staff or instance.owner == self.request.user:
+            instance.delete()
+        else:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('You do not have permission to delete this product.')
     
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def my_listings(self, request):
@@ -573,4 +608,79 @@ def notifications_unread_count(request):
     """Get unread notification count"""
     count = Notification.objects.filter(user=request.user, is_read=False).count()
     return Response({'unread_count': count})
+
+
+# ──────────────────────────────────────────────────────────────
+# ADMIN DASHBOARD API ENDPOINTS
+# ──────────────────────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_products_list(request):
+    """Get ALL products for admin dashboard (no pagination, all statuses)"""
+    products = Product.objects.select_related('owner').prefetch_related('images').order_by('-created_at')
+    data = []
+    for p in products:
+        primary_image = p.images.filter(is_primary=True).first()
+        if not primary_image:
+            primary_image = p.images.first()
+        data.append({
+            'id': p.id,
+            'title': p.title,
+            'price': str(p.price),
+            'category': p.category,
+            'condition': p.condition,
+            'status': p.status,
+            'is_auction': p.is_auction,
+            'owner_name': p.owner.username,
+            'primary_image': request.build_absolute_uri(primary_image.image.url) if primary_image else None,
+            'created_at': p.created_at.isoformat(),
+        })
+    return Response(data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_users_list(request):
+    """Get ALL users for admin dashboard"""
+    users = User.objects.select_related('profile').order_by('-date_joined')
+    data = []
+    for u in users:
+        profile_data = {}
+        try:
+            profile = u.profile
+            profile_data = {
+                'city': profile.city,
+                'phone': profile.phone,
+                'trust_score': profile.trust_score,
+                'is_verified': profile.is_verified,
+                'total_sales': profile.total_sales,
+            }
+        except UserProfile.DoesNotExist:
+            profile_data = {'city': '', 'phone': '', 'trust_score': 0, 'is_verified': False, 'total_sales': 0}
+        
+        data.append({
+            'id': u.id,
+            'username': u.username,
+            'email': u.email,
+            'first_name': u.first_name,
+            'last_name': u.last_name,
+            'is_staff': u.is_staff,
+            'date_joined': u.date_joined.isoformat(),
+            **profile_data,
+        })
+    return Response(data)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def admin_delete_user(request, user_id):
+    """Delete a user (admin only). Cannot delete yourself."""
+    if request.user.id == user_id:
+        return Response({'error': 'لا يمكنك حذف حسابك الخاص'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    user = get_object_or_404(User, id=user_id)
+    username = user.username
+    user.delete()
+    return Response({'status': 'deleted', 'username': username}, status=status.HTTP_200_OK)
 

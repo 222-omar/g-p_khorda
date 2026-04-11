@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useLanguage } from '@/components/providers/language-provider';
 import {
-    Moon, Sun, Languages, User, Menu, X, LogOut, MessageCircle, Bot, Sparkles
+    Moon, Sun, Languages, User, Menu, X, LogOut, MessageCircle, Bot, Sparkles, Shield
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authAPI, profilesAPI, chatAPI } from '@/lib/api';
@@ -17,10 +17,30 @@ export function Navbar() {
     const { theme, setTheme } = useTheme();
     const { dict, toggleLanguage, isRtl } = useLanguage();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const { user, loading, logout } = useAuth();
+    const { user, loading, logout, isAdmin } = useAuth();
     const [unreadCount, setUnreadCount] = useState(0);
     const router = useRouter();
     const pathname = usePathname();
+
+    const getNavItemClass = (path: string) => {
+        const isActive = pathname === path || (path !== '/' && pathname.startsWith(path));
+        return `text-sm font-bold relative pb-2 transition-all duration-300 flex items-center gap-1.5 ${
+            isActive 
+                ? 'text-primary' 
+                : 'text-slate-600 dark:text-slate-300 hover:text-primary'
+        } after:absolute after:bottom-0 after:right-0 after:h-[2px] after:bg-primary after:transition-all after:duration-300 ${
+            isActive ? 'after:w-full' : 'after:w-0 hover:after:w-full'
+        }`;
+    };
+
+    const getMobileNavItemClass = (path: string) => {
+        const isActive = pathname === path || (path !== '/' && pathname.startsWith(path));
+        return `px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-all duration-300 ${
+            isActive 
+                ? 'bg-primary/10 text-primary border-r-4 border-primary' 
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary'
+        }`;
+    };
 
     // Determine current user display info
     const fullUserName = user?.user?.first_name 
@@ -82,31 +102,28 @@ export function Navbar() {
                     <div className="hidden md:flex items-center gap-6">
                         <Link
                             href="/"
-                            className={`text-sm font-semibold transition-colors relative pb-1 ${pathname === '/' ? 'text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-full' : 'hover:text-primary'
-                                }`}
+                            className={getNavItemClass('/')}
                         >
                             {dict.nav.home}
                         </Link>
                         <Link
                             href={isLoggedIn ? "/dashboard" : "/login"}
-                            className={`text-sm font-semibold transition-colors relative pb-1 ${pathname === '/dashboard' ? 'text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-full' : 'hover:text-primary'
-                                }`}
+                            className={getNavItemClass('/dashboard')}
                         >
                             {dict.nav.shop}
                         </Link>
                         <Link
                             href={isLoggedIn ? "/auctions" : "/login"}
-                            className={`text-sm font-semibold transition-colors relative pb-1 ${pathname === '/auctions' ? 'text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-full' : 'hover:text-primary'
-                                }`}
+                            className={getNavItemClass('/auctions')}
                         >
                             {dict.nav.auctions}
                         </Link>
                         {isLoggedIn && (
                             <Link
                                 href="/messages"
-                                className={`text-sm font-semibold transition-colors relative pb-1 flex items-center gap-1 ${pathname === '/messages' ? 'text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-full' : 'hover:text-primary'}`}
+                                className={getNavItemClass('/messages')}
                             >
-                                <MessageCircle size={16} />
+                                <MessageCircle size={16} className={pathname.startsWith('/messages') ? "text-primary" : ""} />
                                 الرسائل
                                 {unreadCount > 0 && (
                                     <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
@@ -119,19 +136,28 @@ export function Navbar() {
                             <>
                                 <Link
                                     href="/agent"
-                                    className={`text-sm font-semibold transition-colors relative pb-1 flex items-center gap-1 ${pathname === '/agent' ? 'text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-full' : 'hover:text-primary'}`}
+                                    className={getNavItemClass('/agent')}
                                 >
-                                    <Bot size={16} />
+                                    <Bot size={16} className={pathname.startsWith('/agent') ? "text-primary" : ""} />
                                     الوكيل الذكي
                                 </Link>
                                 <Link
                                     href="/search"
-                                    className={`text-sm font-semibold transition-colors relative pb-1 flex items-center gap-1 ${pathname === '/search' ? 'text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-full' : 'hover:text-primary'}`}
+                                    className={getNavItemClass('/search')}
                                 >
-                                    <Sparkles size={16} />
+                                    <Sparkles size={16} className={pathname.startsWith('/search') ? "text-primary" : ""} />
                                     بوت ذكي
                                 </Link>
                             </>
+                        )}
+                        {isAdmin && (
+                            <Link
+                                href="/admin-dashboard"
+                                className={getNavItemClass('/admin-dashboard')}
+                            >
+                                <Shield size={16} className={pathname.startsWith('/admin-dashboard') ? "text-primary" : ""} />
+                                لوحة الإدارة
+                            </Link>
                         )}
                     </div>
 
@@ -183,9 +209,14 @@ export function Navbar() {
                                                     />
                                                 </div>
                                             </Link>
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-bold">
+                                        <div className="flex flex-col">
+                                                <span className="text-sm font-bold flex items-center gap-1.5">
                                                     {fullUserName}
+                                                    {isAdmin && (
+                                                        <span className="text-[10px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white px-1.5 py-0.5 rounded-full leading-none">
+                                                            ADMIN
+                                                        </span>
+                                                    )}
                                                 </span>
                                             </div>
                                         </div>
@@ -223,24 +254,21 @@ export function Navbar() {
                             <div className="flex flex-col gap-3">
                                 <Link
                                     href="/"
-                                    className={`px-4 py-2 rounded-lg font-semibold ${pathname === '/' ? 'bg-primary/10 text-primary border-r-4 border-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
-                                        }`}
+                                    className={getMobileNavItemClass('/')}
                                     onClick={() => setMobileMenuOpen(false)}
                                 >
                                     {dict.nav.home}
                                 </Link>
                                 <Link
                                     href={isLoggedIn ? "/dashboard" : "/login?redirect=/dashboard"}
-                                    className={`px-4 py-2 rounded-lg font-semibold ${pathname === '/dashboard' ? 'bg-primary/10 text-primary border-r-4 border-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
-                                        }`}
+                                    className={getMobileNavItemClass('/dashboard')}
                                     onClick={() => setMobileMenuOpen(false)}
                                 >
                                     {dict.nav.shop}
                                 </Link>
                                 <Link
                                     href={isLoggedIn ? "/auctions" : "/login?redirect=/auctions"}
-                                    className={`px-4 py-2 rounded-lg font-semibold ${pathname === '/auctions' ? 'bg-primary/10 text-primary border-r-4 border-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
-                                        }`}
+                                    className={getMobileNavItemClass('/auctions')}
                                     onClick={() => setMobileMenuOpen(false)}
                                 >
                                     {dict.nav.auctions}
@@ -248,10 +276,10 @@ export function Navbar() {
                                 {isLoggedIn && (
                                     <Link
                                         href="/messages"
-                                        className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 ${pathname === '/messages' ? 'bg-primary/10 text-primary border-r-4 border-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                                        className={getMobileNavItemClass('/messages')}
                                         onClick={() => setMobileMenuOpen(false)}
                                     >
-                                        <MessageCircle size={18} />
+                                        <MessageCircle size={18} className={pathname.startsWith('/messages') ? "text-primary" : ""} />
                                         الرسائل
                                         {unreadCount > 0 && (
                                             <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
@@ -264,21 +292,31 @@ export function Navbar() {
                                     <>
                                         <Link
                                             href="/agent"
-                                            className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 ${pathname === '/agent' ? 'bg-primary/10 text-primary border-r-4 border-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                                            className={getMobileNavItemClass('/agent')}
                                             onClick={() => setMobileMenuOpen(false)}
                                         >
-                                            <Bot size={18} />
+                                            <Bot size={18} className={pathname.startsWith('/agent') ? "text-primary" : ""} />
                                             الوكيل الذكي
                                         </Link>
                                         <Link
                                             href="/search"
-                                            className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 ${pathname === '/search' ? 'bg-primary/10 text-primary border-r-4 border-primary' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                                            className={getMobileNavItemClass('/search')}
                                             onClick={() => setMobileMenuOpen(false)}
                                         >
-                                            <Sparkles size={18} />
+                                            <Sparkles size={18} className={pathname.startsWith('/search') ? "text-primary" : ""} />
                                             بوت ذكي
                                         </Link>
                                     </>
+                                )}
+                                {isAdmin && (
+                                    <Link
+                                        href="/admin-dashboard"
+                                        className={getMobileNavItemClass('/admin-dashboard')}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                    >
+                                        <Shield size={18} className={pathname.startsWith('/admin-dashboard') ? "text-primary" : ""} />
+                                        لوحة الإدارة
+                                    </Link>
                                 )}
                                 {!loading && (
                                     <>
@@ -310,7 +348,14 @@ export function Navbar() {
                                                             className="w-full h-full object-cover"
                                                         />
                                                     </div>
-                                                    <span className="font-bold">{fullUserName}</span>
+                                                    <span className="font-bold flex items-center gap-1.5">
+                                                        {fullUserName}
+                                                        {isAdmin && (
+                                                            <span className="text-[10px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white px-1.5 py-0.5 rounded-full leading-none">
+                                                                ADMIN
+                                                            </span>
+                                                        )}
+                                                    </span>
                                                 </div>
                                                 <button
                                                     onClick={() => {

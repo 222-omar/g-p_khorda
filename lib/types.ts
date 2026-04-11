@@ -10,9 +10,10 @@ export interface Product {
     location?: string;
     createdAt?: string;
     seller?: {
+        id: number;
         name: string;
-        avatar: string;
-        rating: number;
+        avatar_url: string | null;
+        is_verified: boolean;
     };
     biddingHistory?: Bid[];
     endTime?: string;

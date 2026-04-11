@@ -84,13 +84,14 @@ class ProductListSerializer(serializers.ModelSerializer):
     owner_id = serializers.IntegerField(source='owner.id', read_only=True)
     primary_image = serializers.SerializerMethodField()
     is_auction = serializers.BooleanField(read_only=True)
+    seller = serializers.SerializerMethodField()
     
     class Meta:
         model = Product
         fields = [
             'id', 'title', 'price', 'category', 'condition', 'status',
             'location', 'phone_number', 'is_auction',
-            'auction_end_time', 'primary_image', 'owner_name', 'owner_id', 'views_count', 'created_at'
+            'auction_end_time', 'primary_image', 'owner_name', 'owner_id', 'seller', 'views_count', 'created_at'
         ]
         read_only_fields = ['id', 'owner_name', 'owner_id', 'views_count', 'created_at']
     
@@ -102,6 +103,33 @@ class ProductListSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(primary_img.image.url)
         return None
 
+    def get_seller(self, obj):
+        if not obj.owner:
+            return None
+            
+        avatar_url = None
+        is_verified = False
+        
+        try:
+            profile = obj.owner.profile
+            is_verified = profile.is_verified
+            if profile.avatar:
+                request = self.context.get('request')
+                avatar_url = request.build_absolute_uri(profile.avatar.url) if request else profile.avatar.url
+        except Exception:
+            pass
+            
+        # Combine first and last name if available, else fallback to username
+        full_name = f"{obj.owner.first_name} {obj.owner.last_name}".strip()
+        name = full_name if full_name else obj.owner.username
+
+        return {
+            "id": obj.owner.id,
+            "name": name,
+            "avatar_url": avatar_url,
+            "is_verified": is_verified
+        }
+
 
 class ProductDetailSerializer(serializers.ModelSerializer):
     """Detailed product serializer with all relations"""
@@ -109,11 +137,12 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     owner_profile = serializers.SerializerMethodField()
     images = ProductImageSerializer(many=True, read_only=True)
     auction = AuctionSerializer(read_only=True)
+    seller = serializers.SerializerMethodField()
     
     class Meta:
         model = Product
         fields = [
-            'id', 'owner', 'owner_profile', 'title', 'description', 
+            'id', 'owner', 'owner_profile', 'seller', 'title', 'description', 
             'price', 'category', 'condition', 'status', 'location',
             'phone_number', 'is_auction', 'auction_end_time', 
             'views_count', 'images', 'auction', 'created_at', 'updated_at'
@@ -132,6 +161,32 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             }
         except UserProfile.DoesNotExist:
             return None
+
+    def get_seller(self, obj):
+        if not obj.owner:
+            return None
+            
+        avatar_url = None
+        is_verified = False
+        
+        try:
+            profile = obj.owner.profile
+            is_verified = profile.is_verified
+            if profile.avatar:
+                request = self.context.get('request')
+                avatar_url = request.build_absolute_uri(profile.avatar.url) if request else profile.avatar.url
+        except Exception:
+            pass
+            
+        full_name = f"{obj.owner.first_name} {obj.owner.last_name}".strip()
+        name = full_name if full_name else obj.owner.username
+
+        return {
+            "id": obj.owner.id,
+            "name": name,
+            "avatar_url": avatar_url,
+            "is_verified": is_verified
+        }
 
 
 # ──────────────────────────────────────────────────────────────

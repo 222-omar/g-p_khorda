@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { Product } from '@/lib/types';
-import { Clock, Heart } from 'lucide-react';
+import { Clock, Heart, MapPin, BadgeCheck, MessageCircle, Edit3, Trash2, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useLanguage } from '@/components/providers/language-provider';
-import { wishlistAPI } from '@/lib/api';
+import { wishlistAPI, productsAPI } from '@/lib/api';
 import { useState } from 'react';
+import { useAuth } from '@/components/providers/auth-provider';
 
 const categoryLabels: Record<string, { label: string; color: string; bg: string }> = {
     scrap_metals: { label: 'خردة ومعادن', color: 'text-emerald-700 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800' },
@@ -18,7 +19,7 @@ const categoryLabels: Record<string, { label: string; color: string; bg: string 
     other: { label: 'أخرى', color: 'text-slate-700 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800' },
 };
 
-// ── Arabic relative time ─────────────────────────────────────────────────────
+// ── Arabic relative time ──
 function timeAgo(dateStr?: string): string | null {
     if (!dateStr) return null;
     const date = new Date(dateStr);
@@ -56,11 +57,20 @@ export function ProductCard({
     isOwner = false,
 }: ProductCardProps) {
     const { dict } = useLanguage();
-    const catInfo = categoryLabels[product.category] || categoryLabels.other;
+    const catInfo = categoryLabels[product?.category] || categoryLabels.other;
     const [wishlisted, setWishlisted] = useState(isWishlisted);
     const [toggling, setToggling] = useState(false);
+    
+    // Safely get auth context
+    let isAdmin = false;
+    try {
+        const auth = useAuth();
+        isAdmin = auth.isAdmin;
+    } catch {
+        // Ignore if not in context
+    }
 
-    const relativeTime = timeAgo(product.createdAt);
+    const relativeTime = timeAgo(product?.createdAt);
 
     const handleToggleWishlist = async (e: React.MouseEvent) => {
         e.preventDefault();
@@ -79,7 +89,7 @@ export function ProductCard({
         }
     };
 
-    const showWishlistBtn = isLoggedIn && !isOwner;
+    const showWishlistBtn = isLoggedIn && !isOwner && !isAdmin;
 
     return (
         <motion.div
@@ -87,19 +97,22 @@ export function ProductCard({
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ y: -4 }}
             transition={{ duration: 0.25 }}
-            className="group relative bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-slate-100 dark:border-slate-700/60"
+            className="group relative bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300 border border-slate-100 dark:border-slate-700/60 flex flex-col h-full"
         >
-            {/* Wishlist heart button */}
+            {/* Absolute Link overlay for broad click target without HTML violations */}
+            <Link href={`/product/${product.id}`} className="absolute inset-0 z-0" aria-label={`View ${product.title}`} />
+
+            {/* Wishlist button */}
             {showWishlistBtn && (
                 <motion.button
                     onClick={handleToggleWishlist}
                     whileHover={{ scale: 1.15 }}
                     whileTap={{ scale: 0.88 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 18 }}
-                    className={`absolute top-3 left-3 z-20 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 shadow-md ${wishlisted
+                    className={`absolute top-3 left-3 z-20 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm ${
+                        wishlisted
                             ? 'bg-red-500 text-white scale-110'
-                            : 'bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm text-slate-400 hover:text-red-500 hover:bg-white'
-                        }`}
+                            : 'bg-white/80 dark:bg-slate-800/80 backdrop-blur-md text-slate-400 hover:text-red-500 hover:bg-white'
+                    }`}
                     disabled={toggling}
                     title={wishlisted ? 'إزالة من المفضلة' : 'أضف للمفضلة'}
                 >
@@ -107,71 +120,130 @@ export function ProductCard({
                 </motion.button>
             )}
 
-            <Link href={`/product/${product.id}`}>
-                {/* Image */}
-                <div className="relative h-52 overflow-hidden bg-slate-100 dark:bg-slate-700">
-                    <img
-                        src={product.image}
-                        alt={product.title}
-                        className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500 ease-out"
-                    />
+            {/* Image Section */}
+            <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100 dark:bg-slate-700 pointer-events-none z-10">
+                <img
+                    src={product.image || 'https://images.unsplash.com/photo-1562989108-7261a8ef1fdb'}
+                    alt={product.title}
+                    className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500 ease-out"
+                />
 
-                    {/* Auction badge */}
-                    <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
-                        {product.isAuction && (
-                            <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-[11px] px-2.5 py-1 rounded-full font-bold shadow-md flex items-center gap-1">
-                                <Clock size={11} />
-                                {dict.dashboard.activeAuction}
-                            </div>
+                {/* Auction badge */}
+                <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
+                    {product.isAuction && (
+                        <div className="bg-orange-500/90 backdrop-blur-md text-white text-[11px] px-2.5 py-1 rounded-full font-bold shadow-md flex items-center gap-1">
+                            <Clock size={11} />
+                            {dict.dashboard.activeAuction}
+                        </div>
+                    )}
+                </div>
+
+                {/* Category badge */}
+                <div className="absolute bottom-3 right-3">
+                    <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border backdrop-blur-md ${catInfo.bg} ${catInfo.color}`}>
+                        {catInfo.label}
+                    </span>
+                </div>
+
+                {/* Gradient overlay on hover */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            </div>
+
+            {/* Content Section */}
+            <div className="flex-1 flex flex-col p-4 pointer-events-none z-10">
+                <h3 className="font-bold text-[15px] mb-2 line-clamp-1 leading-relaxed group-hover:text-primary transition-colors duration-200" title={product.title}>
+                    {product.title}
+                </h3>
+
+                <div className="flex justify-between items-end mb-4">
+                    {/* Price */}
+                    <div className="flex flex-col">
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-primary font-black text-xl leading-none">
+                                {Number(product.price).toLocaleString()}
+                            </span>
+                            <span className="text-slate-400 text-xs font-semibold">{dict.currency}</span>
+                        </div>
+                    </div>
+
+                    {/* Time & Location */}
+                    <div className="flex flex-col items-end gap-1.5 pl-1">
+                        {relativeTime && (
+                            <span className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1 font-medium">
+                                <Clock size={10} className="flex-shrink-0" />
+                                {relativeTime}
+                            </span>
+                        )}
+                        {product.location && (
+                            <span className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1 font-medium max-w-[100px] truncate">
+                                <MapPin size={10} className="flex-shrink-0" />
+                                <span className="truncate">{product.location}</span>
+                            </span>
                         )}
                     </div>
-
-                    {/* Category badge */}
-                    <div className="absolute bottom-3 right-3">
-                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border backdrop-blur-sm ${catInfo.bg} ${catInfo.color}`}>
-                            {catInfo.label}
-                        </span>
-                    </div>
-
-                    {/* Gradient overlay on hover */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
 
-                {/* Content */}
-                <div className="p-4">
-                    <h3 className="font-bold text-[15px] mb-3 line-clamp-2 leading-relaxed group-hover:text-primary transition-colors duration-200">
-                        {product.title}
-                    </h3>
-
-                    <div className="flex justify-between items-end">
-                        {/* Price */}
-                        <div className="flex flex-col">
-                            <span className="text-[11px] text-slate-400 font-medium mb-0.5">السعر</span>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-primary font-black text-xl leading-none">
-                                    {product.price.toLocaleString()}
-                                </span>
-                                <span className="text-slate-400 text-xs font-semibold">{dict.currency}</span>
+                {/* Seller Footer */}
+                <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between pointer-events-auto">
+                    <div className="flex items-center gap-2 max-w-[70%]">
+                        {product.seller?.avatar_url ? (
+                            <img src={product.seller.avatar_url} alt={product.seller?.name} className="w-8 h-8 rounded-full object-cover" />
+                        ) : (
+                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400 flex-shrink-0">
+                                <User size={14} />
                             </div>
-                        </div>
-
-                        {/* Time + Details */}
-                        <div className="flex flex-col items-end gap-1.5">
-                            {/* Relative time */}
-                            {relativeTime && (
-                                <span className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
-                                    <Clock size={10} />
-                                    {relativeTime}
-                                </span>
+                        )}
+                        <div className="flex items-center gap-1 truncate">
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">
+                                {product.seller?.name || 'مستخدم'}
+                            </span>
+                            {product.seller?.is_verified && (
+                                <BadgeCheck size={14} className="text-blue-500 flex-shrink-0" title="بائع موثوق" />
                             )}
-                            {/* Details button */}
-                            <div className="bg-primary/10 text-primary text-xs font-bold px-3 py-1.5 rounded-lg group-hover:bg-primary group-hover:text-white transition-all duration-200">
-                                عرض التفاصيل
-                            </div>
                         </div>
                     </div>
+                    
+                    {/* Actions Area */}
+                    {isAdmin ? (
+                        <div className="flex gap-1">
+                            <button 
+                                onClick={async (e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (window.confirm('هل أنت متأكد من حذف المنتج؟')) {
+                                        try {
+                                            await productsAPI.delete(product.id);
+                                            window.location.reload();
+                                        } catch (err) {
+                                            console.error('Failed to delete product', err);
+                                            alert('حدث خطأ أثناء الحذف');
+                                        }
+                                    }
+                                }}
+                                className="p-1.5 text-xs bg-red-50 text-red-500 dark:bg-red-500/10 rounded-lg hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center"
+                                title="حذف"
+                            >
+                                <Trash2 size={14} />
+                            </button>
+                            <button 
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    window.location.href = '/admin-dashboard';
+                                }}
+                                className="p-1.5 text-xs bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10 rounded-lg hover:bg-emerald-500 hover:text-white transition-colors flex items-center justify-center"
+                                title="تعديل"
+                            >
+                                <Edit3 size={14} />
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors" title="تواصل مع البائع">
+                            <MessageCircle size={14} />
+                        </div>
+                    )}
                 </div>
-            </Link>
+            </div>
         </motion.div>
     );
 }

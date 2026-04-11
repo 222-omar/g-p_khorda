@@ -21,6 +21,9 @@ from .views import (
     notifications_list,
     notifications_mark_read,
     notifications_unread_count,
+    admin_products_list,
+    admin_users_list,
+    admin_delete_user,
 )
 
 router = DefaultRouter()
@@ -54,6 +57,11 @@ urlpatterns = [
     path('notifications/', notifications_list, name='notifications-list'),
     path('notifications/mark-read/', notifications_mark_read, name='notifications-mark-read'),
     path('notifications/unread-count/', notifications_unread_count, name='notifications-unread-count'),
+    
+    # Admin Dashboard API (IsAdminUser protected)
+    path('admin-api/products/', admin_products_list, name='admin-products'),
+    path('admin-api/users/', admin_users_list, name='admin-users'),
+    path('admin-api/users/<int:user_id>/', admin_delete_user, name='admin-delete-user'),
     
     # Router URLs
     path('', include(router.urls)),

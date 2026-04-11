@@ -1,5 +1,16 @@
-// API Base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+// Centralized API Base URL
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+
+// Helper function to enforce trailing slash for Django
+export const enforceTrailingSlash = (endpoint: string): string => {
+    // Prevent adding slash to query params directly and handle them separately
+    if (endpoint.includes('?')) {
+        const [path, query] = endpoint.split('?');
+        const slashedPath = path.endsWith('/') ? path : `${path}/`;
+        return `${slashedPath}?${query}`;
+    }
+    return endpoint.endsWith('/') ? endpoint : `${endpoint}/`;
+};
 
 // Helper function to get auth token from cookies
 const getAuthToken = (): string | null => {
@@ -57,10 +68,19 @@ async function apiFetch<T>(
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const formattedEndpoint = enforceTrailingSlash(endpoint);
+    const url = `${API_BASE}${formattedEndpoint.startsWith('/') ? '' : '/'}${formattedEndpoint}`;
+
+    // Debug logging for frontend requests
+    console.log(`[Frontend API Request] ${options.method || 'GET'} ${url}`);
+    if (options.body) console.log(`[Frontend API Body]`, options.body);
+
+    const response = await fetch(url, {
         ...options,
         headers,
     });
+
+    console.log(`[Frontend API Response] ${url} Status: ${response.status}`);
 
     if (!response.ok) {
         if (response.status === 401) {
@@ -185,13 +205,18 @@ export const productsAPI = {
     async create(data: FormData) {
         const token = getAuthToken();
 
-        const response = await fetch(`${API_BASE_URL}/products/`, {
+        const url = `${API_BASE}/products/`;
+        console.log(`[Frontend API Request] POST ${url}`);
+        
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token}`,
             },
             body: data,
         });
+        
+        console.log(`[Frontend API Response] ${url} Status: ${response.status}`);
 
         if (response.status >= 200 && response.status < 300) {
             try {
@@ -370,11 +395,16 @@ export const classifyAPI = {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
-        const response = await fetch(`${API_BASE_URL}/classify-image/`, {
+        const url = `${API_BASE}/classify-image/`;
+        console.log(`[Frontend API Request] POST ${url}`);
+
+        const response = await fetch(url, {
             method: 'POST',
             headers,
             body: formData,
         });
+        
+        console.log(`[Frontend API Response] ${url} Status: ${response.status}`);
 
         if (!response.ok) {
             throw new Error('Classification failed');
@@ -457,4 +487,24 @@ export const ragAPI = {
             body: JSON.stringify({ query: queryText }),
         });
     },
+};
+
+// Admin Dashboard API
+export const adminAPI = {
+    async listProducts() {
+        return apiFetch<any[]>('/admin-api/products/');
+    },
+
+    async listUsers() {
+        return apiFetch<any[]>('/admin-api/users/');
+    },
+
+    async deleteUser(userId: number) {
+        return apiFetch<{ status: string; username: string }>(`/admin-api/users/${userId}/`, {
+            method: 'DELETE',
+        });
+    },
+
+    // Product edit/delete reuse existing productsAPI endpoints
+    // productsAPI.update(id, data) and productsAPI.delete(id)
 };
