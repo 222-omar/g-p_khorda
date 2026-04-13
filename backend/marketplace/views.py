@@ -176,13 +176,20 @@ def register_view(request):
 def current_user_view(request):
     """Get current authenticated user with profile"""
     try:
-        profile = UserProfileSerializer(request.user.profile, context={'request': request})
-        data = profile.data
-        # Include admin status in me response
-        data['is_admin'] = hasattr(request.user, 'profile') and request.user.profile.role == 'admin'
-        return Response(data)
+        profile = request.user.profile
     except UserProfile.DoesNotExist:
-        return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
+        # Auto-create profile for users that don't have one (e.g. old superusers)
+        role = 'admin' if (request.user.is_superuser or request.user.is_staff) else 'user'
+        profile = UserProfile.objects.create(
+            user=request.user,
+            role=role,
+            city='',
+        )
+    
+    serializer = UserProfileSerializer(profile, context={'request': request})
+    data = serializer.data
+    data['is_admin'] = profile.role == 'admin'
+    return Response(data)
 
 
 class ProductViewSet(viewsets.ModelViewSet):

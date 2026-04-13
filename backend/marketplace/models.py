@@ -12,7 +12,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user')
     phone = models.CharField(max_length=15, blank=True)
-    city = models.CharField(max_length=100)
+    city = models.CharField(max_length=100, blank=True, default='')
     trust_score = models.IntegerField(
         default=50,
         validators=[MinValueValidator(0), MaxValueValidator(100)]
