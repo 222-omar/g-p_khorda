@@ -26,7 +26,7 @@ function useCountUp(target: number, duration = 1.5, inView = false) {
     return count;
 }
 
-function StatCard({ icon: Icon, label, value, color, index }: any) {
+function StatCard({ icon: Icon, label, value, index }: any) {
     const ref = useRef(null);
     const inView = useInView(ref, { once: true, margin: '-60px' });
     const numericValue = typeof value === 'number' ? value : parseInt(value) || 0;
@@ -35,37 +35,23 @@ function StatCard({ icon: Icon, label, value, color, index }: any) {
     return (
         <motion.div
             ref={ref}
-            initial={{ opacity: 0, y: 32 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.55, delay: index * 0.12, ease: [0.22, 1, 0.36, 1] }}
-            whileHover={{ y: -6, transition: { duration: 0.22, ease: 'easeOut' } }}
-            className="relative group cursor-default"
+            transition={{ duration: 0.6, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col items-center py-4 lg:py-0"
         >
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-                {/* Animated background glow */}
-                <motion.div
-                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"
-                    style={{ background: 'radial-gradient(circle at 50% 50%, var(--color-primary, #16a34a) 0%, transparent 70%)', opacity: 0 }}
-                    whileHover={{ opacity: 0.05 }}
-                />
-
-                {/* Icon */}
-                <motion.div
-                    className={`${color} mb-3`}
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={inView ? { scale: 1, opacity: 1 } : {}}
-                    transition={{ duration: 0.4, delay: index * 0.12 + 0.25, type: 'spring', stiffness: 300 }}
-                >
-                    <Icon size={32} strokeWidth={2.5} />
-                </motion.div>
-
-                {/* Value with count-up */}
-                <h3 className="text-3xl font-black text-primary mb-1">
-                    {count.toLocaleString()}
-                </h3>
-
-                {/* Label */}
-                <p className="text-slate-600 dark:text-slate-400 text-sm font-bold">{label}</p>
+            <div className="flex items-center gap-4">
+                <div className="text-primary/70 mb-0">
+                    <Icon size={22} strokeWidth={2} />
+                </div>
+                <div className="flex flex-col">
+                    <h3 className="text-2xl lg:text-3xl font-black font-noto-kufi text-slate-900 dark:text-white leading-none">
+                        {count.toLocaleString()}
+                    </h3>
+                    <p className="text-slate-400 dark:text-slate-500 text-[10px] lg:text-[11px] font-bold font-tajawal uppercase tracking-wider mt-1">
+                        {label}
+                    </p>
+                </div>
             </div>
         </motion.div>
     );
@@ -93,19 +79,23 @@ export function Stats() {
     }, []);
 
     const stats = [
-        { icon: Users, label: dict.stats.activeUsers, value: statsData.total_users || 0, color: 'text-blue-600' },
-        { icon: Package, label: dict.stats.productsSold, value: statsData.products_sold || 0, color: 'text-emerald-600' },
-        { icon: Leaf, label: dict.stats.scrapTons, value: statsData.scrap_count || 0, color: 'text-green-600' },
-        { icon: MapPin, label: dict.stats.governorates, value: statsData.active_governorates || 0, color: 'text-orange-600' },
+        { icon: Users, label: dict.stats.activeUsers, value: statsData.total_users || 0 },
+        { icon: Package, label: dict.stats.productsSold, value: statsData.products_sold || 0 },
+        { icon: Leaf, label: dict.stats.scrapTons, value: statsData.scrap_count || 0 },
+        { icon: MapPin, label: dict.stats.governorates, value: statsData.active_governorates || 0 },
     ];
 
     return (
-        <section className="py-12 px-4 sm:px-6 lg:px-8">
+        <section className="relative z-10 -mt-8 px-4 sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                    {stats.map((stat, index) => (
-                        <StatCard key={index} {...stat} index={index} />
-                    ))}
+                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[2rem] border border-slate-200/50 dark:border-slate-800/50 shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-none py-8 lg:py-10 px-8">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-0 divide-y lg:divide-y-0 lg:divide-x lg:divide-x-reverse divide-slate-100 dark:divide-slate-800">
+                        {stats.map((stat, index) => (
+                            <div key={index} className="flex justify-center first:pt-0 pt-8 lg:pt-0">
+                                <StatCard {...stat} index={index} />
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </section>

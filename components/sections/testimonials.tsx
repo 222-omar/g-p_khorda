@@ -23,7 +23,7 @@ const testimonials = [
         name: 'محمود سالم',
         role: 'تاجر أثاث',
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=mahmoud',
-        rating: 4,
+        rating: 5,
         text: 'كمنصة بيع وشراء أونلاين، 4Sale غيّرت شكل التجارة بالنسبة لي. نظام التقييمات بيدي ثقة كبيرة للعملاء.',
     },
     {
@@ -44,92 +44,95 @@ const testimonials = [
         name: 'نورا حسن',
         role: 'مشترية',
         avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=noura',
-        rating: 4,
+        rating: 5,
         text: 'المراسلة الفورية مع البائع مريحة وسهلة، وحاسة إني محمية بنظام الحماية المتقدم. تجربة ممتازة!',
     },
 ];
 
 export function Testimonials() {
     return (
-        <section className="py-24 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-900/50 relative overflow-hidden">
-            <div className="absolute top-1/2 left-0 w-60 h-60 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 pointer-events-none" />
-            <div className="absolute top-1/2 right-0 w-60 h-60 bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 pointer-events-none" />
+        <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white dark:bg-[#0a0c10] relative overflow-hidden" dir="rtl">
+            
+            {/* Background Decor */}
+            <div className="absolute top-1/4 -right-20 w-[400px] h-[400px] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
+            <div className="absolute bottom-1/4 -left-20 w-[400px] h-[400px] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none" />
 
             <div className="max-w-7xl mx-auto relative">
-                {/* Section Header */}
+                
+                {/* Header */}
                 <motion.div
-                    className="text-center mb-16"
+                    className="text-center mb-24 px-4"
                     variants={staggerContainer}
                     initial="hidden"
                     whileInView="visible"
                     viewport={{ once: true, amount: 0.3 }}
                 >
-                    <motion.span
+                    <motion.div variants={staggerItem} className="inline-block">
+                        <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[11px] font-bold tracking-widest uppercase mb-6 font-tajawal shadow-sm">
+                            قالوا عنا
+                        </span>
+                    </motion.div>
+                    <motion.h2 
                         variants={staggerItem}
-                        className="text-primary font-bold uppercase tracking-wider text-sm mb-2 block"
+                        className="font-noto-kufi text-3xl md:text-5xl font-black text-slate-900 dark:text-white leading-[1.2] mb-6"
                     >
-                        آراء العملاء
-                    </motion.span>
-                    <motion.h2
-                        variants={staggerItem}
-                        className="text-3xl md:text-5xl font-black mb-4"
-                    >
-                        ماذا يقول عملاؤنا؟
+                        ماذا يقول <span className="text-primary">عملاؤنا؟</span>
                     </motion.h2>
-                    <motion.p
+                    <motion.p 
                         variants={staggerItem}
-                        className="text-slate-500 dark:text-slate-400 max-w-lg mx-auto text-lg"
+                        className="font-tajawal text-base md:text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed"
                     >
-                        آلاف المستخدمين يثقون بنا يومياً
+                        قصص نجاح وتجارب ملهمة لمستخدمينا الذين وثقوا بنا
                     </motion.p>
-                    <motion.div
-                        variants={staggerItem}
-                        className="w-16 h-1 bg-gradient-to-r from-primary to-green-400 rounded-full mx-auto mt-4"
-                    />
                 </motion.div>
 
-                {/* Testimonials Grid */}
+                {/* Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {testimonials.map((testimonial, index) => (
                         <motion.div
                             key={index}
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true, amount: 0.15 }}
-                            transition={{ duration: 0.5, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                            whileHover={{ y: -6, transition: { duration: 0.25 } }}
-                            className="group"
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.6, delay: index * 0.1 }}
+                            whileHover={{ y: -8 }}
+                            className="relative group h-full"
                         >
-                            <div className="bg-white dark:bg-slate-800 rounded-2xl p-7 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col relative">
-                                {/* Quote icon */}
-                                <Quote className="absolute top-5 left-5 w-8 h-8 text-primary/10 dark:text-primary/5" />
+                            <div className="h-full bg-white dark:bg-slate-900/40 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-[0_10px_30px_rgba(0,0,0,0.02)] group-hover:shadow-[0_20px_50px_rgba(0,105,111,0.08)] transition-all duration-500 relative overflow-hidden flex flex-col">
+                                
+                                {/* Adjusted Quote Icon for RTL */}
+                                <Quote className="absolute -top-4 -right-4 w-24 h-24 text-primary/5 rotate-180 group-hover:rotate-[192deg] transition-transform duration-700" />
+                                
+                                <div className="relative z-10 flex flex-col h-full text-right">
+                                    {/* Stars aligned to start (right in RTL) */}
+                                    <div className="flex gap-1 mb-6 justify-start">
+                                        {[...Array(5)].map((_, i) => (
+                                            <Star key={i} size={14} className="fill-amber-400 text-amber-400" />
+                                        ))}
+                                    </div>
 
-                                {/* Stars */}
-                                <div className="flex gap-1 mb-4">
-                                    {Array.from({ length: 5 }).map((_, i) => (
-                                        <Star
-                                            key={i}
-                                            size={16}
-                                            className={i < testimonial.rating ? 'text-yellow-400 fill-yellow-400' : 'text-slate-200 dark:text-slate-700'}
-                                        />
-                                    ))}
-                                </div>
+                                    <p className="text-slate-700 dark:text-slate-200 font-tajawal leading-relaxed text-base mb-8 flex-1 font-medium">
+                                        "{testimonial.text}"
+                                    </p>
 
-                                {/* Text */}
-                                <p className="text-slate-600 dark:text-slate-300 mb-6 flex-1 text-sm leading-relaxed">
-                                    "{testimonial.text}"
-                                </p>
-
-                                {/* User info */}
-                                <div className="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-700">
-                                    <img
-                                        src={testimonial.avatar}
-                                        alt={testimonial.name}
-                                        className="w-11 h-11 rounded-full border-2 border-primary/20"
-                                    />
-                                    <div>
-                                        <p className="font-bold text-sm">{testimonial.name}</p>
-                                        <p className="text-xs text-slate-400">{testimonial.role}</p>
+                                    {/* Footer aligned to start (right in RTL) */}
+                                    <div className="flex items-center gap-4 pt-8 border-t border-slate-100 dark:border-slate-800 justify-start">
+                                        <div className="relative">
+                                            <img
+                                                src={testimonial.avatar}
+                                                alt={testimonial.name}
+                                                className="w-12 h-12 rounded-2xl object-cover bg-slate-100 p-1 ring-1 ring-slate-100 dark:ring-slate-800"
+                                            />
+                                            <div className="absolute -bottom-1 -left-1 w-4 h-4 bg-primary rounded-full border-2 border-white dark:border-slate-950" />
+                                        </div>
+                                        <div className="text-right">
+                                            <h4 className="font-bold font-noto-kufi text-base text-slate-900 dark:text-white leading-tight">
+                                                {testimonial.name}
+                                            </h4>
+                                            <p className="text-[13px] font-tajawal text-slate-500 mt-1">
+                                                {testimonial.role}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

@@ -74,62 +74,79 @@ export function Features() {
     ];
 
     return (
-        <section className="py-24 px-4 sm:px-6 lg:px-8">
+        <section className="py-32 px-4 sm:px-6 lg:px-8 bg-slate-50/50 dark:bg-slate-900/20">
             <div className="max-w-7xl mx-auto">
                 {/* Section Header */}
                 <motion.div
-                    className="text-center mb-16"
+                    className="text-center mb-24"
                     variants={staggerContainer}
                     initial="hidden"
                     whileInView="visible"
                     viewport={{ once: true, amount: 0.3 }}
                 >
-                    <motion.span
-                        variants={staggerItem}
-                        className="text-primary font-bold uppercase tracking-wider text-sm mb-2 block"
-                    >
+                    <span className="text-primary font-bold uppercase tracking-widest text-[11px] mb-4 bg-primary/10 px-4 py-2 rounded-full inline-block font-tajawal">
                         {dict.features.title}
-                    </motion.span>
-                    <motion.h2
-                        variants={staggerItem}
-                        className="text-3xl md:text-5xl font-black mb-6"
-                    >
+                    </span>
+                    <h2 className="text-4xl md:text-5xl font-black mb-6 font-noto-kufi text-slate-900 dark:text-white leading-tight">
+                        مميزات ذكية <br /> <span className="text-primary">بتغير طريقة البيع والشراء</span>
+                    </h2>
+                    <p className="text-slate-500 dark:text-slate-400 font-tajawal max-w-xl mx-auto text-lg">
                         {dict.features.subtitle}
-                    </motion.h2>
-                    <motion.div
-                        variants={staggerItem}
-                        className="w-16 h-1 bg-gradient-to-r from-primary to-green-400 rounded-full mx-auto"
-                    />
+                    </p>
                 </motion.div>
 
-                {/* Cards */}
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {features.map((feature, index) => (
-                        <motion.div
-                            key={index}
-                            custom={index}
-                            variants={cardVariants}
-                            initial="hidden"
-                            whileInView="visible"
-                            viewport={{ once: true, amount: 0.2 }}
-                            whileHover={{ y: -8, transition: { duration: 0.25, ease: 'easeOut' } }}
-                            className={`group p-8 rounded-3xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/50 dark:shadow-none hover:shadow-2xl ${feature.glow} transition-shadow duration-300 cursor-default`}
-                        >
-                            <motion.div
-                                className={`w-14 h-14 ${feature.bg} rounded-2xl flex items-center justify-center mb-6`}
-                                whileHover={{ scale: 1.15, rotate: 5 }}
-                                transition={{ type: 'spring', stiffness: 350, damping: 18 }}
-                            >
-                                <feature.icon className={`w-7 h-7 ${feature.color}`} />
-                            </motion.div>
-                            <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors duration-200">
-                                {feature.title}
+                {/* Hierarchical Grid */}
+                <div className="grid lg:grid-cols-12 gap-8">
+                    {/* Featured Item (AI Pricing) */}
+                    <motion.div
+                        custom={0}
+                        variants={cardVariants}
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        className="lg:col-span-12 xl:col-span-4 group relative p-10 rounded-[3rem] bg-slate-900 text-white overflow-hidden border border-slate-800 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/20"
+                    >
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-[100px] -mr-32 -mt-32" />
+                        <div className="relative z-10">
+                            <div className="w-16 h-16 bg-primary/20 rounded-[1.5rem] flex items-center justify-center mb-8 border border-white/10 group-hover:scale-110 transition-transform duration-300">
+                                <Brain className="w-8 h-8 text-primary" />
+                            </div>
+                            <h3 className="text-2xl font-bold font-noto-kufi mb-4 leading-tight">
+                                {features[0].title}
                             </h3>
-                            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                                {feature.desc}
+                            <p className="text-slate-400 font-tajawal text-lg leading-relaxed mb-8">
+                                {features[0].desc}
                             </p>
-                        </motion.div>
-                    ))}
+                            <span className="inline-flex items-center gap-2 text-primary font-bold font-tajawal">
+                                اكتشف المزيد <Sparkles size={16} />
+                            </span>
+                        </div>
+                    </motion.div>
+
+                    {/* Secondary Items (3x2 Grid Style) */}
+                    <div className="lg:col-span-12 xl:col-span-8 grid md:grid-cols-2 gap-8">
+                        {features.slice(1).map((feature, index) => (
+                            <motion.div
+                                key={index}
+                                custom={index + 1}
+                                variants={cardVariants}
+                                initial="hidden"
+                                whileInView="visible"
+                                viewport={{ once: true }}
+                                className="group p-8 rounded-[2.5rem] bg-white dark:bg-[#12141a] border border-slate-100 dark:border-slate-800 transition-all duration-300 hover:border-primary/30 hover:shadow-[0_20px_40px_rgba(0,0,0,0.04)] dark:hover:shadow-none cursor-default"
+                            >
+                                <div className={`w-14 h-14 ${feature.bg} rounded-2xl flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}>
+                                    <feature.icon className={`w-7 h-7 ${feature.color}`} strokeWidth={2.2} />
+                                </div>
+                                <h3 className="text-xl font-bold font-noto-kufi text-slate-900 dark:text-white mb-3 group-hover:text-primary transition-colors duration-200">
+                                    {feature.title}
+                                </h3>
+                                <p className="text-slate-500 dark:text-slate-400 font-tajawal leading-relaxed">
+                                    {feature.desc}
+                                </p>
+                            </motion.div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </section>

@@ -3,7 +3,6 @@ import { Footer } from "@/components/layout/footer";
 import { Hero } from "@/components/sections/hero";
 import { Categories } from "@/components/sections/categories";
 import { Features } from "@/components/sections/features";
-import { Stats } from "@/components/sections/stats";
 import { HowItWorks } from "@/components/sections/how-it-works";
 import { WhyFourSale } from "@/components/sections/why-four-sale";
 import { Testimonials } from "@/components/sections/testimonials";
@@ -16,17 +15,13 @@ export default function Home() {
       <Navbar />
       <main className="min-h-screen bg-white dark:bg-slate-950">
         {/* 1. Hero - First impression & CTA */}
-        <Hero />
-
-        {/* 2. Stats - Social proof with numbers */}
-        <Stats />
+        <div id="home">
+          <Hero />
+        </div>
 
         {/* 3. Categories - Show what's available */}
-        <Categories />
-
-        {/* 4. Features - What makes us special */}
-        <div id="features">
-          <Features />
+        <div id="categories">
+          <Categories />
         </div>
 
         {/* 5. How It Works - Step by step guide */}

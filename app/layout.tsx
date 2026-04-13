@@ -1,19 +1,21 @@
 import type { Metadata } from "next";
-import { Inter, Cairo } from "next/font/google";
+import { Noto_Kufi_Arabic as NotoKufiFont, Tajawal as TajawalFont } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { LanguageProvider } from "@/components/providers/language-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
+const tajawal = TajawalFont({
+  variable: "--font-tajawal",
+  subsets: ["arabic", "latin"],
+  weight: ["200", "300", "400", "500", "700", "800", "900"],
   display: "swap",
 });
 
-const cairo = Cairo({
-  variable: "--font-ibm-plex-arabic",
-  subsets: ["arabic", "latin"],
+const notoKufi = NotoKufiFont({
+  variable: "--font-noto-kufi",
+  subsets: ["arabic"],
+  weight: ["400", "500", "700", "800", "900"],
   display: "swap",
 });
 
@@ -38,7 +40,7 @@ export default function RootLayout({
   return (
     <html lang="ar" suppressHydrationWarning className="scroll-smooth">
       <body
-        className={`${inter.variable} ${cairo.variable} font-sans antialiased`}
+        className={`${tajawal.variable} ${notoKufi.variable} font-tajawal antialiased`}
       >
         <ThemeProvider
           attribute="class"

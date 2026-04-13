@@ -2,10 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-page: #f8f7f4;
+}
+
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
   body {
+    @apply bg-[#f8f7f4] dark:bg-[#0e1015] text-slate-900;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1);   }
+  50%       { opacity: 0.5; transform: scale(1.4); }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
 }
 
 @layer utilities {

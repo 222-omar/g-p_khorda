@@ -8,6 +8,8 @@ import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { staggerContainer, staggerItem } from '@/lib/animations';
 import { useState, useEffect, useRef } from 'react';
 
+import { generalAPI } from '@/lib/api';
+
 // ─── Typewriter Hook ────────────────────────────────────────────────────────
 function useTypewriter(text: string, speed = 45, startDelay = 0) {
     const [displayed, setDisplayed] = useState('');
@@ -45,31 +47,35 @@ function BlinkCursor({ visible }: { visible: boolean }) {
     );
 }
 
-// ─── Floating Particle ────────────────────────────────────────────────────────
-function Particle({ x, y, size, color, delay }: { x: string; y: string; size: number; color: string; delay: number }) {
-    return (
-        <motion.div
-            className="absolute rounded-full pointer-events-none"
-            style={{ left: x, top: y, width: size, height: size, background: color }}
-            animate={{
-                y: [0, -18, 0],
-                opacity: [0.4, 0.9, 0.4],
-                scale: [1, 1.2, 1],
-            }}
-            transition={{
-                duration: 3 + Math.random() * 2,
-                repeat: Infinity,
-                ease: 'easeInOut',
-                delay,
-            }}
-        />
-    );
-}
-
 // ─── Hero ────────────────────────────────────────────────────────────────────
 export function Hero() {
     const { dict, isRtl } = useLanguage();
     const { user } = useAuth();
+    const [statsData, setStatsData] = useState({
+        total_users: 0,
+        products_sold: 0,
+        scrap_count: 0
+    });
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const data = await generalAPI.getGeneralStats();
+                setStatsData(data);
+            } catch (error) {
+                console.error('Failed to fetch hero stats:', error);
+            }
+        };
+        fetchStats();
+    }, []);
+
+    // Format helper for display
+    const formatStat = (val: number, fallback: string) => {
+        if (!val || val === 0) return fallback;
+        if (val >= 1000000) return `+${(val / 1000000).toFixed(1)} مليون`;
+        if (val >= 1000) return `+${(val / 1000).toFixed(0)} ألف`;
+        return `+${val}`;
+    };
 
     // Typewriter: first type the title, then after it's done type the highlight
     const { displayed: titleText, done: titleDone } = useTypewriter(dict.hero.title, 50, 700);
@@ -78,15 +84,6 @@ export function Hero() {
         55,
         titleDone ? 120 : 999999
     );
-
-    const particles = [
-        { x: '8%', y: '15%', size: 8, color: 'rgba(22,163,74,0.5)', delay: 0 },
-        { x: '90%', y: '10%', size: 6, color: 'rgba(52,211,153,0.4)', delay: 0.7 },
-        { x: '75%', y: '70%', size: 10, color: 'rgba(22,163,74,0.3)', delay: 1.1 },
-        { x: '15%', y: '80%', size: 7, color: 'rgba(74,222,128,0.4)', delay: 0.4 },
-        { x: '50%', y: '5%', size: 5, color: 'rgba(22,163,74,0.35)', delay: 1.6 },
-        { x: '35%', y: '90%', size: 9, color: 'rgba(52,211,153,0.3)', delay: 2.0 },
-    ];
 
     const textSide = {
         hidden: { opacity: 0, x: isRtl ? 50 : -50 },
@@ -111,92 +108,69 @@ export function Hero() {
     };
 
     return (
-        <section className="pt-24 pb-12 px-4 sm:px-6 lg:px-8 overflow-hidden relative">
-            {/* Floating Particles */}
-            {particles.map((p, i) => (
-                <Particle key={i} {...p} />
-            ))}
-
-            <div className="max-w-7xl mx-auto">
-                <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
-                    {/* Text Content */}
-                    <motion.div variants={textSide} initial="hidden" animate="visible">
-                        <motion.div variants={staggerContainer} initial="hidden" animate="visible">
+        <section className="min-h-screen flex flex-col pt-[88px] pb-0 px-4 sm:px-6 lg:px-8 overflow-hidden relative bg-page dark:bg-[#0e1015]">
+            <div className="container mx-auto max-w-[1280px] flex flex-col flex-1">
+                <div className="grid grid-cols-1 lg:grid-cols-[55fr_45fr] gap-12 lg:gap-16 items-center flex-1 py-8">
+                    
+                    {/* RIGHT column — Text content (comes first in DOM for RTL) */}
+                    <motion.div 
+                      variants={textSide} 
+                      initial="hidden" 
+                      animate="visible" 
+                      className="flex flex-col justify-center gap-0 lg:py-10"
+                    >
+                        <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="w-full">
                             {/* Badge */}
                             <motion.div
                                 variants={staggerItem}
-                                className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-bold mb-6 border border-primary/20"
+                                className="inline-flex items-center gap-2 bg-primary/5 text-primary px-3.5 py-1.5 rounded-full text-[12px] font-tajawal font-bold mb-4 border border-primary/10"
                             >
-                                <motion.span
-                                    animate={{ scale: [1, 1.2, 1] }}
-                                    transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-                                    className="w-2 h-2 rounded-full bg-primary"
-                                />
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                                 مرحباً بك في 4Sale
                             </motion.div>
 
                             {/* Heading with Typewriter */}
                             <motion.h1
                                 variants={staggerItem}
-                                className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 leading-tight min-h-[1.2em]"
+                                className="text-4xl md:text-5xl lg:text-[clamp(2rem,3.8vw,3.2rem)] font-noto-kufi font-[800] mb-3 leading-[1.35] text-slate-900 dark:text-white w-full max-w-[700px]"
                             >
-                                {/* Line 1: title typed */}
-                                <span>
-                                    {titleText}
-                                    {!titleDone && <BlinkCursor visible={true} />}
+                                <span className="block">
+                                    سوقك الذكي لبيع المستعمل
                                 </span>
-
-                                <br />
-
-                                {/* Line 2: highlight typed after first line done */}
-                                <span className="bg-gradient-to-r from-primary to-green-400 bg-clip-text text-transparent">
-                                    {titleDone && highlightText}
-                                    {titleDone && !highlightDone && <BlinkCursor visible={true} />}
+                                <span className="block text-primary">
+                                    والخردة في مصر
                                 </span>
                             </motion.h1>
 
-                            {/* Description — fades in only after both lines typed */}
+                            {/* Description */}
                             <motion.p
                                 variants={staggerItem}
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={highlightDone ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-                                transition={{ duration: 0.5, delay: 0.15 }}
-                                className="text-slate-600 dark:text-slate-400 mb-8 text-lg leading-relaxed"
+                                className="text-slate-600 dark:text-slate-400 mb-0 text-[17px] leading-[1.85] w-full max-w-[620px]"
                             >
                                 {dict.hero.description}
                             </motion.p>
 
-                            {/* CTA Buttons — appear after description */}
+                            {/* CTA Buttons */}
                             <motion.div
-                                initial={{ opacity: 0, y: 12 }}
-                                animate={highlightDone ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
-                                transition={{ duration: 0.5, delay: 0.4 }}
-                                className="flex flex-col sm:flex-row gap-4"
+                                variants={staggerItem}
+                                className="flex flex-wrap sm:flex-nowrap items-center gap-4 mt-6"
                             >
                                 <Link href={user ? '/dashboard' : '/login?redirect=/dashboard'}>
                                     <motion.button
-                                        whileHover={{ scale: 1.04, boxShadow: '0 8px 24px rgba(22,163,74,0.35)' }}
-                                        whileTap={{ scale: 0.97 }}
-                                        transition={{ type: 'spring', stiffness: 380, damping: 20 }}
-                                        className="w-full sm:w-auto bg-primary hover:bg-primary-700 text-white px-8 py-4 rounded-xl font-bold shadow-lg transition-colors flex items-center justify-center gap-2 group"
+                                        whileHover={{ scale: 1.02, y: -1 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="w-full sm:w-auto bg-primary text-white px-8 py-3 rounded-xl font-bold text-[15px] shadow-[0_6px_20px_rgba(1,105,111,0.28)] transition-all flex items-center justify-center gap-2"
                                     >
-                                        {dict.hero.browseProducts}
-                                        <motion.span
-                                            className={isRtl ? 'rotate-180' : ''}
-                                            whileHover={{ x: isRtl ? -4 : 4 }}
-                                            transition={{ type: 'spring', stiffness: 400 }}
-                                        >
-                                            <ArrowRight size={20} />
-                                        </motion.span>
+                                        <span>{dict.hero.browseProducts}</span>
+                                        <ArrowRight size={18} className={`${isRtl ? 'rotate-180' : ''}`} />
                                     </motion.button>
                                 </Link>
 
                                 <Link href={user ? '/sell' : '/login?redirect=/sell'}>
                                     <motion.button
-                                        whileHover={{ scale: 1.03, borderColor: 'var(--color-primary, #16a34a)' }}
-                                        whileTap={{ scale: 0.97 }}
-                                        transition={{ type: 'spring', stiffness: 380, damping: 20 }}
-                                        className="w-full sm:w-auto border-2 border-slate-300 dark:border-slate-700 hover:border-primary dark:hover:border-primary px-8 py-4 rounded-xl font-bold transition-colors hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                                        whileHover={{ scale: 1.02, y: -1, backgroundColor: 'rgba(255,255,255,0.9)' }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="w-full sm:w-auto bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 px-8 py-3 rounded-xl font-bold text-[15px] transition-all"
                                     >
                                         {dict.hero.addListing}
                                     </motion.button>
@@ -205,30 +179,50 @@ export function Hero() {
                         </motion.div>
                     </motion.div>
 
-                    {/* Hero Image */}
-                    <motion.div variants={imageSide} initial="hidden" animate="visible" className="relative">
-                        <motion.div
-                            className="relative rounded-3xl overflow-hidden shadow-2xl"
-                            whileHover={{ scale: 1.02 }}
-                            transition={{ duration: 0.4, ease: 'easeOut' }}
+                    {/* LEFT column — Image (comes second in DOM for RTL) */}
+                    <motion.div 
+                      variants={imageSide} 
+                      initial="hidden" 
+                      animate="visible" 
+                      className="relative h-full flex items-center justify-center lg:justify-end"
+                    >
+                        <div
+                            className="relative rounded-[24px] overflow-hidden aspect-[4/3] w-full shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] border border-black/[0.04] dark:border-white/[0.04]"
                         >
-                            <img src="/hero-bg.jpg" alt="4Sale marketplace" className="w-full h-auto" />
-                            {/* Gradient Overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                        </motion.div>
-
-                        {/* Decorative floating blobs */}
-                        <motion.div
-                            className="absolute -top-4 -right-4 w-20 h-20 bg-primary/10 rounded-full blur-xl"
-                            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
-                            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                        />
-                        <motion.div
-                            className="absolute -bottom-6 -left-6 w-28 h-28 bg-green-400/10 rounded-full blur-xl"
-                            animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0.7, 0.4] }}
-                            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-                        />
+                            <img 
+                              src="/hero-bg.jpg" 
+                              alt="4Sale marketplace" 
+                              className="w-full h-full object-cover" 
+                            />
+                        </div>
                     </motion.div>
+
+                </div>
+
+                {/* --- Stats strip — anchored to bottom of 100vh --- */}
+                <div className="mt-auto pt-6 pb-8 border-t border-slate-200/40 dark:border-white/[0.05]">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                        {[
+                            { value: formatStat(statsData.total_users, '+٢٠٠ ألف'), label: 'مستخدم نشط' },
+                            { value: formatStat(statsData.products_sold, '+٥٠٠ ألف'), label: 'إعلان منشور' },
+                            { value: '٩٨٪',      label: 'رضا العملاء' },
+                            { value: '٢٤/٧',     label: 'دعم متاح' },
+                        ].map((stat, idx) => (
+                            <div 
+                              key={stat.label} 
+                              className={`text-center flex flex-col items-center justify-center ${
+                                idx !== 3 ? 'lg:border-e lg:border-slate-200 dark:lg:border-white/10 lg:pe-6 lg:me-6' : ''
+                              }`}
+                            >
+                                <p className="font-noto-kufi text-[1.4rem] font-black text-primary leading-none tracking-tight">
+                                    {stat.value}
+                                </p>
+                                <p className="font-tajawal text-[11px] text-slate-400 mt-1 font-medium">
+                                    {stat.label}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </section>

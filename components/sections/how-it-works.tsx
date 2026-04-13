@@ -9,108 +9,109 @@ const steps = [
         icon: Search,
         number: '01',
         title: 'تصفح المنتجات',
-        desc: 'اكتشف آلاف المنتجات والإعلانات المتنوعة في مختلف الفئات بسهولة تامة.',
-        color: 'from-blue-500 to-cyan-500',
+        desc: 'اكتشف آلاف الإعلانات المتنوعة في مختلف الفئات بحث ذكي وسريع.',
+        color: 'from-blue-400 to-blue-600',
+        shadow: 'shadow-blue-500/25',
     },
     {
         icon: ShieldCheck,
         number: '02',
         title: 'تحقق من البائع',
         desc: 'اطلع على تقييمات البائع ودرجة الموثوقية قبل اتخاذ قرار الشراء.',
-        color: 'from-emerald-500 to-green-500',
+        color: 'from-emerald-400 to-emerald-600',
+        shadow: 'shadow-emerald-500/25',
     },
     {
         icon: Handshake,
         number: '03',
         title: 'تواصل وتفاوض',
-        desc: 'تواصل مباشرة مع البائع عبر نظام المراسلة الفوري وتفاوض على السعر.',
-        color: 'from-orange-500 to-amber-500',
+        desc: 'تواصل مباشرة مع البائع عبر المراسلة الفورية وتفاوض على أفضل سعر.',
+        color: 'from-orange-400 to-orange-600',
+        shadow: 'shadow-orange-500/25',
     },
     {
         icon: Rocket,
         number: '04',
         title: 'أتمم الصفقة',
-        desc: 'ادفع بأمان عبر المحفظة الإلكترونية واستلم منتجك بثقة كاملة.',
-        color: 'from-purple-500 to-pink-500',
+        desc: 'ادفع بأمان واستلم منتجك بكل ثقة واطمئنان.',
+        color: 'from-purple-400 to-purple-600',
+        shadow: 'shadow-purple-500/25',
     },
 ];
 
 export function HowItWorks() {
     return (
-        <section className="py-24 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-900/50 relative overflow-hidden">
-            {/* Subtle background decoration */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-primary/[0.02] rounded-full blur-3xl pointer-events-none" />
+        <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white dark:bg-[#0a0c10] relative overflow-hidden">
+            
+            {/* Background Decor */}
+            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
             <div className="max-w-7xl mx-auto relative">
-                {/* Section Header */}
+                
+                {/* Standardized Header */}
                 <motion.div
-                    className="text-center mb-20"
+                    className="text-center mb-24 px-4"
                     variants={staggerContainer}
                     initial="hidden"
                     whileInView="visible"
                     viewport={{ once: true, amount: 0.3 }}
                 >
-                    <motion.span
+                    <motion.div variants={staggerItem} className="inline-block">
+                        <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[11px] font-bold tracking-widest uppercase mb-6 font-tajawal shadow-sm">
+                            رحلتك معنا تبدأ هنا
+                        </span>
+                    </motion.div>
+                    <motion.h2 
                         variants={staggerItem}
-                        className="text-primary font-bold uppercase tracking-wider text-sm mb-2 block"
+                        className="font-noto-kufi text-3xl md:text-5xl font-black text-slate-900 dark:text-white leading-[1.2] mb-6"
                     >
-                        كيف يعمل؟
-                    </motion.span>
-                    <motion.h2
-                        variants={staggerItem}
-                        className="text-3xl md:text-5xl font-black mb-4"
-                    >
-                        خطوات بسيطة للبدء
+                        خطوات بسيطة <span className="text-primary">لهدفك</span>
                     </motion.h2>
-                    <motion.p
+                    <motion.p 
                         variants={staggerItem}
-                        className="text-slate-500 dark:text-slate-400 max-w-lg mx-auto text-lg"
+                        className="font-tajawal text-base md:text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed"
                     >
-                        من التصفح إلى إتمام الصفقة، كل شيء سهل وسريع
+                        رحلة تبدأ بضغطة زر وتنتهي بصفقة ناجحة ومضمونة
                     </motion.p>
-                    <motion.div
-                        variants={staggerItem}
-                        className="w-16 h-1 bg-gradient-to-r from-primary to-green-400 rounded-full mx-auto mt-4"
-                    />
                 </motion.div>
 
-                {/* Steps Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                    {steps.map((step, index) => (
-                        <motion.div
-                            key={index}
-                            initial={{ opacity: 0, y: 40 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true, amount: 0.2 }}
-                            transition={{ duration: 0.5, delay: index * 0.12, ease: [0.22, 1, 0.36, 1] }}
-                            whileHover={{ y: -8 }}
-                            className="group relative"
-                        >
-                            <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 border border-slate-100 dark:border-slate-700 shadow-lg shadow-slate-200/30 dark:shadow-none h-full flex flex-col items-center text-center transition-shadow hover:shadow-xl relative overflow-hidden">
-                                {/* Large step number */}
-                                <span className="absolute top-4 right-4 text-6xl font-black text-slate-100 dark:text-slate-800/60 select-none leading-none">
-                                    {step.number}
-                                </span>
+                {/* Steps Flow Grid */}
+                <div className="relative">
+                    {/* Connecting Path */}
+                    <div className="hidden lg:block absolute top-[44px] left-[12%] right-[12%] h-[2px] border-t-2 border-dashed border-slate-200 dark:border-slate-800 z-0" />
 
-                                {/* Icon */}
-                                <div className={`relative z-10 w-16 h-16 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                                    <step.icon className="w-8 h-8 text-white" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 relative z-10">
+                        {steps.map((step, idx) => (
+                            <motion.div
+                                key={idx}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                whileInView={{ opacity: 1, scale: 1 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.5, delay: idx * 0.1 }}
+                                className="group flex flex-col items-center text-center"
+                            >
+                                <div className="relative mb-10">
+                                    <div className={`w-[88px] h-[88px] rounded-3xl bg-gradient-to-br ${step.color} ${step.shadow} flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 shadow-lg ring-4 ring-white dark:ring-[#0a0c10]`}>
+                                        <step.icon className="w-10 h-10 text-white" strokeWidth={2} />
+                                    </div>
+                                    <div className="absolute -top-3 -right-3 w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-lg">
+                                        <span className="text-[12px] font-black font-noto-kufi">
+                                            {step.number}
+                                        </span>
+                                    </div>
                                 </div>
 
-                                <h3 className="text-lg font-bold mb-3 relative z-10 group-hover:text-primary transition-colors">
-                                    {step.title}
-                                </h3>
-                                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed relative z-10">
-                                    {step.desc}
-                                </p>
-                            </div>
-
-                            {/* Connector line (hidden on last item & on mobile) */}
-                            {index < steps.length - 1 && (
-                                <div className="hidden lg:block absolute top-1/2 -right-4 w-8 border-t-2 border-dashed border-slate-300 dark:border-slate-600 z-20" />
-                            )}
-                        </motion.div>
-                    ))}
+                                <div className="px-4 space-y-3">
+                                    <h3 className="text-[20px] font-black font-noto-kufi text-slate-900 dark:text-white group-hover:text-primary transition-colors">
+                                        {step.title}
+                                    </h3>
+                                    <p className="text-slate-500 dark:text-slate-400 font-tajawal leading-relaxed text-[14px]">
+                                        {step.desc}
+                                    </p>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </section>
