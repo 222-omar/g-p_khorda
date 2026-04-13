@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useLanguage } from '@/components/providers/language-provider';
 import { 
-    Moon, Sun, Languages, Menu, X, LogOut, MessageCircle, Bot, Sparkles, Shield 
+    Moon, Sun, Languages, Menu, X, LogOut, MessageCircle, Bot, Sparkles, Shield,
+    LayoutDashboard, Gavel, Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Logo } from '@/components/ui/logo';
@@ -99,9 +100,17 @@ export function Navbar() {
   ];
 
   const appLinks = [
-    { name: dict.nav.shop,       href: '/dashboard', icon: <Sparkles size={16} /> },
-    { name: dict.nav.auctions,   href: '/auctions', icon: <Bot size={16} /> },
-    ...(user ? [{ name: 'الوكيل الذكي', href: '/agent', icon: <Bot size={16} /> }] : []),
+    { name: 'الرئيسية',        href: '/',         icon: <Sparkles size={16} /> },
+    { name: dict.nav.shop,       href: '/dashboard', icon: <LayoutDashboard size={16} /> },
+    { name: dict.nav.auctions,   href: '/auctions',  icon: <Gavel size={16} /> },
+    ...(user ? [
+      { name: 'الوكيل الذكي', href: '/agent',  icon: <Bot size={16} /> },
+      { name: 'الرسائل',      href: '/messages', icon: <MessageCircle size={16} /> },
+      { name: 'بوت ذكي',      href: '/search', icon: <Sparkles size={16} /> }
+    ] : []),
+    ...(isAdmin ? [
+      { name: 'لوحة الإدارة', href: '/admin-dashboard', icon: <Shield size={16} />, color: 'text-amber-600' }
+    ] : []),
   ];
 
   const isLoggedIn   = !!user;
@@ -134,7 +143,7 @@ export function Navbar() {
               {activeLinks.map((link) => {
                 const isActive = isLandingPage 
                   ? activeSection === link.href.replace('#', '')
-                  : pathname === link.href;
+                  : (pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href)));
 
                 return isLandingPage ? (
                   <NavLink key={link.name} href={link.href} isActive={isActive}>
@@ -145,7 +154,10 @@ export function Navbar() {
                     key={link.name}
                     href={link.href}
                     className={`font-tajawal text-[15px] font-bold flex items-center gap-2 transition-all duration-300 ${
-                      isActive ? 'text-primary' : 'text-slate-600 dark:text-slate-300 hover:text-primary'
+                      isActive 
+                        ? 'text-primary' 
+                        // @ts-ignore
+                        : (link.color || 'text-slate-600 dark:text-slate-300 hover:text-primary')
                     }`}
                   >
                      {/* @ts-ignore */}
@@ -154,16 +166,6 @@ export function Navbar() {
                   </Link>
                 );
               })}
-              
-              {isAdmin && (
-                <Link
-                  href="/admin-dashboard"
-                  className="font-tajawal text-[15px] font-bold text-amber-600 flex items-center gap-2 hover:text-amber-500 transition-colors"
-                >
-                  <Shield size={16} />
-                  لوحة الإدارة
-                </Link>
-              )}
             </div>
 
             {/* ── Actions ── */}
@@ -293,7 +295,7 @@ export function Navbar() {
                 {activeLinks.map((link, i) => {
                   const isActive = isLandingPage 
                     ? activeSection === link.href.replace('#', '')
-                    : pathname === link.href;
+                    : (pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href)));
                     
                   return (
                     <motion.div
@@ -313,7 +315,7 @@ export function Navbar() {
                       >
                         <span className={`${isActive ? 'text-primary' : 'text-primary/70 group-hover:text-primary'} transition-colors`}>
                           {/* @ts-ignore */}
-                          {link.icon || <Sparkles size={18} />}
+                          {link.color && !isActive ? <span className={link.color}>{link.icon}</span> : (link.icon || <Sparkles size={18} />)}
                         </span>
                         <span>{link.name}</span>
                       </Link>
