@@ -116,11 +116,18 @@ async function apiFetch<T>(
         throw error;
     }
 
-    if (response.status === 204) {
-        return {} as T;
+    if (response.ok || response.status === 201 || response.status === 204) {
+        try {
+            const text = await response.text();
+            return text ? (JSON.parse(text) as T) : ({} as T);
+        } catch (e) {
+            console.warn('[Frontend API Response] JSON Parse Failed for OK response', e);
+            return {} as T;
+        }
     }
 
-    return response.json();
+    // Should not reach here if not response.ok due to the throw above, but just in case:
+    return {} as T;
 }
 
 // Auth API

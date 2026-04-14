@@ -232,8 +232,7 @@ export function SettingsModal({ isOpen, onClose, userProfile, onSuccess }: Setti
                                         disabled={isLoading || !!successMessage}
                                         className="w-full mt-8 bg-primary hover:bg-primary-700 text-white font-bold py-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                     >
-                                        {isLoading && <Loader2 className="animate-spin" size={20} />}
-                                        حفظ التعديلات
+                                        {isLoading ? <><Loader2 className="animate-spin" size={20} /> جاري الحفظ...</> : 'حفظ التعديلات'}
                                     </button>
                                 </motion.form>
                             ) : (
@@ -317,8 +316,7 @@ export function SettingsModal({ isOpen, onClose, userProfile, onSuccess }: Setti
                                         disabled={isLoading || !!successMessage}
                                         className="w-full mt-8 bg-slate-800 hover:bg-slate-900 dark:bg-white dark:text-black dark:hover:bg-slate-200 text-white font-bold py-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                     >
-                                        {isLoading && <Loader2 className="animate-spin" size={20} />}
-                                        تغيير كلمة المرور
+                                        {isLoading ? <><Loader2 className="animate-spin" size={20} /> جاري الحفظ...</> : 'تغيير كلمة المرور'}
                                     </button>
                                 </motion.form>
                             )}

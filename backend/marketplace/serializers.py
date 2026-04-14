@@ -765,8 +765,12 @@ class RegisterSerializer(serializers.ModelSerializer):
             last_name=validated_data.get('last_name', '')
         )
         
-        # Create user profile
-        UserProfile.objects.create(user=user, city=city, phone=phone)
+        # Use update_or_create because the post_save signal may have
+        # already created a profile with empty defaults.
+        UserProfile.objects.update_or_create(
+            user=user,
+            defaults={'city': city, 'phone': phone}
+        )
         
         return user
 

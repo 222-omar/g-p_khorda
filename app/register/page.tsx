@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/components/providers/language-provider';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Leaf, Loader2, AlertCircle } from 'lucide-react';
+import { Leaf, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authAPI } from '@/lib/api';
 
@@ -28,6 +28,7 @@ export default function RegisterPage() {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string[] | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({
@@ -40,6 +41,7 @@ export default function RegisterPage() {
         e.preventDefault();
         setLoading(true);
         setError(null);
+        setSuccessMessage(null);
 
         // Basic validation
         if (formData.password !== formData.password2) {
@@ -53,10 +55,14 @@ export default function RegisterPage() {
             // Successful registration - authAPI.register automatically sets tokens
             // Refresh the auth context so the user state is populated
             await refreshUser();
-            // Redirect to dashboard
-            router.push('/dashboard');
+            
+            setLoading(false); // Clear loading state immediately upon success
+            setSuccessMessage('تم إنشاء الحساب بنجاح! جاري تحويلك...');
+            setTimeout(() => {
+                router.push('/login');
+            }, 2000);
         } catch (err: any) {
-            console.error('Registration error:', err);
+            console.error('Detailed Registration Error:', err);
             let errorList: string[] = [];
             
             // Extract and map specific errors from Django JSON payload
@@ -173,6 +179,21 @@ export default function RegisterPage() {
                                     {error.map((errItem, idx) => (
                                         <p key={idx}>• {errItem}</p>
                                     ))}
+                                </div>
+                            </motion.div>
+                        )}
+                        
+                        {successMessage && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10, scale: 0.97 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                                transition={{ duration: 0.3 }}
+                                className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center gap-3"
+                            >
+                                <CheckCircle2 size={20} className="text-green-500 shrink-0" />
+                                <div className="text-green-600 dark:text-green-400 text-md font-bold w-full">
+                                    {successMessage}
                                 </div>
                             </motion.div>
                         )}
