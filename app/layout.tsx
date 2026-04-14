@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { LanguageProvider } from "@/components/providers/language-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { FloatingBotWidget } from "@/components/chat/floating-bot-widget";
 
 const tajawal = TajawalFont({
   variable: "--font-tajawal",
@@ -51,6 +52,7 @@ export default function RootLayout({
           <AuthProvider>
             <LanguageProvider>
               {children}
+              <FloatingBotWidget />
             </LanguageProvider>
           </AuthProvider>
         </ThemeProvider>

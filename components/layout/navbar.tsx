@@ -4,14 +4,15 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useLanguage } from '@/components/providers/language-provider';
-import { 
+import {
     Moon, Sun, Languages, Menu, X, LogOut, MessageCircle, Bot, Sparkles, Shield,
-    LayoutDashboard, Gavel, Search
+    LayoutDashboard, Gavel, Search, Bell
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Logo } from '@/components/ui/logo';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../providers/auth-provider';
+import { notificationsAPI } from '@/lib/api';
 
 // ─────────────────────────────────────────────
 // DESKTOP NAV LINK
@@ -52,6 +53,8 @@ export function Navbar() {
   const pathname = usePathname();
 
   const [activeSection, setActiveSection] = useState('home');
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // Scroll effect & Active section tracking
   useEffect(() => {
@@ -86,9 +89,17 @@ export function Navbar() {
     };
   }, []);
 
+  // Fetch notifications
+  useEffect(() => {
+    if (user) {
+        notificationsAPI.list().then(data => setNotifications(data)).catch(console.error);
+    }
+  }, [user]);
+
   // Close menu on navigate
   useEffect(() => {
     setMobileMenuOpen(false);
+    setNotificationsOpen(false);
   }, [pathname]);
 
   const navLinks = [
@@ -104,8 +115,7 @@ export function Navbar() {
     { name: dict.nav.auctions,   href: '/auctions',  icon: <Gavel size={16} /> },
     ...(user ? [
       { name: 'الوكيل الذكي', href: '/agent',  icon: <Bot size={16} /> },
-      { name: 'الرسائل',      href: '/messages', icon: <MessageCircle size={16} /> },
-      { name: 'بوت ذكي',      href: '/search', icon: <Sparkles size={16} /> }
+      { name: 'الرسائل',      href: '/messages', icon: <MessageCircle size={16} /> }
     ] : []),
     ...(isAdmin ? [
       { name: 'لوحة الإدارة', href: '/admin-dashboard', icon: <Shield size={16} />, color: 'text-amber-600' }
@@ -121,6 +131,8 @@ export function Navbar() {
   const fullUserName = user?.user?.first_name
     ? `${user.user.first_name} ${user.user.last_name || ''}`.trim()
     : user?.user?.username?.split('@')[0] || '';
+    
+  const unreadCount = notifications.filter((n: any) => !n.is_read).length;
 
   return (
     <>
@@ -221,6 +233,61 @@ export function Navbar() {
                     </div>
                   ) : (
                     <div className="hidden md:flex items-center gap-3">
+                      {/* Notifications Bell */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setNotificationsOpen(!notificationsOpen)}
+                          className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-slate-100 dark:hover:bg-white/[0.08] transition-colors"
+                        >
+                          <Bell size={20} />
+                          {unreadCount > 0 && (
+                            <span className="absolute top-2 right-2 flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                            </span>
+                          )}
+                        </button>
+                        
+                        {/* Notifications Dropdown */}
+                        <AnimatePresence>
+                          {notificationsOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                              transition={{ duration: 0.2 }}
+                              className="absolute top-full mt-2 left-0 w-80 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden z-[110]"
+                            >
+                              <div className="p-4 border-b border-slate-100 dark:border-slate-700 font-tajawal font-bold text-slate-800 dark:text-white flex items-center justify-between">
+                                الإشعارات
+                                {unreadCount > 0 && (
+                                  <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">{unreadCount} جديد</span>
+                                )}
+                              </div>
+                              <div className="max-h-80 overflow-y-auto">
+                                {notifications.length > 0 ? (
+                                    notifications.slice(0, 5).map((n: any) => (
+                                        <div key={n.id} className={`p-4 border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${!n.is_read ? 'bg-primary/5' : ''}`}>
+                                            <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-100 mb-1">{n.title}</p>
+                                            <p className="text-[11px] text-slate-500 line-clamp-2">{n.message}</p>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="p-6 text-center text-sm text-slate-500">لا توجد إشعارات حالياً</div>
+                                )}
+                              </div>
+                              <Link href="/profile" onClick={() => setNotificationsOpen(false)}>
+                                <div className="p-3 text-center text-[12px] font-bold text-primary hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors">
+                                  عرض كل الإشعارات
+                                </div>
+                              </Link>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      <div className="w-px h-5 bg-slate-200 dark:bg-white/10 mx-1" />
+
                       <Link href="/profile" className="flex items-center gap-3 group">
                         <div className="relative">
                            <img

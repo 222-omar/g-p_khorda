@@ -42,6 +42,7 @@ let _authInvalidated = false;
 
 // Reset auth state (called after successful login)
 export const resetAuthState = () => {
+    console.log('[API] Resetting auth state (allowing requests)');
     _authInvalidated = false;
 };
 
@@ -75,7 +76,8 @@ async function apiFetch<T>(
     const url = `${API_BASE}${formattedEndpoint.startsWith('/') ? '' : '/'}${formattedEndpoint}`;
 
     // Debug logging for frontend requests
-    console.log(`[Frontend API Request] ${options.method || 'GET'} ${url}`);
+    console.log(`[Frontend API Request] ${options.method || 'GET'} ${url} | Token Present: ${!!token}`);
+    if (token) console.log(`[Frontend API Auth] Bearer ${token.substring(0, 10)}...`);
     if (options.body) console.log(`[Frontend API Body]`, options.body);
 
     const response = await fetch(url, {
@@ -114,11 +116,18 @@ async function apiFetch<T>(
         throw error;
     }
 
-    if (response.status === 204) {
-        return {} as T;
+    if (response.ok || response.status === 201 || response.status === 204) {
+        try {
+            const text = await response.text();
+            return text ? (JSON.parse(text) as T) : ({} as T);
+        } catch (e) {
+            console.warn('[Frontend API Response] JSON Parse Failed for OK response', e);
+            return {} as T;
+        }
     }
 
-    return response.json();
+    // Should not reach here if not response.ok due to the throw above, but just in case:
+    return {} as T;
 }
 
 // Auth API
@@ -165,11 +174,26 @@ export const authAPI = {
     },
 
     async getCurrentUser() {
+        resetAuthState(); // Ensure we can make this call even after a previous 401
         return apiFetch<any>('/auth/me/');
     },
 
     logout() {
         clearAuthTokens();
+    },
+
+    async updateProfile(data: Record<string, any>) {
+        return apiFetch<any>('/auth/profile/update/', {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        });
+    },
+
+    async changePassword(data: Record<string, any>) {
+        return apiFetch<any>('/auth/change-password/', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
     },
 };
 

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/components/providers/language-provider';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Leaf, Loader2, AlertCircle } from 'lucide-react';
+import { Leaf, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authAPI } from '@/lib/api';
 
@@ -27,7 +27,8 @@ export default function RegisterPage() {
     });
 
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string[] | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({
@@ -40,10 +41,11 @@ export default function RegisterPage() {
         e.preventDefault();
         setLoading(true);
         setError(null);
+        setSuccessMessage(null);
 
         // Basic validation
         if (formData.password !== formData.password2) {
-            setError('كلمات المرور غير متطابقة');
+            setError(['كلمات المرور غير متطابقة']);
             setLoading(false);
             return;
         }
@@ -53,12 +55,74 @@ export default function RegisterPage() {
             // Successful registration - authAPI.register automatically sets tokens
             // Refresh the auth context so the user state is populated
             await refreshUser();
-            // Redirect to dashboard
-            router.push('/dashboard');
+            
+            setLoading(false); // Clear loading state immediately upon success
+            setSuccessMessage('تم إنشاء الحساب بنجاح! جاري تحويلك...');
+            setTimeout(() => {
+                router.push('/login');
+            }, 2000);
         } catch (err: any) {
-            console.error('Registration error:', err);
-            // Handle specific field errors if possible, simplified here
-            setError(err.message || 'فشل إنشاء الحساب. تأكد من أن اسم المستخدم والبريد الإلكتروني غير مستخدمين من قبل.');
+            console.error('Detailed Registration Error:', err);
+            let errorList: string[] = [];
+            
+            // Extract and map specific errors from Django JSON payload
+            if (err.response?.data && typeof err.response.data === 'object') {
+                const arabicMap: Record<string, string> = {
+                    'A user with that username already exists.': 'اسم المستخدم هذا مسجل مسبقاً',
+                    'user with this email already exists.': 'هذا البريد الإلكتروني مسجل بالفعل',
+                    'Enter a valid email address.': 'يرجى إدخال بريد إلكتروني صحيح',
+                    'This password is too short.': 'كلمة المرور قصيرة جداً',
+                    'The password is too similar to the username.': 'كلمة المرور متشابهة جداً مع اسم المستخدم',
+                    'This password is too common.': 'كلمة المرور شائعة جداً (سهلة التخمين)',
+                    'This password is entirely numeric.': 'يجب ألا تتكون كلمة المرور من أرقام فقط',
+                    'This field is required.': 'مطلوب إدخال هذا الحقل',
+                    'This field may not be blank.': 'لا يمكن ترك هذا الحقل فارغاً'
+                };
+                
+                const fieldMap: Record<string, string> = {
+                    username: 'اسم المستخدم',
+                    email: 'البريد الإلكتروني',
+                    password: 'كلمة المرور',
+                    password2: 'تأكيد كلمة المرور',
+                    phone: 'رقم الهاتف',
+                    first_name: 'الاسم الأول',
+                    last_name: 'الاسم الأخير',
+                    city: 'المدينة'
+                };
+
+                for (const [field, messages] of Object.entries(err.response.data)) {
+                    const msgArray = Array.isArray(messages) ? messages : [messages];
+                    
+                    msgArray.forEach((msg: any) => {
+                        let text = String(msg);
+                        // Translate exact matches
+                        for (const [eng, ara] of Object.entries(arabicMap)) {
+                            if (text.includes(eng)) {
+                                text = text.replace(eng, ara);
+                            }
+                        }
+                        
+                        if (field === 'non_field_errors' || field === 'detail') {
+                            errorList.push(text);
+                        } else {
+                            const arabicField = fieldMap[field] || field;
+                            errorList.push(`${arabicField}: ${text}`);
+                        }
+                    });
+                }
+            }
+            
+            // Fallback generic error formatting if mapped empty
+            if (errorList.length === 0) {
+                const rawMsg = err.message;
+                if (rawMsg && rawMsg.includes(' | ')) {
+                    errorList = rawMsg.split(' | ');
+                } else {
+                    errorList = [rawMsg || 'فشل إنشاء الحساب. تأكد من صحة البيانات.'];
+                }
+            }
+            
+            setError(errorList);
         } finally {
             setLoading(false);
         }
@@ -101,18 +165,36 @@ export default function RegisterPage() {
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl">
                     <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center">إنشاء حساب جديد</h2>
 
-                    {/* Error Message */}
-                    <AnimatePresence>
-                        {error && (
+                    <AnimatePresence mode="wait">
+                        {error && error.length > 0 && (
                             <motion.div
                                 initial={{ opacity: 0, y: -10, scale: 0.97 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: -8, scale: 0.97 }}
                                 transition={{ duration: 0.3 }}
-                                className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-2"
+                                className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-3"
                             >
-                                <AlertCircle size={16} className="text-red-500 shrink-0" />
-                                <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+                                <AlertCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
+                                <div className="text-red-600 dark:text-red-400 text-sm font-bold flex flex-col gap-1 w-full">
+                                    {error.map((errItem, idx) => (
+                                        <p key={idx}>• {errItem}</p>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
+                        
+                        {successMessage && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10, scale: 0.97 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                                transition={{ duration: 0.3 }}
+                                className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center gap-3"
+                            >
+                                <CheckCircle2 size={20} className="text-green-500 shrink-0" />
+                                <div className="text-green-600 dark:text-green-400 text-md font-bold w-full">
+                                    {successMessage}
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -240,7 +322,9 @@ export default function RegisterPage() {
                                 value={formData.phone}
                                 onChange={handleChange}
                                 placeholder="01xxxxxxxxx"
-                                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900 transition-all"
+                                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900 transition-all font-sans text-left"
+                                dir="ltr"
+                                required
                             />
                         </div>
 

@@ -56,8 +56,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const login = async (username: string, password: string) => {
-        await authAPI.login(username, password);
-        await loadUser();
+        setLoading(true);
+        try {
+            await authAPI.login(username, password);
+            // Fetch user profile after login
+            const currentUser = await authAPI.getCurrentUser();
+            setUser(currentUser);
+        } catch (error) {
+            setUser(null);
+            throw error; // Re-throw to allow the login page to handle UI error
+        } finally {
+            setLoading(false);
+        }
     };
 
     const logout = () => {

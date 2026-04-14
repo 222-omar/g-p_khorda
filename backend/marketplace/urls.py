@@ -26,6 +26,10 @@ from .views import (
     admin_delete_user,
     wallet_topup_view,
     wallet_transactions_view,
+    verify_phone_request_view,
+    reset_password_view,
+    update_profile_view,
+    change_password_view,
 )
 
 router = DefaultRouter()
@@ -41,6 +45,10 @@ urlpatterns = [
     path('auth/login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/me/', current_user_view, name='current_user'),
+    path('auth/profile/update/', update_profile_view, name='update_profile'),
+    path('auth/change-password/', change_password_view, name='change_password'),
+    path('auth/verify-phone-request/', verify_phone_request_view, name='verify_phone_request'),
+    path('auth/reset-password/', reset_password_view, name='reset_password'),
     path('general-stats/', get_general_stats, name='general-stats'),
     
     # Wishlist endpoints

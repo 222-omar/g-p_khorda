@@ -1025,3 +1025,133 @@ def wallet_transactions_view(request):
         })
     return Response(data)
 
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_phone_request_view(request):
+    email = request.data.get('email', '').strip()
+    if not email:
+        return Response({'error': 'البريد الإلكتروني مطلوب'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = User.objects.filter(email__iexact=email).first()
+    if not user:
+        return Response({'error': 'لا يوجد حساب مرتبط بهذا البريد الإلكتروني'}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        profile = user.profile
+        phone = profile.phone
+    except UserProfile.DoesNotExist:
+        phone = None
+
+    if not phone or len(phone) < 4:
+        return Response({'error': 'لا يوجد رقم هاتف مرتبط بهذا الحساب.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    last_two = phone[-2:]
+    possible_digits = [f"{i:02d}" for i in range(100) if f"{i:02d}" != last_two]
+    decoys = random.sample(possible_digits, 2)
+
+    masked_options = [f"*******{last_two}"] + [f"*******{d}" for d in decoys]
+    random.shuffle(masked_options)
+
+    return Response({'masked_numbers': masked_options})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_password_view(request):
+    email = request.data.get('email', '').strip()
+    selected_masked = request.data.get('selected_masked_number', '').strip()
+    full_phone = request.data.get('full_phone_number_input', '').strip()
+    new_password = request.data.get('new_password', '').strip()
+
+    if not all([email, selected_masked, full_phone, new_password]):
+        return Response({'error': 'جميع الحقول مطلوبة'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = User.objects.filter(email__iexact=email).first()
+    if not user:
+        return Response({'error': 'حساب غير موجود'}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        phone = user.profile.phone
+    except UserProfile.DoesNotExist:
+        phone = None
+
+    if not phone:
+        return Response({'error': 'لا يوجد رقم هاتف مسجل لهذا الحساب'}, status=status.HTTP_400_BAD_REQUEST)
+
+    expected_mask = f"*******{phone[-2:]}"
+    if full_phone != phone or selected_masked != expected_mask:
+        return Response({'error': 'الرقم غير متطابق'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(new_password)
+    user.save()
+    
+    return Response({'message': 'تم تغيير كلمة المرور بنجاح'})
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_profile_view(request):
+    """Update first_name, last_name, phone, and city"""
+    user = request.user
+    profile = user.profile
+    
+    first_name = request.data.get('first_name', user.first_name)
+    last_name = request.data.get('last_name', user.last_name)
+    phone = request.data.get('phone', profile.phone)
+    city = request.data.get('city', profile.city)
+
+    # Validate phone (e.g., must be numeric or valid length)
+    if phone:
+        phone = phone.strip()
+        if len(phone) < 8:
+            return Response({'phone': ['يجب أن يحتوي رقم الهاتف على 8 أرقام على الأقل.']}, status=status.HTTP_400_BAD_REQUEST)
+        # Check if phone is used by someone else
+        existing_profile = UserProfile.objects.exclude(user=user).filter(phone=phone).first()
+        if existing_profile:
+            return Response({'phone': ['هذا الرقم مستخدم بالفعل، يرجى إدخال رقم آخر.']}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Update User
+    user.first_name = first_name
+    user.last_name = last_name
+    user.save(update_fields=['first_name', 'last_name'])
+
+    # Update Profile
+    profile.phone = phone
+    profile.city = city
+    profile.save(update_fields=['phone', 'city'])
+
+    return Response({
+        'message': 'تم تحديث البيانات بنجاح',
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'phone': profile.phone,
+        'city': profile.city
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password_view(request):
+    """Change user password after validating old password"""
+    user = request.user
+    old_password = request.data.get('old_password', '')
+    new_password = request.data.get('new_password', '')
+    confirm_new_password = request.data.get('confirm_new_password', '')
+
+    if not old_password or not new_password or not confirm_new_password:
+        return Response({'non_field_errors': ['جميع الحقول مطلوبة.']}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not user.check_password(old_password):
+        return Response({'old_password': ['كلمة المرور القديمة غير صحيحة.']}, status=status.HTTP_400_BAD_REQUEST)
+
+    if new_password != confirm_new_password:
+        return Response({'confirm_new_password': ['كلمات المرور الجديدة غير متطابقة.']}, status=status.HTTP_400_BAD_REQUEST)
+
+    if len(new_password) < 8:
+        return Response({'new_password': ['كلمة المرور يجب أن تتكون من 8 أحرف على الأقل.']}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(new_password)
+    user.save()
+
+    return Response({'message': 'تم تغيير كلمة المرور بنجاح. لطفا قم بتسجيل الدخول مرة أخرى إذا لزم الأمر.'})

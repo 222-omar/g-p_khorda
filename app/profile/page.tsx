@@ -6,8 +6,9 @@ import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { useLanguage } from '@/components/providers/language-provider';
-import { Plus, ShoppingCart, LogOut, Star, TrendingUp, Package, Loader2, Heart, Pencil, Wallet, Camera } from 'lucide-react';
+import { Plus, ShoppingCart, LogOut, Star, TrendingUp, Package, Loader2, Heart, Pencil, Wallet, Camera, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SettingsModal } from '@/components/ui/settings-modal';
 import { profilesAPI, productsAPI, authAPI, wishlistAPI } from '@/lib/api';
 import { useAuth } from '@/components/providers/auth-provider';
 import { staggerContainer, staggerItem, fadeUp, scaleIn } from '@/lib/animations';
@@ -20,6 +21,7 @@ export default function ProfilePage() {
     const [myListings, setMyListings] = useState<any[]>([]);
     const [wishlistItems, setWishlistItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -39,7 +41,16 @@ export default function ProfilePage() {
             }
         };
         fetchData();
-    }, []);
+    }, [refreshUser]); // Refresh user trigger can re-fetch profile if needed
+    
+    // Allow SettingsModal to trigger a refresh 
+    const handleProfileSuccess = async () => {
+        try {
+            const [profileData] = await Promise.all([profilesAPI.getMe()]);
+            setProfile(profileData);
+            await refreshUser();
+        } catch(e) {}
+    };
 
     const handleLogout = () => {
         authAPI.logout();
@@ -135,9 +146,19 @@ export default function ProfilePage() {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
                         >
-                            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 sticky top-24">
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 sticky top-24 relative">
+                                {/* Settings Trigger */}
+                                <motion.button
+                                    whileHover={{ rotate: 90 }}
+                                    transition={{ type: 'spring', stiffness: 200, damping: 10 }}
+                                    onClick={() => setIsSettingsOpen(true)}
+                                    className="absolute top-4 left-4 p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-full transition-colors z-10"
+                                >
+                                    <Settings size={22} />
+                                </motion.button>
+                                
                                 {/* User Info */}
-                                <div className="flex flex-col items-center mb-6 pb-6 border-b border-slate-200 dark:border-slate-700">
+                                <div className="flex flex-col items-center mb-6 pb-6 border-b border-slate-200 dark:border-slate-700 mt-2">
                                     <motion.div
                                         initial={{ scale: 0.7, opacity: 0 }}
                                         animate={{ scale: 1, opacity: 1 }}
@@ -511,8 +532,14 @@ export default function ProfilePage() {
                         </motion.div>
                     </div>
                 </div>
-            </main>
+             </main>
             <Footer />
+            <SettingsModal 
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                userProfile={profile}
+                onSuccess={handleProfileSuccess}
+            />
         </>
     );
 }

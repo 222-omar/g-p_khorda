@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/components/providers/language-provider';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Leaf, Loader2, AlertCircle } from 'lucide-react';
+import { Leaf, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { staggerContainer, staggerItem } from '@/lib/animations';
 
@@ -15,6 +15,7 @@ export default function LoginPage() {
     const { login } = useAuth();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -27,11 +28,16 @@ export default function LoginPage() {
             await login(username, password);
             const urlParams = new URLSearchParams(window.location.search);
             const redirectUrl = urlParams.get('redirect') || '/dashboard';
-            router.push(redirectUrl);
-            router.refresh();
+            // Use full page navigation to ensure auth cookie is properly read
+            window.location.href = redirectUrl;
         } catch (err: any) {
             console.error('Login error:', err);
-            setError(err.message || 'فشل تسجيل الدخول. تحقق من بيانات الاعتماد الخاصة بك.');
+            const errMsg = err.message || '';
+            if (errMsg.includes('No active account found') || errMsg.includes('credentials') || err.status === 401) {
+                setError('اسم المستخدم أو كلمة المرور غير صحيحة');
+            } else {
+                setError(errMsg || 'فشل تسجيل الدخول. تحقق من بيانات الاعتماد الخاصة بك.');
+            }
         } finally {
             setLoading(false);
         }
@@ -126,7 +132,8 @@ export default function LoginPage() {
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 placeholder="username or email"
-                                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900 transition-all"
+                                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900 transition-all font-sans text-left"
+                                dir="ltr"
                                 required
                                 disabled={loading}
                             />
@@ -137,22 +144,32 @@ export default function LoginPage() {
                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                                 {dict.login.password}
                             </label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••"
-                                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900 transition-all"
-                                required
-                                disabled={loading}
-                            />
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 pr-11 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900 transition-all font-sans text-left"
+                                    dir="ltr"
+                                    required
+                                    disabled={loading}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute top-1/2 -translate-y-1/2 right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                                >
+                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
+                            </div>
                         </motion.div>
 
                         {/* Forgot Password */}
                         <motion.div variants={staggerItem} className="text-left">
-                            <button type="button" className="text-sm text-primary hover:text-primary-700 font-semibold transition-colors">
+                            <Link href="/forgot-password" className="text-sm text-primary hover:text-teal-700 font-semibold transition-colors cursor-pointer inline-block">
                                 نسيت كلمة المرور؟
-                            </button>
+                            </Link>
                         </motion.div>
 
                         {/* Submit */}

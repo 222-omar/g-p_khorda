@@ -9,7 +9,8 @@ import { agentAPI, notificationsAPI } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Bot, Plus, Trash2, Power, PowerOff, Loader2, Bell,
-    Target, Wallet, ChevronDown, CheckCircle2, XCircle, Sparkles
+    Target, Wallet, ChevronDown, CheckCircle2, XCircle, Sparkles,
+    BarChart3
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -52,7 +53,6 @@ export default function AgentPage() {
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
     const [showForm, setShowForm] = useState(false);
-    const [activeTab, setActiveTab] = useState<'agents' | 'notifications'>('agents');
 
     // Form state
     const [selectedTarget, setSelectedTarget] = useState('');
@@ -165,7 +165,7 @@ export default function AgentPage() {
     return (
         <>
             <Navbar />
-            <main className="pt-24 pb-16 min-h-screen px-4 sm:px-6 lg:px-8">
+            <main className="pt-24 pb-16 min-h-screen bg-slate-50 dark:bg-slate-950 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-4xl mx-auto">
 
                     {/* ── Page Header ── */}
@@ -174,10 +174,14 @@ export default function AgentPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className="text-center mb-10"
                     >
-                        <div className="inline-flex items-center gap-3 bg-gradient-to-r from-violet-500/10 to-cyan-500/10 dark:from-violet-500/20 dark:to-cyan-500/20 px-6 py-3 rounded-2xl mb-4">
-                            <Bot size={28} className="text-violet-500" />
-                            <h1 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-violet-600 to-cyan-500 bg-clip-text text-transparent">
+                        <div className="inline-flex items-center gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-6 py-3 rounded-2xl mb-4 shadow-sm">
+                            <Bot size={28} className="text-primary" />
+                            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-3">
                                 الوكيل الذكي
+                                <span className="relative flex h-3 w-3">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                                </span>
                             </h1>
                         </div>
                         <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto">
@@ -185,49 +189,27 @@ export default function AgentPage() {
                         </p>
                     </motion.div>
 
-                    {/* ── Tabs ── */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="flex gap-2 mb-8 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl"
-                    >
-                        <button
-                            onClick={() => setActiveTab('agents')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all ${activeTab === 'agents'
-                                    ? 'bg-white dark:bg-slate-700 shadow-sm text-violet-600 dark:text-violet-400'
-                                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                                }`}
-                        >
-                            <Bot size={18} />
-                            الوكلاء ({agents.length})
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('notifications')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all relative ${activeTab === 'notifications'
-                                    ? 'bg-white dark:bg-slate-700 shadow-sm text-violet-600 dark:text-violet-400'
-                                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                                }`}
-                        >
-                            <Bell size={18} />
-                            الإشعارات
-                            {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                                    {unreadCount}
-                                </span>
-                            )}
-                        </button>
-                    </motion.div>
-
-                    {/* ── Loading ── */}
+                    {/* ── Loading Skeleton ── */}
                     {loading && (
-                        <div className="flex items-center justify-center py-20">
-                            <Loader2 className="animate-spin text-primary" size={36} />
+                        <div className="flex flex-col gap-4 py-8">
+                           {[1,2,3].map(i => (
+                               <div key={i} className="animate-pulse bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col sm:flex-row items-start gap-4 shadow-sm">
+                                   <div className="w-14 h-14 bg-slate-100 dark:bg-slate-700 rounded-xl shrink-0"></div>
+                                   <div className="flex-1 space-y-4 w-full">
+                                       <div className="h-5 bg-slate-100 dark:bg-slate-700 rounded w-1/3"></div>
+                                       <div className="flex flex-wrap gap-2">
+                                           <div className="h-8 bg-slate-100 dark:bg-slate-700 rounded-xl w-28"></div>
+                                           <div className="h-8 bg-slate-100 dark:bg-slate-700 rounded-xl w-24"></div>
+                                       </div>
+                                       <div className="h-12 bg-slate-100 dark:bg-slate-700 rounded-xl w-full mt-4"></div>
+                                   </div>
+                               </div>
+                           ))}
                         </div>
                     )}
 
-                    {/* ── AGENTS TAB ── */}
-                    {!loading && activeTab === 'agents' && (
+                    {/* ── AGENTS LIST ── */}
+                    {!loading && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -238,10 +220,10 @@ export default function AgentPage() {
                                 onClick={() => setShowForm(!showForm)}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
-                                className="w-full mb-6 bg-gradient-to-r from-violet-600 to-cyan-500 text-white py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-shadow"
+                                className="w-full mb-6 bg-primary hover:bg-primary-700 text-white shadow-md shadow-primary/20 py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
                             >
-                                <Plus size={22} />
-                                إنشاء وكيل جديد
+                                <Plus size={22} className="text-white" />
+                                إضافة وكيل جديد
                             </motion.button>
 
                             {/* Create Form */}
@@ -254,8 +236,8 @@ export default function AgentPage() {
                                         className="overflow-hidden"
                                     >
                                         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-lg">
-                                            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                                                <Sparkles size={20} className="text-violet-500" />
+                                            <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-slate-800 dark:text-slate-200">
+                                                <Sparkles size={20} className="text-primary" />
                                                 وكيل جديد
                                             </h3>
 
@@ -320,24 +302,24 @@ export default function AgentPage() {
                                             )}
 
                                             {/* Submit */}
-                                            <div className="flex gap-3">
+                                            <div className="flex gap-3 mt-6">
                                                 <motion.button
                                                     onClick={handleCreate}
                                                     disabled={creating}
                                                     whileHover={{ scale: 1.02 }}
                                                     whileTap={{ scale: 0.98 }}
-                                                    className="flex-1 bg-gradient-to-r from-violet-600 to-cyan-500 text-white py-3 rounded-xl font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                                                    className="flex-1 bg-primary hover:bg-primary-700 text-white shadow-md shadow-primary/20 py-3 rounded-xl font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2 border border-primary/20"
                                                 >
                                                     {creating ? (
-                                                        <Loader2 size={18} className="animate-spin" />
+                                                        <Loader2 size={18} className="animate-spin text-white/70" />
                                                     ) : (
-                                                        <CheckCircle2 size={18} />
+                                                        <CheckCircle2 size={18} className="text-white" />
                                                     )}
                                                     {creating ? 'جاري الإنشاء...' : 'إنشاء الوكيل'}
                                                 </motion.button>
                                                 <button
                                                     onClick={() => { setShowForm(false); setFormError(''); }}
-                                                    className="px-5 py-3 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-500 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                                                    className="px-5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
                                                 >
                                                     إلغاء
                                                 </button>
@@ -352,13 +334,13 @@ export default function AgentPage() {
                                 <motion.div
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
-                                    className="text-center py-20"
+                                    className="text-center py-20 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm"
                                 >
                                     <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 2.5, repeat: Infinity }}>
                                         <Bot size={56} className="mx-auto text-slate-300 dark:text-slate-600" />
                                     </motion.div>
-                                    <p className="text-slate-500 text-lg font-medium mt-4">لسه مفيش وكلاء</p>
-                                    <p className="text-slate-400 text-sm mt-2">اعمل وكيل جديد وخليه يشتغل بدالك!</p>
+                                    <p className="text-slate-600 dark:text-slate-400 text-lg font-bold mt-4">لسه مفيش وكلاء</p>
+                                    <p className="text-slate-500 dark:text-slate-500 text-sm mt-2 font-medium">اعمل وكيل جديد وخليه يشتغل بدالك!</p>
                                 </motion.div>
                             ) : (
                                 <motion.div className="space-y-4">
@@ -368,151 +350,82 @@ export default function AgentPage() {
                                             initial={{ opacity: 0, y: 16 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: idx * 0.08 }}
-                                            className={`bg-white dark:bg-slate-800 rounded-2xl border p-5 shadow-sm transition-all ${agent.is_active
-                                                    ? 'border-violet-200 dark:border-violet-800/50'
-                                                    : 'border-slate-200 dark:border-slate-700 opacity-60'
+                                            className={`bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm transition-all ${agent.is_active
+                                                    ? 'opacity-100'
+                                                    : 'opacity-60 grayscale'
                                                 }`}
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-4">
+                                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                                                <div className="flex items-start gap-4 flex-1">
                                                     {/* Status icon */}
-                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${agent.is_active
-                                                            ? 'bg-gradient-to-br from-violet-500 to-cyan-500 text-white'
-                                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-400'
-                                                        }`}>
-                                                        <Bot size={24} />
+                                                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 text-primary shadow-inner">
+                                                        <Bot size={26} />
                                                     </div>
 
                                                     {/* Info */}
-                                                    <div>
-                                                        <h4 className="font-bold text-base">{agent.target_label}</h4>
-                                                        <div className="flex items-center gap-3 mt-1 text-sm text-slate-500">
-                                                            <span className="flex items-center gap-1">
-                                                                <Wallet size={12} />
-                                                                {Number(agent.max_budget).toLocaleString()} جنيه
-                                                            </span>
-                                                            <span className={`flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${agent.is_active
-                                                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                                    : 'bg-slate-100 text-slate-500 dark:bg-slate-700'
+                                                    <div className="flex-1 min-w-0 pt-1">
+                                                        <h4 className="font-bold text-xl text-slate-900 dark:text-slate-100 truncate">{agent.target_label}</h4>
+                                                        <div className="flex flex-wrap items-center gap-2 mt-3">
+                                                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-xl">
+                                                                <Wallet size={14} className="text-slate-400" />
+                                                                <span className="text-sm text-slate-700 dark:text-slate-300 font-bold pb-px">الميزانية: {Number(agent.max_budget).toLocaleString()} ج.م</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-xl">
+                                                                <Bot size={14} className="text-slate-400" />
+                                                                <span className="text-sm text-slate-700 dark:text-slate-300 font-bold pb-px">عدد السلع: ٣</span>
+                                                            </div>
+                                                            <span className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl ${agent.is_active
+                                                                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20'
+                                                                    : 'bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-500 border border-slate-200 dark:border-slate-700'
                                                                 }`}>
-                                                                {agent.is_active ? '🟢 شغال' : '⏸ موقف'}
+                                                                {agent.is_active ? (
+                                                                    <>
+                                                                        <span className="relative flex h-2 w-2">
+                                                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                                                                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                                                        </span>
+                                                                        نشط حالياً
+                                                                    </>
+                                                                ) : '⏸ موقف'}
                                                             </span>
                                                         </div>
                                                         {agent.requirements_prompt && (
-                                                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 p-2 rounded-lg break-words">
-                                                                <span className="font-bold text-violet-500 text-xs block mb-1">مواصفات مطلوب مطابقتها:</span>
+                                                            <p className="text-sm text-slate-600 dark:text-slate-400 mt-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 p-4 rounded-xl break-words leading-relaxed shadow-inner">
+                                                                <span className="font-bold text-slate-900 dark:text-slate-300 text-xs block mb-1.5">مواصفات مطلوب مطابقتها:</span>
                                                                 {agent.requirements_prompt}
                                                             </p>
                                                         )}
                                                     </div>
                                                 </div>
-
-                                                {/* Actions */}
-                                                <div className="flex items-center gap-2">
-                                                    <motion.button
-                                                        onClick={() => handleToggle(agent)}
-                                                        whileHover={{ scale: 1.1 }}
-                                                        whileTap={{ scale: 0.9 }}
-                                                        title={agent.is_active ? 'وقف الوكيل' : 'شغل الوكيل'}
-                                                        className={`p-2.5 rounded-xl transition-colors ${agent.is_active
-                                                                ? 'bg-orange-100 text-orange-600 hover:bg-orange-200 dark:bg-orange-900/30 dark:hover:bg-orange-900/50'
-                                                                : 'bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50'
-                                                            }`}
-                                                    >
-                                                        {agent.is_active ? <PowerOff size={18} /> : <Power size={18} />}
-                                                    </motion.button>
-                                                    <motion.button
-                                                        onClick={() => handleDelete(agent.id)}
-                                                        whileHover={{ scale: 1.1 }}
-                                                        whileTap={{ scale: 0.9 }}
-                                                        title="حذف الوكيل"
-                                                        className="p-2.5 rounded-xl bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 transition-colors"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </motion.button>
-                                                </div>
                                             </div>
-                                        </motion.div>
-                                    ))}
-                                </motion.div>
-                            )}
-                        </motion.div>
-                    )}
 
-                    {/* ── NOTIFICATIONS TAB ── */}
-                    {!loading && activeTab === 'notifications' && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            {/* Mark all read button */}
-                            {unreadCount > 0 && (
-                                <motion.button
-                                    onClick={handleMarkAllRead}
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    className="w-full mb-6 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                                >
-                                    <CheckCircle2 size={16} />
-                                    تمييز الكل كمقروء ({unreadCount})
-                                </motion.button>
-                            )}
-
-                            {notifications.length === 0 ? (
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className="text-center py-20"
-                                >
-                                    <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 2.5, repeat: Infinity }}>
-                                        <Bell size={56} className="mx-auto text-slate-300 dark:text-slate-600" />
-                                    </motion.div>
-                                    <p className="text-slate-500 text-lg font-medium mt-4">مفيش إشعارات</p>
-                                    <p className="text-slate-400 text-sm mt-2">لما الوكيل يزايد هتلاقي الإشعار هنا</p>
-                                </motion.div>
-                            ) : (
-                                <motion.div className="space-y-3">
-                                    {notifications.map((notif, idx) => (
-                                        <motion.div
-                                            key={notif.id}
-                                            initial={{ opacity: 0, y: 12 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: idx * 0.05 }}
-                                            className={`bg-white dark:bg-slate-800 rounded-2xl border p-5 transition-all ${notif.is_read
-                                                    ? 'border-slate-200 dark:border-slate-700'
-                                                    : 'border-violet-200 dark:border-violet-800/50 bg-violet-50/50 dark:bg-violet-900/10'
-                                                }`}
-                                        >
-                                            <div className="flex items-start gap-3">
-                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${notif.is_read
-                                                        ? 'bg-slate-100 dark:bg-slate-700 text-slate-400'
-                                                        : 'bg-gradient-to-br from-violet-500 to-cyan-500 text-white'
-                                                    }`}>
-                                                    <Bot size={20} />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h4 className="font-bold text-sm">{notif.title}</h4>
-                                                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 leading-relaxed">
-                                                        {notif.message}
-                                                    </p>
-                                                    {notif.reasoning && (
-                                                        <div className="mt-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700">
-                                                            <p className="text-[10px] font-bold text-violet-500 uppercase tracking-wider mb-1">
-                                                                تحليل الذكاء الاصطناعي:
-                                                            </p>
-                                                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed italic">
-                                                                "{notif.reasoning}"
-                                                            </p>
-                                                        </div>
-                                                    )}
-                                                    <p className="text-slate-400 text-xs mt-3">
-                                                        {new Date(notif.created_at).toLocaleString('ar-EG')}
-                                                    </p>
-                                                </div>
-                                                {!notif.is_read && (
-                                                    <div className="w-2.5 h-2.5 rounded-full bg-violet-500 flex-shrink-0 mt-1.5" />
-                                                )}
+                                            {/* Actions */}
+                                            <div className="flex items-center gap-2 w-full mt-6 pt-5 border-t border-slate-100 dark:border-slate-700">
+                                                <button className="flex-1 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold py-3 rounded-xl border border-slate-200 dark:border-slate-600 transition-all text-sm flex items-center justify-center gap-2">
+                                                    <BarChart3 size={16} />
+                                                    إحصائيات كاملة
+                                                </button>
+                                                <motion.button
+                                                    onClick={() => handleToggle(agent)}
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    title={agent.is_active ? 'وقف الوكيل' : 'شغل الوكيل'}
+                                                    className={`p-3 rounded-xl border transition-colors ${agent.is_active
+                                                            ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20'
+                                                            : 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20'
+                                                        }`}
+                                                >
+                                                    {agent.is_active ? <PowerOff size={18} /> : <Power size={18} />}
+                                                </motion.button>
+                                                <motion.button
+                                                    onClick={() => handleDelete(agent.id)}
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    title="حذف الوكيل"
+                                                    className="p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </motion.button>
                                             </div>
                                         </motion.div>
                                     ))}

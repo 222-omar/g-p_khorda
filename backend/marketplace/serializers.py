@@ -737,7 +737,11 @@ class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
     password2 = serializers.CharField(write_only=True, min_length=8)
     city = serializers.CharField(write_only=True)
-    phone = serializers.CharField(write_only=True, required=False)
+    phone = serializers.CharField(
+        write_only=True, 
+        required=True, 
+        error_messages={'required': 'رقم الهاتف مطلوب.', 'blank': 'رقم الهاتف مطلوب.'}
+    )
     
     class Meta:
         model = User
@@ -761,8 +765,12 @@ class RegisterSerializer(serializers.ModelSerializer):
             last_name=validated_data.get('last_name', '')
         )
         
-        # Create user profile
-        UserProfile.objects.create(user=user, city=city, phone=phone)
+        # Use update_or_create because the post_save signal may have
+        # already created a profile with empty defaults.
+        UserProfile.objects.update_or_create(
+            user=user,
+            defaults={'city': city, 'phone': phone}
+        )
         
         return user
 
