@@ -1,5 +1,22 @@
 // Centralized API Base URL
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
+// In production on Vercel, call the backend service directly via /_/backend/api
+// (Next.js rewrites to relative internal paths don't proxy correctly in Next.js 16+)
+// In development, NEXT_PUBLIC_API_URL from .env.local points to localhost:8000/api
+const getApiBase = (): string => {
+    if (process.env.NEXT_PUBLIC_API_URL) {
+        return process.env.NEXT_PUBLIC_API_URL;
+    }
+    // On Vercel production, use the backend service route directly
+    if (typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app')) {
+        return '/_/backend/api';
+    }
+    // Fallback for SSR on Vercel
+    if (process.env.VERCEL === '1') {
+        return '/_/backend/api';
+    }
+    return '/api';
+};
+export const API_BASE = getApiBase();
 
 // Helper function to enforce trailing slash for Django
 export const enforceTrailingSlash = (endpoint: string): string => {

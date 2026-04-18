@@ -506,7 +506,7 @@ class UserProfileViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(profile)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'], url_path='by_user/(?P<user_id>\d+)', permission_classes=[AllowAny])
+    @action(detail=False, methods=['get'], url_path=r'by_user/(?P<user_id>\d+)', permission_classes=[AllowAny])
     def by_user(self, request, user_id=None):
         """Get public profile by user ID"""
         profile = get_object_or_404(UserProfile.objects.select_related('user'), user__id=user_id)
@@ -525,7 +525,7 @@ class UserProfileViewSet(viewsets.ModelViewSet):
             'is_verified': profile.is_verified,
         })
 
-    @action(detail=False, methods=['post'], url_path='rate/(?P<user_id>\d+)', permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=['post'], url_path=r'rate/(?P<user_id>\d+)', permission_classes=[IsAuthenticated])
     def rate(self, request, user_id=None):
         """Rate a user's profile"""
         profile = get_object_or_404(UserProfile, user__id=user_id)
