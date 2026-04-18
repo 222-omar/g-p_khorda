@@ -2,7 +2,7 @@
 
 import { useLanguage } from '@/components/providers/language-provider';
 import { motion } from 'framer-motion';
-import { Brain, Sparkles, ShieldCheck, Gavel, MessageCircle, BarChart3 } from 'lucide-react';
+import { Brain, Sparkles, ShieldCheck, Gavel, MessageCircle, BarChart3, Bot, Camera, BrainCircuit, ScanSearch } from 'lucide-react';
 import { staggerContainer, staggerItem } from '@/lib/animations';
 
 const cardVariants = {
@@ -40,12 +40,36 @@ export function Features() {
             glow: 'group-hover:shadow-purple-500/20',
         },
         {
-            icon: ShieldCheck,
-            title: dict.features.secure.title,
-            desc: dict.features.secure.desc,
-            color: 'text-green-500',
-            bg: 'bg-green-50 dark:bg-green-900/10',
-            glow: 'group-hover:shadow-green-500/20',
+            icon: Camera,
+            title: 'بحث بالصورة',
+            desc: 'ارفع صورة أي منتج والنظام هيلاقيلك أقرب المنتجات المشابهة باستخدام تقنيات الذكاء الاصطناعي.',
+            color: 'text-indigo-500',
+            bg: 'bg-indigo-50 dark:bg-indigo-900/10',
+            glow: 'group-hover:shadow-indigo-500/20',
+        },
+        {
+            icon: BrainCircuit,
+            title: 'شات بوت ذكي (RAG)',
+            desc: 'اسأل الشات بوت بأي سؤال عن المنتجات وهيرد عليك بإجابة ذكية ويعرضلك النتائج فوراً.',
+            color: 'text-cyan-500',
+            bg: 'bg-cyan-50 dark:bg-cyan-900/10',
+            glow: 'group-hover:shadow-cyan-500/20',
+        },
+        {
+            icon: Bot,
+            title: 'وكيل مزايدة ذكي (AI Agent)',
+            desc: 'فعّل وكيلك الذكي ليراقب المزادات تلقائيًا ويزايد نيابةً عنك للحصول على أفضل الصفقات.',
+            color: 'text-teal-500',
+            bg: 'bg-teal-50 dark:bg-teal-900/10',
+            glow: 'group-hover:shadow-teal-500/20',
+        },
+        {
+            icon: ScanSearch,
+            title: 'تصنيف تلقائي بالـ AI',
+            desc: 'ارفع صورة منتجك والذكاء الاصطناعي هيتعرف عليه ويصنفه في القسم الصحيح تلقائيًا.',
+            color: 'text-amber-500',
+            bg: 'bg-amber-50 dark:bg-amber-900/10',
+            glow: 'group-hover:shadow-amber-500/20',
         },
         {
             icon: Gavel,
@@ -56,20 +80,20 @@ export function Features() {
             glow: 'group-hover:shadow-orange-500/20',
         },
         {
+            icon: ShieldCheck,
+            title: dict.features.secure.title,
+            desc: dict.features.secure.desc,
+            color: 'text-green-500',
+            bg: 'bg-green-50 dark:bg-green-900/10',
+            glow: 'group-hover:shadow-green-500/20',
+        },
+        {
             icon: MessageCircle,
             title: 'مراسلة فورية',
             desc: 'تواصل مباشر مع البائعين والمشترين عبر نظام المحادثات المدمج بدون الحاجة لمغادرة المنصة.',
             color: 'text-blue-500',
             bg: 'bg-blue-50 dark:bg-blue-900/10',
             glow: 'group-hover:shadow-blue-500/20',
-        },
-        {
-            icon: BarChart3,
-            title: 'تحليلات ذكية',
-            desc: 'لوحة تحكم متقدمة تعرض إحصائيات مبيعاتك وأداء إعلاناتك لمساعدتك على اتخاذ القرارات.',
-            color: 'text-rose-500',
-            bg: 'bg-rose-50 dark:bg-rose-900/10',
-            glow: 'group-hover:shadow-rose-500/20',
         },
     ];
 

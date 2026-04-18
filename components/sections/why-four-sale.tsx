@@ -1,34 +1,48 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ShieldCheck, Sparkles, MessageCircle, BarChart3, ArrowLeft, Gavel } from 'lucide-react';
+import { ShieldCheck, Sparkles, MessageCircle, BarChart3, ArrowLeft, Gavel, Bot, Camera, BrainCircuit, ScanSearch } from 'lucide-react';
 
 const supportingFeatures = [
     {
-        icon: ShieldCheck,
-        title: 'أمان وموثوقية',
-        desc: 'نظام تقييم ومراجعة متطور يضمن حقك في كل عملية.',
-        color: 'text-emerald-500',
-        bg: 'bg-emerald-50/50',
+        icon: Bot,
+        title: 'وكيل ذكاء اصطناعي (AI Agent)',
+        desc: 'فعّل وكيلك الذكي ليراقب المزادات تلقائيًا ويزايد نيابةً عنك على المنتجات اللي بتدور عليها.',
+        color: 'text-primary',
+        bg: 'bg-primary/10',
     },
     {
-        icon: Sparkles,
-        title: 'بحث ذكي ومتطور',
-        desc: 'ابحث بالصور أو الوصف لنصلك بما تريد في ثوانٍ.',
+        icon: Camera,
+        title: 'بحث بالصورة (Visual Search)',
+        desc: 'ارفع صورة أي منتج وهنلاقيلك أقرب المنتجات المشابهة في المتجر باستخدام الذكاء الاصطناعي.',
         color: 'text-purple-500',
         bg: 'bg-purple-50/50',
     },
     {
-        icon: MessageCircle,
-        title: 'محادثات فورية',
-        desc: 'تواصل مباشر وآمن مع البائعين دون مغادرة المنصة.',
+        icon: BrainCircuit,
+        title: 'شات بوت ذكي (RAG Search)',
+        desc: 'اسأل الشات بوت بأي سؤال عن المنتجات وهيرد عليك بإجابة ذكية ويعرضلك المنتجات المناسبة.',
         color: 'text-blue-500',
         bg: 'bg-blue-50/50',
     },
     {
-        icon: BarChart3,
-        title: 'تحليلات المبيعات',
-        desc: 'لوحة بيانات ذكية لمتابعة أداء إعلاناتك ونتائجك.',
+        icon: ScanSearch,
+        title: 'تصنيف تلقائي بالذكاء الاصطناعي',
+        desc: 'ارفع صورة المنتج والنظام هيتعرف عليه تلقائيًا ويصنفه في القسم الصحيح بدون تدخل منك.',
+        color: 'text-amber-500',
+        bg: 'bg-amber-50/50',
+    },
+    {
+        icon: ShieldCheck,
+        title: 'أمان وموثوقية',
+        desc: 'نظام تقييم ومراجعة متطور يضمن حقك في كل عملية بيع وشراء.',
+        color: 'text-emerald-500',
+        bg: 'bg-emerald-50/50',
+    },
+    {
+        icon: MessageCircle,
+        title: 'محادثات فورية',
+        desc: 'تواصل مباشر وآمن مع البائعين والمشترين دون مغادرة المنصة.',
         color: 'text-rose-500',
         bg: 'bg-rose-50/50',
     },
@@ -102,7 +116,7 @@ export function WhyFourSale() {
                     </motion.div>
 
                     {/* RIGHT: Supporting Cards Grid */}
-                    <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {supportingFeatures.map((feature, idx) => (
                             <motion.div
                                 key={idx}

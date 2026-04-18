@@ -2,7 +2,7 @@
 
 import { useLanguage } from '@/components/providers/language-provider';
 import { motion, Variants } from 'framer-motion';
-import { Laptop, Sofa, Recycle, Car, Building2, Package } from 'lucide-react';
+import { Laptop, Sofa, Recycle, Car, Building2, Package, BookOpen, WashingMachine } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { staggerContainer, staggerItem } from '@/lib/animations';
@@ -29,9 +29,11 @@ export function Categories() {
     const categories = [
         { id: 'cars', name: 'سيارات للبيع', icon: Car, iconColor: 'text-rose-600 dark:text-rose-400', iconBg: 'bg-rose-50 dark:bg-rose-500/10' },
         { id: 'electronics', name: 'إلكترونيات وأجهزة', icon: Laptop, iconColor: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-50 dark:bg-blue-500/10' },
+        { id: 'appliances', name: 'أجهزة منزلية', icon: WashingMachine, iconColor: 'text-cyan-600 dark:text-cyan-400', iconBg: 'bg-cyan-50 dark:bg-cyan-500/10' },
         { id: 'real_estate', name: 'عقارات', icon: Building2, iconColor: 'text-violet-600 dark:text-violet-400', iconBg: 'bg-violet-50 dark:bg-violet-500/10' },
         { id: 'furniture', name: 'أثاث وديكور', icon: Sofa, iconColor: 'text-amber-600 dark:text-amber-400', iconBg: 'bg-amber-50 dark:bg-amber-500/10' },
         { id: 'scrap_metals', name: 'خردة ومعادن', icon: Recycle, iconColor: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+        { id: 'books', name: 'كتب', icon: BookOpen, iconColor: 'text-orange-600 dark:text-orange-400', iconBg: 'bg-orange-50 dark:bg-orange-500/10' },
         { id: 'other', name: 'أخرى', icon: Package, iconColor: 'text-slate-600 dark:text-slate-400', iconBg: 'bg-slate-100 dark:bg-slate-500/10' },
     ];
 

@@ -8,6 +8,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { Leaf, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { staggerContainer, staggerItem } from '@/lib/animations';
+import { Logo } from '@/components/ui/logo';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -68,19 +69,9 @@ export default function LoginPage() {
                     initial={{ opacity: 0, y: -16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
+                    className="flex justify-center mb-8"
                 >
-                    <Link href="/" className="flex items-center justify-center gap-2 mb-8">
-                        <motion.div
-                            whileHover={{ scale: 1.1, rotate: 8 }}
-                            transition={{ type: 'spring', stiffness: 360, damping: 18 }}
-                            className="bg-primary p-3 rounded-xl text-white"
-                        >
-                            <Leaf size={28} />
-                        </motion.div>
-                        <span className="text-2xl font-bold">
-                            <span className="text-primary">4</span>Sale
-                        </span>
-                    </Link>
+                    <Logo />
                 </motion.div>
 
                 {/* Login Card */}

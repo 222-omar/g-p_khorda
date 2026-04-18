@@ -14,30 +14,81 @@ logger = logging.getLogger(__name__)
 MODEL_PATH = Path(__file__).resolve().parent.parent.parent / 'ai' / 'best.pt'
 
 # Map detected YOLO class names → Arabic category labels
+# NOTE: Variants like food_trip / "Food trip" and wardrobe / "Wardrobe" are ALL mapped.
 CATEGORY_MAP = {
-    'bed': 'أثاث وديكور', 'chair': 'أثاث وديكور', 'cabinet': 'أثاث وديكور',
-    'cupboard': 'أثاث وديكور', 'curtain': 'أثاث وديكور', 'lamp': 'أثاث وديكور',
-    'mirror': 'أثاث وديكور', 'Dressing Table': 'أثاث وديكور', 'Food trip': 'أثاث وديكور',
-    'sofa': 'أثاث وديكور', 'table': 'أثاث وديكور', 'wardrobe': 'أثاث وديكور',
+    # ─── أثاث وديكور (Furniture & Decor) ───
+    'bed': 'أثاث وديكور',
+    'chair': 'أثاث وديكور',
+    'cabinet': 'أثاث وديكور',
+    'cupboard': 'أثاث وديكور',
+    'curtain': 'أثاث وديكور',
+    'lamp': 'أثاث وديكور',
+    'mirror': 'أثاث وديكور',
+    'sofa': 'أثاث وديكور',
+    'table': 'أثاث وديكور',
+    'wardrobe': 'أثاث وديكور',
+    'Wardrobe': 'أثاث وديكور',
+    'Dressing Table': 'أثاث وديكور',
+    'food_trip': 'أثاث وديكور',
+    'Food trip': 'أثاث وديكور',
+    'safe': 'أثاث وديكور',
 
-    'computer': 'الكترونيات واجهزه', 'laptop': 'الكترونيات واجهزه',
-    'headphone': 'الكترونيات واجهزه', 'ac_unit': 'الكترونيات واجهزه',
-    'blender': 'الكترونيات واجهزه', 'fan': 'الكترونيات واجهزه',
-    'heater': 'الكترونيات واجهزه', 'microwave': 'الكترونيات واجهزه',
-    'freighter': 'الكترونيات واجهزه', 'iron': 'الكترونيات واجهزه',
-    'tv': 'الكترونيات واجهزه', 'oven': 'الكترونيات واجهزه', 'refrigerator': 'الكترونيات واجهزه',
-    'washing_machine': 'الكترونيات واجهزه',
+    # ─── الكترونيات واجهزه (Electronics & Devices) ───
+    'laptop': 'الكترونيات واجهزه',
+    'computer': 'الكترونيات واجهزه',
+    'mobile_phone': 'الكترونيات واجهزه',
+    'phone': 'الكترونيات واجهزه',
+    'tv': 'الكترونيات واجهزه',
+    'camera': 'الكترونيات واجهزه',
+    'headphone': 'الكترونيات واجهزه',
+    'airpods': 'الكترونيات واجهزه',
+    'speaker': 'الكترونيات واجهزه',
+    'receiver': 'الكترونيات واجهزه',
+    'router': 'الكترونيات واجهزه',
+    'printer': 'الكترونيات واجهزه',
+    'keyboard': 'الكترونيات واجهزه',
+    'watch': 'الكترونيات واجهزه',
+    'controller': 'الكترونيات واجهزه',
+    'ps_console': 'الكترونيات واجهزه',
+    'pc_case': 'الكترونيات واجهزه',
 
-    'korda': 'خورده ومعادن', 'copper_wire': 'خورده ومعادن',
-    'aluminum': 'خورده ومعادن', 'equipment': 'خورده ومعادن',
-    'scrap_metal': 'خورده ومعادن', 'plastic_waste': 'خورده ومعادن',
-    'motor_scrap': 'خورده ومعادن',
+    # ─── أجهزة منزلية (Home Appliances) ───
+    'washing_machine': 'أجهزة منزلية',
+    'fridge': 'أجهزة منزلية',
+    'refrigerator': 'أجهزة منزلية',
+    'cooker': 'أجهزة منزلية',
+    'stove': 'أجهزة منزلية',
+    'microwave': 'أجهزة منزلية',
+    'blender': 'أجهزة منزلية',
+    'ac_unit': 'أجهزة منزلية',
+    'fan': 'أجهزة منزلية',
+    'heater': 'أجهزة منزلية',
+    'water_heater': 'أجهزة منزلية',
+    'iron': 'أجهزة منزلية',
+    'vacuum_cleaner': 'أجهزة منزلية',
+    'vacuum cleaner': 'أجهزة منزلية',
+    'water_filter': 'أجهزة منزلية',
+    'gas_cylinder': 'أجهزة منزلية',
+    'gas_bottle': 'أجهزة منزلية',
+    'freighter': 'أجهزة منزلية',
 
-    'car': 'سيارات للبيع', 'truck': 'سيارات للبيع',
-    'bus': 'سيارات للبيع', 'motorcycle': 'سيارات للبيع',
+    # ─── خورده ومعادن (Scrap & Metals) ───
+    'korda': 'خورده ومعادن',
+    'scrap_metal': 'خورده ومعادن',
+    'copper_wire': 'خورده ومعادن',
+    'wire': 'خورده ومعادن',
+    'aluminum': 'خورده ومعادن',
+    'equipment': 'خورده ومعادن',
+    'mator': 'خورده ومعادن',
 
-    'building': 'عقارات', 'house': 'عقارات',
+    # ─── سيارات للبيع (Cars) ───
+    'car': 'سيارات للبيع',
 
+    # ─── عقارات (Real Estate) ───
+    'building': 'عقارات',
+    'office': 'عقارات',
+
+    # ─── كتب (Books) ───
     'book': 'كتب',
 }
 
@@ -48,6 +99,7 @@ _CATEGORY_MAP_LOWER = {k.lower(): v for k, v in CATEGORY_MAP.items()}
 ARABIC_TO_CATEGORY_ID = {
     'أثاث وديكور': 'furniture',
     'الكترونيات واجهزه': 'electronics',
+    'أجهزة منزلية': 'appliances',
     'خورده ومعادن': 'scrap_metals',
     'سيارات للبيع': 'cars',
     'عقارات': 'real_estate',
@@ -55,25 +107,45 @@ ARABIC_TO_CATEGORY_ID = {
     'أخرى': 'other',
 }
 
-# Human-readable labels for YOLO classes (for the agent target dropdown)
+# Human-readable Arabic labels for YOLO classes (for agent target dropdown)
 YOLO_CLASS_LABELS = {
+    # أثاث
     'bed': 'سرير', 'chair': 'كرسي', 'cabinet': 'خزانة',
     'cupboard': 'دولاب', 'curtain': 'ستارة', 'lamp': 'لمبة / أباجورة',
-    'mirror': 'مرآة', 'Dressing Table': 'تسريحة', 'Food trip': 'سفرة',
-    'sofa': 'كنبة', 'table': 'طاولة', 'wardrobe': 'دولاب ملابس',
-    'computer': 'كمبيوتر', 'laptop': 'لابتوب',
-    'headphone': 'سماعات', 'ac_unit': 'تكييف',
-    'blender': 'خلاط', 'fan': 'مروحة',
-    'heater': 'دفاية', 'microwave': 'ميكروويف',
-    'freighter': 'شاحنة صغيرة', 'iron': 'مكواة',
-    'tv': 'تلفزيون', 'oven': 'فرن', 'refrigerator': 'ثلاجة',
-    'washing_machine': 'غسالة',
-    'korda': 'خردة', 'copper_wire': 'سلك نحاس',
-    'aluminum': 'ألومنيوم', 'equipment': 'معدات',
-    'scrap_metal': 'خردة معادن', 'plastic_waste': 'بلاستيك مستعمل',
-    'motor_scrap': 'موتور خردة',
-    'car': 'سيارة', 'truck': 'نقل', 'bus': 'أتوبيس', 'motorcycle': 'موتوسيكل',
-    'building': 'مبنى', 'house': 'منزل',
+    'mirror': 'مرآة', 'sofa': 'كنبة', 'table': 'طاولة / ترابيزة',
+    'wardrobe': 'دولاب ملابس', 'Wardrobe': 'دولاب ملابس',
+    'Dressing Table': 'تسريحة', 'food_trip': 'سفرة', 'Food trip': 'سفرة',
+    'safe': 'خزنة',
+    # الكترونيات
+    'laptop': 'لابتوب', 'computer': 'كمبيوتر',
+    'mobile_phone': 'موبايل', 'phone': 'موبايل',
+    'tv': 'تلفزيون', 'camera': 'كاميرا',
+    'headphone': 'سماعات', 'airpods': 'سماعات إيربودز',
+    'speaker': 'سبيكر', 'receiver': 'رسيفر',
+    'router': 'راوتر', 'printer': 'طابعة',
+    'keyboard': 'كيبورد', 'watch': 'ساعة',
+    'controller': 'دراعة تحكم', 'ps_console': 'بلايستيشن',
+    'pc_case': 'كيسة كمبيوتر',
+    # أجهزة منزلية
+    'washing_machine': 'غسالة', 'fridge': 'ثلاجة', 'refrigerator': 'ثلاجة',
+    'cooker': 'بوتاجاز', 'stove': 'بوتاجاز',
+    'microwave': 'ميكروويف', 'blender': 'خلاط',
+    'ac_unit': 'تكييف', 'fan': 'مروحة',
+    'heater': 'دفاية', 'water_heater': 'سخان مياه',
+    'iron': 'مكواة',
+    'vacuum_cleaner': 'مكنسة كهربائية', 'vacuum cleaner': 'مكنسة كهربائية',
+    'water_filter': 'فلتر مياه',
+    'gas_cylinder': 'أنبوبة غاز', 'gas_bottle': 'أنبوبة غاز',
+    'freighter': 'ديب فريزر',
+    # خردة
+    'korda': 'خردة', 'scrap_metal': 'خردة معادن',
+    'copper_wire': 'سلك نحاس', 'wire': 'سلك',
+    'aluminum': 'ألومنيوم', 'equipment': 'معدات', 'mator': 'موتور',
+    # سيارات
+    'car': 'سيارة',
+    # عقارات
+    'building': 'مبنى', 'office': 'مكتب / أوفيس',
+    # كتب
     'book': 'كتاب',
 }
 
@@ -82,9 +154,15 @@ def get_available_targets():
     """
     Return a list of all YOLO classes the agent can target,
     grouped by their Arabic category, for the frontend dropdown.
+    Deduplicates variant names (e.g. wardrobe/Wardrobe → one entry).
     """
     targets = []
+    seen = set()  # track lowercase keys to avoid duplicates
     for class_name, arabic_category in CATEGORY_MAP.items():
+        key = class_name.lower().replace(' ', '_')
+        if key in seen:
+            continue
+        seen.add(key)
         label = YOLO_CLASS_LABELS.get(class_name, class_name)
         targets.append({
             'id': class_name,

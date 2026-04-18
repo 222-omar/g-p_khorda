@@ -8,6 +8,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { Leaf, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authAPI } from '@/lib/api';
+import { Logo } from '@/components/ui/logo';
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -148,18 +149,9 @@ export default function RegisterPage() {
                 className="w-full max-w-lg relative z-10"
             >
                 {/* Logo */}
-                <Link href="/" className="flex items-center justify-center gap-2 mb-8">
-                    <motion.div
-                        whileHover={{ scale: 1.1, rotate: 8 }}
-                        transition={{ type: 'spring', stiffness: 360, damping: 18 }}
-                        className="bg-primary p-3 rounded-xl text-white"
-                    >
-                        <Leaf size={28} />
-                    </motion.div>
-                    <span className="text-2xl font-bold">
-                        <span className="text-primary">4</span>Sale
-                    </span>
-                </Link>
+                <div className="flex justify-center mb-8">
+                    <Logo />
+                </div>
 
                 {/* Register Card */}
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl">
