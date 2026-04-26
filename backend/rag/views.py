@@ -4,7 +4,7 @@ RAG API Views.
 
 import logging
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework import status
 
@@ -19,7 +19,7 @@ def rag_query_view(request):
     """
     POST /api/rag/query/
 
-    Body: { "query": "عايز غسالة رخيصة في القاهرة" }
+    Body: { "query": "عايز غسالة رخيصة في القاهرة", "history": [] }
 
     Returns:
     {
@@ -32,7 +32,10 @@ def rag_query_view(request):
             "latency_ms": 1200,
             "sql_results": 5,
             "vector_results": 10,
-            "merged_results": 8
+            "merged_results": 8,
+            "intent": "search_full",
+            "tokens_saved": "0",
+            "cache_hit": false
         }
     }
     """
@@ -60,3 +63,19 @@ def rag_query_view(request):
             {"error": "حصلت مشكلة في السيرفر. جرب تاني."},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def rag_cache_stats_view(request):
+    """
+    GET /api/rag/cache-stats/
+
+    Returns cache statistics including hit rate and estimated tokens saved.
+    Admin-only endpoint.
+    """
+    from rag.response_cache import get_cache
+
+    cache = get_cache()
+    stats = cache.stats()
+    return Response(stats, status=status.HTTP_200_OK)

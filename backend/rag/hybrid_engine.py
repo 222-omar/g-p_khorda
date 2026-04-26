@@ -22,11 +22,13 @@ MAX_RESULTS = 15
 
 # ── Parallel Retrieval ─────────────────────────────────────
 
-def retrieve_hybrid(query: str) -> dict:
+def retrieve_hybrid(query: str, run_sql: bool = True) -> dict:
     """
     Run vector search and SQL search in parallel using ThreadPoolExecutor.
     Merge results by product_id, capping at MAX_RESULTS.
     SQL matches are prioritised for precision.
+    
+    If run_sql=False, only vector search is executed (saves ~500 tokens).
     """
     vector_results = []
     sql_results = []
@@ -35,8 +37,9 @@ def retrieve_hybrid(query: str) -> dict:
     with ThreadPoolExecutor(max_workers=2) as executor:
         futures = {
             executor.submit(vector_search, query, MAX_RESULTS): 'vector',
-            executor.submit(sql_search, query): 'sql',
         }
+        if run_sql:
+            futures[executor.submit(sql_search, query)] = 'sql'
         for future in as_completed(futures):
             track = futures[future]
             try:
@@ -242,19 +245,92 @@ def synthesise_answer(query: str, merged_items: list, history: list = None) -> d
 
 def rag_query(query: str, user=None, history: list = None) -> dict:
     """
-    Full RAG pipeline:
-    1. Parallel retrieval (vector + SQL)
-    2. Merge results
-    3. LLM synthesis
-    4. Log the query
+    Full RAG pipeline with smart token optimization:
+    
+    1. Intent Router → instant response for greetings/FAQ/chitchat (0 tokens)
+    2. Response Cache → cached response for repeated queries (0 tokens)
+    3. Smart Retrieval → skip SQL when not needed (save ~500 tokens)
+    4. Synthesis → LLM summary only when search results exist
+    5. Cache the response for future queries
+    6. Log the query
     """
     from rag.models import RAGQueryLog
+    from rag.intent_router import classify_intent
+    from rag.response_cache import get_cache
 
     start = time.time()
     error_msg = ""
+    cache = get_cache()
 
+    # ── Step 1: Intent Classification (0 tokens) ──────────
+    intent = classify_intent(query)
+    
+    # Fast-path: instant response (greeting, FAQ, chitchat)
+    if intent["response"]:
+        latency_ms = int((time.time() - start) * 1000)
+        
+        # Log the query even for instant responses
+        try:
+            RAGQueryLog.objects.create(
+                user=user if user and user.is_authenticated else None,
+                query_text=query,
+                generated_sql="",
+                sql_results_count=0,
+                vector_results_count=0,
+                merged_results_count=0,
+                final_answer=intent["response"],
+                latency_ms=latency_ms,
+                error="",
+            )
+        except Exception as e:
+            logger.error(f"[RAG] Logging failed: {e}")
+        
+        return {
+            "answer": {
+                "summary": intent["response"],
+                "items": [],
+                "suggested_action": "view_listing",
+            },
+            "meta": {
+                "latency_ms": latency_ms,
+                "sql_results": 0,
+                "vector_results": 0,
+                "merged_results": 0,
+                "intent": intent["intent"],
+                "tokens_saved": intent["tokens_saved"],
+                "cache_hit": False,
+            }
+        }
+
+    # ── Step 2: Cache Check (0 tokens) ────────────────────
+    cached = cache.get(query)
+    if cached:
+        latency_ms = int((time.time() - start) * 1000)
+        
+        # Update latency in cached response
+        result = cached.copy()
+        result["meta"] = {**result.get("meta", {}), "latency_ms": latency_ms, "cache_hit": True}
+        
+        try:
+            RAGQueryLog.objects.create(
+                user=user if user and user.is_authenticated else None,
+                query_text=query,
+                generated_sql="[CACHED]",
+                sql_results_count=result["meta"].get("sql_results", 0),
+                vector_results_count=result["meta"].get("vector_results", 0),
+                merged_results_count=result["meta"].get("merged_results", 0),
+                final_answer=result.get("answer", {}).get("summary", ""),
+                latency_ms=latency_ms,
+                error="",
+            )
+        except Exception as e:
+            logger.error(f"[RAG] Logging failed: {e}")
+        
+        return result
+
+    # ── Step 3: Smart Retrieval (skip SQL if not needed) ──
     try:
-        retrieval = retrieve_hybrid(query)
+        retrieval = retrieve_hybrid(query, run_sql=intent["run_sql"])
         merged = retrieval["merged_items"]
         generated_sql = retrieval["generated_sql"]
         vector_count = retrieval["vector_count"]
@@ -277,6 +353,24 @@ def rag_query(query: str, user=None, history: list = None) -> dict:
 
     latency_ms = int((time.time() - start) * 1000)
 
+    result = {
+        "answer": answer,
+        "meta": {
+            "latency_ms": latency_ms,
+            "sql_results": sql_count,
+            "vector_results": vector_count,
+            "merged_results": len(merged),
+            "intent": intent["intent"],
+            "tokens_saved": intent["tokens_saved"],
+            "cache_hit": False,
+        }
+    }
+
+    # ── Step 4: Cache the result ───────────────────────────
+    if not error_msg:
+        cache.set(query, result)
+
+    # ── Step 5: Log ───────────────────────────────────────
     try:
         RAGQueryLog.objects.create(
             user=user if user and user.is_authenticated else None,
@@ -292,12 +386,4 @@ def rag_query(query: str, user=None, history: list = None) -> dict:
     except Exception as e:
         logger.error(f"[RAG] Logging failed: {e}")
 
-    return {
-        "answer": answer,
-        "meta": {
-            "latency_ms": latency_ms,
-            "sql_results": sql_count,
-            "vector_results": vector_count,
-            "merged_results": len(merged),
-        }
-    }
+    return result
