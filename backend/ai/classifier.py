@@ -203,10 +203,16 @@ def classify_image(image_path: str) -> dict:
         'detected_class': None,
     }
 
-    hf_space_url = os.getenv("HF_SPACE_URL", "").rstrip("/")
+    hf_space_url = os.getenv("HF_SPACE_URL", "").strip().rstrip("/")
     if not hf_space_url:
         logger.error("HF_SPACE_URL is not set.")
         return fallback
+
+    # Auto-convert Space ID format (e.g. "Omarh353111/khorda_yolo") to full URL
+    if not hf_space_url.startswith("http"):
+        # "Omarh353111/khorda_yolo" -> "https://omarh353111-khorda-yolo.hf.space"
+        hf_space_url = "https://" + hf_space_url.replace("/", "-").lower() + ".hf.space"
+        print(f"[AI] 🔗 Converted Space ID to URL: {hf_space_url}")
 
     is_url = image_path.startswith("http://") or image_path.startswith("https://")
 
