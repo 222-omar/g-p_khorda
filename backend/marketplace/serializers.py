@@ -531,7 +531,11 @@ def agent_counter_bid(auction, manual_bidder):
     """
     Called AFTER a manual bid is placed.
     Find active agents targeting this product's detected item and
-    auto-counter-bid by BID_INCREMENT, as long as max_budget allows.
+    auto-counter-bid, as long as max_budget and wallet balance allow.
+    
+    TOKEN OPTIMIZATION: If the agent already has a bid on this auction,
+    skip LLM evaluation (already proven match). This saves ~500 tokens
+    per counter-bid cycle.
     """
     product = auction.product
     detected_item = product.detected_item
@@ -548,11 +552,29 @@ def agent_counter_bid(auction, manual_bidder):
         .select_related('user')
     )
 
-    # --- LLM Evaluation Step ---
+    if not potential_agents:
+        return
+
+    # --- Smart LLM Evaluation (with caching) ---
     from ai.agent_graph import smart_agent_evaluator
     matching_agents = []
     
+    # Check which agents already bid on this auction (proven matches)
+    agents_with_bids = set(
+        Bid.objects.filter(
+            auction=auction,
+            bidder__in=[a.user for a in potential_agents]
+        ).values_list('bidder_id', flat=True)
+    )
+    
     for agent in potential_agents:
+        # If agent already bid → skip LLM (already proven match, save tokens)
+        if agent.user_id in agents_with_bids:
+            logger.info(f"[Agent] ⚡ {agent.user.username} already bid → skip LLM (token saved)")
+            matching_agents.append(agent)
+            continue
+        
+        # First time seeing this product → run LLM evaluation
         if agent.requirements_prompt.strip():
             eval_result = smart_agent_evaluator.invoke({
                 "product_title": product.title,
@@ -563,6 +585,8 @@ def agent_counter_bid(auction, manual_bidder):
             })
             if eval_result.get("is_match"):
                 matching_agents.append(agent)
+            else:
+                logger.info(f"[Agent] ❌ {agent.user.username} rejected by LLM")
         else:
             matching_agents.append(agent)
     # ---------------------------
