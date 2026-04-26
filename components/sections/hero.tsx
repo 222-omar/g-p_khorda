@@ -10,30 +10,36 @@ import { useState, useEffect, useRef } from 'react';
 
 import { generalAPI } from '@/lib/api';
 
-// ─── Typewriter Hook ────────────────────────────────────────────────────────
-function useTypewriter(text: string, speed = 45, startDelay = 0) {
+// ─── Looping Typewriter Hook ────────────────────────────────────────────────────────
+function useLoopingTypewriter(words: string[], typingSpeed = 60, erasingSpeed = 40, pauseTime = 2000) {
     const [displayed, setDisplayed] = useState('');
-    const [done, setDone] = useState(false);
+    const [wordIndex, setWordIndex] = useState(0);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
-        setDisplayed('');
-        setDone(false);
-        let i = 0;
         const timeout = setTimeout(() => {
-            const interval = setInterval(() => {
-                i++;
-                setDisplayed(text.slice(0, i));
-                if (i >= text.length) {
-                    clearInterval(interval);
-                    setDone(true);
-                }
-            }, speed);
-            return () => clearInterval(interval);
-        }, startDelay);
-        return () => clearTimeout(timeout);
-    }, [text, speed, startDelay]);
+            const currentWord = words[wordIndex];
 
-    return { displayed, done };
+            if (!isDeleting) {
+                // Typing
+                setDisplayed(currentWord.slice(0, displayed.length + 1));
+                if (displayed === currentWord) {
+                    setTimeout(() => setIsDeleting(true), pauseTime);
+                }
+            } else {
+                // Deleting
+                setDisplayed(currentWord.slice(0, displayed.length - 1));
+                if (displayed === '') {
+                    setIsDeleting(false);
+                    setWordIndex((prev) => (prev + 1) % words.length);
+                }
+            }
+        }, isDeleting ? erasingSpeed : typingSpeed);
+
+        return () => clearTimeout(timeout);
+    }, [displayed, isDeleting, wordIndex, words, typingSpeed, erasingSpeed, pauseTime]);
+
+    return displayed;
 }
 
 // ─── Cursor Blink ────────────────────────────────────────────────────────────
@@ -77,13 +83,12 @@ export function Hero() {
         return `+${val}`;
     };
 
-    // Typewriter: first type the title, then after it's done type the highlight
-    const { displayed: titleText, done: titleDone } = useTypewriter(dict.hero.title, 50, 700);
-    const { displayed: highlightText, done: highlightDone } = useTypewriter(
-        titleDone ? dict.hero.titleHighlight : '',
-        55,
-        titleDone ? 120 : 999999
-    );
+    // Typewriter: loop through different phrases
+    const animatedText = useLoopingTypewriter([
+        "سوقك الذكي لبيع وشراء المستعمل والخردة في مصر",
+        "ابحث، زايد، واشترِ بأفضل الأسعار",
+        "منصتك الموثوقة للمزادات والتجارة"
+    ], 60, 30, 2500);
 
     const textSide = {
         hidden: { opacity: 0, x: isRtl ? 50 : -50 },
@@ -111,13 +116,13 @@ export function Hero() {
         <section className="min-h-screen flex flex-col pt-[88px] pb-0 px-4 sm:px-6 lg:px-8 overflow-hidden relative bg-page dark:bg-[#0e1015]">
             <div className="container mx-auto max-w-[1280px] flex flex-col flex-1">
                 <div className="grid grid-cols-1 lg:grid-cols-[55fr_45fr] gap-12 lg:gap-16 items-center flex-1 py-8">
-                    
+
                     {/* RIGHT column — Text content (comes first in DOM for RTL) */}
-                    <motion.div 
-                      variants={textSide} 
-                      initial="hidden" 
-                      animate="visible" 
-                      className="flex flex-col justify-center gap-0 lg:py-10"
+                    <motion.div
+                        variants={textSide}
+                        initial="hidden"
+                        animate="visible"
+                        className="flex flex-col justify-center gap-0 lg:py-10"
                     >
                         <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="w-full">
                             {/* Badge */}
@@ -129,16 +134,13 @@ export function Hero() {
                                 مرحباً بك في 4Sale
                             </motion.div>
 
-                            {/* Heading with Typewriter */}
+                            {/* Heading with Looping Typewriter */}
                             <motion.h1
                                 variants={staggerItem}
-                                className="text-4xl md:text-5xl lg:text-[clamp(2rem,3.8vw,3.2rem)] font-noto-kufi font-[800] mb-3 leading-[1.35] text-slate-900 dark:text-white w-full max-w-[700px]"
+                                className="text-4xl md:text-5xl lg:text-[clamp(2rem,3.8vw,3.2rem)] font-noto-kufi font-[800] mb-3 leading-[1.4] text-slate-900 dark:text-white w-full max-w-[700px] min-h-[100px] md:min-h-[120px]"
                             >
-                                <span className="block">
-                                    سوقك الذكي لبيع المستعمل
-                                </span>
-                                <span className="block text-primary">
-                                    والخردة في مصر
+                                <span className="inline-block text-primary">
+                                    {animatedText}
                                 </span>
                             </motion.h1>
 
@@ -180,19 +182,19 @@ export function Hero() {
                     </motion.div>
 
                     {/* LEFT column — Image (comes second in DOM for RTL) */}
-                    <motion.div 
-                      variants={imageSide} 
-                      initial="hidden" 
-                      animate="visible" 
-                      className="relative h-full flex items-center justify-center lg:justify-end"
+                    <motion.div
+                        variants={imageSide}
+                        initial="hidden"
+                        animate="visible"
+                        className="relative h-full flex items-center justify-center lg:justify-end"
                     >
                         <div
                             className="relative rounded-[24px] overflow-hidden aspect-[4/3] w-full shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] border border-black/[0.04] dark:border-white/[0.04]"
                         >
-                            <img 
-                              src="/hero-bg.jpg" 
-                              alt="4Sale marketplace" 
-                              className="w-full h-full object-cover" 
+                            <img
+                                src="/hero-bg.jpg"
+                                alt="4Sale marketplace"
+                                className="w-full h-full object-cover"
                             />
                         </div>
                     </motion.div>
@@ -205,14 +207,13 @@ export function Hero() {
                         {[
                             { value: formatStat(statsData.total_users, '+٢٠٠ ألف'), label: 'مستخدم نشط' },
                             { value: formatStat(statsData.products_sold, '+٥٠٠ ألف'), label: 'إعلان منشور' },
-                            { value: '٩٨٪',      label: 'رضا العملاء' },
-                            { value: '٢٤/٧',     label: 'دعم متاح' },
+                            { value: '٩٨٪', label: 'رضا العملاء' },
+                            { value: '٢٤/٧', label: 'دعم متاح' },
                         ].map((stat, idx) => (
-                            <div 
-                              key={stat.label} 
-                              className={`text-center flex flex-col items-center justify-center ${
-                                idx !== 3 ? 'lg:border-e lg:border-slate-200 dark:lg:border-white/10 lg:pe-6 lg:me-6' : ''
-                              }`}
+                            <div
+                                key={stat.label}
+                                className={`text-center flex flex-col items-center justify-center ${idx !== 3 ? 'lg:border-e lg:border-slate-200 dark:lg:border-white/10 lg:pe-6 lg:me-6' : ''
+                                    }`}
                             >
                                 <p className="font-noto-kufi text-[1.4rem] font-black text-primary leading-none tracking-tight">
                                     {stat.value}
