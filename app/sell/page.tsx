@@ -334,6 +334,7 @@ export default function SellPage() {
                                                         }`}
                                                 >
                                                     <option value="">اختر التصنيف</option>
+                                                    <option value="appliances">أجهزة منزلية</option>
                                                     <option value="scrap_metals">خردة ومعادن</option>
                                                     <option value="electronics">إلكترونيات وأجهزة</option>
                                                     <option value="furniture">أثاث وديكور</option>

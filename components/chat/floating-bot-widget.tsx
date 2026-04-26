@@ -105,15 +105,29 @@ export function FloatingBotWidget() {
         setLoading(true);
 
         try {
-            // Build history from last 3 messages for context
-            const chatHistory = messages.slice(-3).map(m => ({
-                role: m.role,
-                content: m.content,
-            }));
+            // Build history from last 3 messages for context, injecting product details
+            const chatHistory = messages.slice(-3).map(m => {
+                let text = m.content;
+                if (m.role === 'assistant' && m.products && m.products.length > 0) {
+                    const productsInfo = m.products.map(p => {
+                        const seller = p.owner_name || p.owner?.username || 'غير معروف';
+                        return `- ${p.title} (${p.price} EGP, البائع: ${seller})`;
+                    }).join('\n');
+                    text += `\n\n[معلومات إضافية في الواجهة للمنتجات المعروضة:\n${productsInfo}]`;
+                }
+                return {
+                    role: m.role,
+                    content: text,
+                };
+            });
             const result = await ragAPI.query(query, chatHistory);
 
             let products: any[] = [];
-            if (result.answer.items && result.answer.items.length > 0) {
+            // Use pre-built products_data if available (0 extra API calls)
+            if (result.products_data && result.products_data.length > 0) {
+                products = result.products_data;
+            } else if (result.answer.items && result.answer.items.length > 0) {
+                // Fallback: fetch individually (N+1)
                 const productPromises = result.answer.items.slice(0, 4).map(async (id) => {
                     try {
                         return await productsAPI.get(String(id));

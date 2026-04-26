@@ -5,6 +5,7 @@ import { Filter, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const categories = [
+    { id: 'appliances', label: 'أجهزة منزلية' },
     { id: 'scrap_metals', label: 'خردة ومعادن' },
     { id: 'electronics', label: 'إلكترونيات وأجهزة' },
     { id: 'furniture', label: 'أثاث وديكور' },

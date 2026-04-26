@@ -67,6 +67,7 @@ function StatusBadge({ status }: { status: string }) {
 
 // ─── Category Label ─────────────────────────────────────────────────────────
 const CATEGORY_LABELS: Record<string, string> = {
+    appliances: 'أجهزة منزلية',
     scrap_metals: 'خردة ومعادن',
     electronics: 'إلكترونيات',
     furniture: 'أثاث وديكور',

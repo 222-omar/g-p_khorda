@@ -192,6 +192,7 @@ export default function EditProductPage() {
                                         className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900"
                                     >
                                         <option value="">اختر التصنيف</option>
+                                        <option value="appliances">أجهزة منزلية</option>
                                         <option value="scrap_metals">خردة ومعادن</option>
                                         <option value="electronics">إلكترونيات وأجهزة</option>
                                         <option value="furniture">أثاث وديكور</option>

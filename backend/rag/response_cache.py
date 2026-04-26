@@ -41,19 +41,20 @@ class RAGCache:
         self._total_hits = 0
         self._total_misses = 0
     
-    def _make_key(self, query: str) -> str:
-        """Normalize query and hash it for a consistent cache key."""
+    def _make_key(self, query: str, user_id: str = "anon") -> str:
+        """Normalize query and hash it for a consistent cache key.
+        Includes user_id to prevent cross-user cache leaks."""
         normalized = normalize_arabic(query)
-        # Remove extra whitespace
         normalized = ' '.join(normalized.split())
-        return hashlib.md5(normalized.encode('utf-8')).hexdigest()
+        raw = f"{user_id}:{normalized}"
+        return hashlib.md5(raw.encode('utf-8')).hexdigest()
     
-    def get(self, query: str) -> dict | None:
+    def get(self, query: str, user_id: str = "anon") -> dict | None:
         """
         Get cached response for a query.
         Returns None if not cached or expired.
         """
-        key = self._make_key(query)
+        key = self._make_key(query, user_id)
         
         if key not in self._cache:
             self._total_misses += 1
@@ -79,9 +80,9 @@ class RAGCache:
         )
         return entry['response']
     
-    def set(self, query: str, response: dict) -> None:
+    def set(self, query: str, response: dict, user_id: str = "anon") -> None:
         """Cache a response for a query."""
-        key = self._make_key(query)
+        key = self._make_key(query, user_id)
         
         # Evict oldest if at capacity
         while len(self._cache) >= self._max_size:

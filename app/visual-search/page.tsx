@@ -52,7 +52,6 @@ export default function VisualSearchPage() {
     const [results, setResults] = useState<SearchResult[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [aiDescription, setAiDescription] = useState<string | null>(null);
     const [isDragOver, setIsDragOver] = useState(false);
     const [searched, setSearched] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -70,7 +69,6 @@ export default function VisualSearchPage() {
         setPreviewUrl(URL.createObjectURL(file));
         setError(null);
         setResults([]);
-        setAiDescription(null);
         setSearched(false);
     }, []);
 
@@ -93,7 +91,6 @@ export default function VisualSearchPage() {
         try {
             const data = await visualSearchAPI.searchByImage(selectedFile);
             setResults(data.results?.slice(0, 3) || []);
-            setAiDescription(data.ai_description || null);
             setSearched(true);
         } catch (err: any) {
             setError(err.message || 'حدث خطأ أثناء البحث');
@@ -108,7 +105,6 @@ export default function VisualSearchPage() {
         setPreviewUrl(null);
         setResults([]);
         setError(null);
-        setAiDescription(null);
         setSearched(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
@@ -263,26 +259,6 @@ export default function VisualSearchPage() {
                         )}
                     </AnimatePresence>
 
-                    {/* ── AI Description ── */}
-                    <AnimatePresence>
-                        {aiDescription && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 12 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 0.4 }}
-                                className="mt-6 p-5 rounded-2xl bg-gradient-to-r from-primary/5 to-purple-500/5 dark:from-primary/10 dark:to-purple-500/10 border border-primary/15 dark:border-primary/20"
-                            >
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Sparkles size={16} className="text-primary" />
-                                    <span className="text-sm font-bold text-primary">الذكاء الاصطناعي وصف الصورة</span>
-                                </div>
-                                <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
-                                    {aiDescription}
-                                </p>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
 
                     {/* ── Results (Top 3) ── */}
                     <AnimatePresence>

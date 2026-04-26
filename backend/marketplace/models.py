@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
+from pgvector.django import VectorField
 
 
 class UserProfile(models.Model):
@@ -304,8 +305,11 @@ class ProductVisualEmbedding(models.Model):
         related_name='visual_embedding',
         primary_key=True,
     )
-    embedding = models.JSONField(
-        help_text="512-dim CLIP image embedding vector as a list of floats"
+    embedding = VectorField(
+        dimensions=2048,
+        help_text="2048-dim Vision embedding from Nemotron",
+        null=True,
+        blank=True
     )
     image_url = models.URLField(
         max_length=500,
