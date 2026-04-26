@@ -32,6 +32,7 @@ CATEGORY_MAP = {
     'food_trip': 'أثاث وديكور',
     'Food trip': 'أثاث وديكور',
     'safe': 'أثاث وديكور',
+    'office': 'أثاث وديكور',
 
     # ─── الكترونيات واجهزه (Electronics & Devices) ───
     'laptop': 'الكترونيات واجهزه',
@@ -86,7 +87,6 @@ CATEGORY_MAP = {
 
     # ─── عقارات (Real Estate) ───
     'building': 'عقارات',
-    'office': 'عقارات',
 
     # ─── كتب (Books) ───
     'book': 'كتب',
@@ -214,12 +214,20 @@ def classify_image(image_path: str) -> dict:
         
         target_file = file(image_path)
         
-        result_class = client.predict(
+        # Use predict without the leading slash if it fails, 
+        # but usually it's just 'predict' or 'predict_1' etc.
+        # Interface default is usually 'predict'
+        result = client.predict(
             image=target_file,
             api_name="/predict"
         )
         
-        best_class = str(result_class).strip()
+        # Gradio Interface with multiple outputs returns a list/tuple
+        # outputs=[gr.Image, gr.Text] -> result is [image_path, text]
+        if isinstance(result, (list, tuple)) and len(result) >= 2:
+            best_class = str(result[1]).strip()
+        else:
+            best_class = str(result).strip()
         
         print(f"[AI] 🔍 Hugging Face API returned YOLO class: '{best_class}'")
         
@@ -227,7 +235,15 @@ def classify_image(image_path: str) -> dict:
         
         if not arabic_label:
             logger.warning(f"Unknown class predicted: {best_class}")
-            return fallback
+            # Try to see if the string itself contains a known class
+            for k in CATEGORY_MAP.keys():
+                if k.lower() in best_class.lower():
+                    arabic_label = CATEGORY_MAP[k]
+                    best_class = k
+                    break
+            
+            if not arabic_label:
+                return fallback
 
         category_id = ARABIC_TO_CATEGORY_ID.get(arabic_label, 'other')
         print(f"[AI] ✅ Result: '{best_class}' → '{arabic_label}' ({category_id})")
