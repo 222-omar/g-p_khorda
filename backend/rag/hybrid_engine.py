@@ -230,7 +230,17 @@ def synthesise_answer(query: str, merged_items: list, history: list = None) -> d
 
     except Exception as e:
         logger.error(f"[RAG/Synthesis] Failed: {e}")
-        # Don't blindly show all results — if synthesis fails, results may be irrelevant
+        item_ids = [
+            item.get('id') or item.get('product_id')
+            for item in merged_items
+        ]
+        valid_ids = [i for i in item_ids if i]
+        if valid_ids:
+            return {
+                "summary": f"لقيتلك {len(valid_ids)} نتيجة ممكن تناسبك. اتفضل بص عليهم.",
+                "items": valid_ids,
+                "suggested_action": "view_listing",
+            }
         return {
             "summary": "مش لاقي حاجة تطابق اللي بتدور عليه دلوقتي. جرب بكلمات تانية 🔍",
             "items": [],

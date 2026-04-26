@@ -16,7 +16,7 @@ from rag.embeddings import generate_query_embedding
 logger = logging.getLogger(__name__)
 
 DEFAULT_TOP_K = 15
-MIN_SIMILARITY = 0.35  # Discard results below this threshold
+MIN_SIMILARITY = 0.15  # Low threshold to avoid filtering real matches
 
 
 def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
