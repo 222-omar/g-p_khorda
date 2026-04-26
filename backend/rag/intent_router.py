@@ -348,7 +348,37 @@ def classify_intent(query: str) -> dict:
             "tokens_saved": "~500 (skipped SQL generation)",
         }
     
-    # ── 5. Fallback: try light search ──────────────────
+    # ── 5. Follow-up Question Detection ────────────────
+    # Questions that reference previous results (need chat history + synthesis)
+    FOLLOWUP_PATTERNS = [
+        r'(مين|منين|بتاع|بتاعه|بتاعهم|بتوعهم)',   # who/whose
+        r'(فين|مكانه|عنوانه|موقعه)',                  # where
+        r'(كام سعر|سعره كام|بكام|تمنه|ثمنه)',        # price
+        r'(حالته|حالتها|حالتهم)',                      # condition
+        r'(ورين|وريني|عايز أشوف|أشوفه|أشوفها)',       # show me
+        r'(الأول|التاني|التالت|رقم \d)',              # ordinal reference
+        r'(أحسن واحد|أحسنهم|أفضل)',                   # best one
+        r'(تاني حاجة|حاجة تانية|في غيره)',             # anything else
+        r'(أرخص واحد|أرخصهم|أغلاهم)',                 # cheapest/most expensive
+        r'(تواصل|أتواصل|رقمه|رقم البائع)',             # contact seller
+        r'(مواصفات|تفاصيل)',                          # details/specs
+    ]
+    
+    is_followup = any(re.search(p, q, re.IGNORECASE) for p in FOLLOWUP_PATTERNS)
+    
+    if is_followup:
+        # Follow-up question — needs synthesis with chat history, no new search
+        logger.info(f"[IntentRouter] FOLLOW_UP: '{q[:40]}' (references previous results)")
+        return {
+            "intent": "follow_up",
+            "response": None,
+            "run_sql": False,
+            "run_vector": False,
+            "run_synthesis": True,
+            "tokens_saved": "~500 (skipped SQL, vector uses history only)",
+        }
+    
+    # ── 6. Fallback: try light search ──────────────────
     # If we can't classify, still try vector search but skip SQL
     logger.info(f"[IntentRouter] FALLBACK search_light: '{q[:40]}'")
     return {

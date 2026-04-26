@@ -330,13 +330,21 @@ def rag_query(query: str, user=None, history: list = None) -> dict:
 
     # ── Step 3: Smart Retrieval (skip SQL if not needed) ──
     try:
-        retrieval = retrieve_hybrid(query, run_sql=intent["run_sql"])
-        merged = retrieval["merged_items"]
-        generated_sql = retrieval["generated_sql"]
-        vector_count = retrieval["vector_count"]
-        sql_count = retrieval["sql_count"]
+        # Follow-up questions: skip search, use history only with synthesis
+        if intent["intent"] == "follow_up" and history:
+            merged = []
+            generated_sql = ""
+            vector_count = 0
+            sql_count = 0
+            answer = synthesise_answer(query, merged, history=history)
+        else:
+            retrieval = retrieve_hybrid(query, run_sql=intent["run_sql"])
+            merged = retrieval["merged_items"]
+            generated_sql = retrieval["generated_sql"]
+            vector_count = retrieval["vector_count"]
+            sql_count = retrieval["sql_count"]
 
-        answer = synthesise_answer(query, merged, history=history)
+            answer = synthesise_answer(query, merged, history=history)
 
     except Exception as e:
         logger.error(f"[RAG] Pipeline error: {e}")
