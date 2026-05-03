@@ -463,18 +463,14 @@ class AuctionViewSet(viewsets.ReadOnlyModelViewSet):
         auction.highest_bidder = request.user
         auction.save()
         
-        # ── Agent Counter-Bid (Asynchronous) ────────────────
-        import threading
-        from .serializers import agent_counter_bid_async
+        # ── Agent Counter-Bid (Synchronous for Vercel) ───────
+        from .serializers import agent_counter_bid
         try:
-            threading.Thread(
-                target=agent_counter_bid_async,
-                args=(auction.id, request.user.id),
-                daemon=True
-            ).start()
+            # Pass the actual user object as manual_bidder
+            agent_counter_bid(auction, request.user)
         except Exception as e:
             import logging
-            logging.getLogger(__name__).error(f"[Agent] Counter-bid thread error: {e}")
+            logging.getLogger(__name__).error(f"[Agent] Counter-bid error: {e}")
         # ───────────────────────────────────────────────────
         
         return Response(BidSerializer(bid).data, status=status.HTTP_201_CREATED)

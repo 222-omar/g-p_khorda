@@ -782,17 +782,17 @@ class ProductCreateSerializer(serializers.ModelSerializer):
                             logger.info(f"[Agent] 🔍 Detected '{detected_item}' — checking agents...")
                             
                             if auction:
-                                # Auction: Start background thread for AI evaluation and bidding
-                                threading.Thread(
-                                    target=run_auto_bidding_async,
-                                    args=(auction.id, detected_item),
-                                    daemon=True
-                                ).start()
-                                logger.info(f"[Agent] 🚀 Started auto-bidding thread for '{detected_item}'")
+                                # Auction: Run auto-bidding SYNCHRONOUSLY for Vercel compatibility
+                                # (Background threads are killed on Vercel after response is sent)
+                                try:
+                                    logger.info(f"[Agent] 🚀 Running auto-bidding for '{detected_item}'...")
+                                    from .serializers import run_auto_bidding
+                                    run_auto_bidding(auction, detected_item)
+                                except Exception as e:
+                                    logger.error(f"[Agent] Auto-bidding error: {e}")
                             # Non-auction products: agent discovery is triggered by
-                            # the post_save signal (trigger_agent_discovery) which
-                            # checks detected_item. Now it will work because we set
-                            # detected_item above for ALL products.
+                            # the post_save signal (trigger_agent_discovery). 
+                            # We'll also make it synchronous in signals.py.
                 except Exception as e:
                     # Agent failure should NOT block product creation
                     logger.error(f"[Agent] Classification/bidding error (non-blocking): {e}")

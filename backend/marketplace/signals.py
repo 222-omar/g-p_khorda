@@ -73,10 +73,11 @@ def trigger_agent_discovery(sender, instance, created, **kwargs):
 
     logger.info(f"[Marketplace/Signal] Product #{instance.id} detected as '{instance.detected_item}', triggering agent discovery")
 
-    threading.Thread(
-        target=_run_discovery_in_background,
-        args=(instance.id,),
-        daemon=True,
-    ).start()
+    # Run discovery SYNCHRONOUSLY for Vercel compatibility
+    try:
+        from marketplace.serializers import run_agent_discovery_async
+        run_agent_discovery_async(instance.id)
+    except Exception as e:
+        logger.error(f"[Marketplace/Signal] Discovery failed for product #{instance.id}: {e}")
 
 
