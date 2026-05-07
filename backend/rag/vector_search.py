@@ -1,22 +1,22 @@
 """
-Track A: Vector (Semantic) Search.
+Vector Search — V2 with Lightweight Re-ranking.
 
-Performs cosine-similarity search in Python using numpy.
-Loads all active product embeddings, computes similarity against the query
-vector, and returns the top-K most relevant items.
-
-This approach works without the pgvector extension — all computation
-happens in-memory. For a few thousand products this is perfectly fast.
+1. Cosine similarity search (Gemini embeddings)
+2. Heuristic re-ranking: boost scores based on keyword overlap,
+   price relevance, and location match
+3. Returns top-K results with enriched scores
 """
 
 import logging
 import numpy as np
 from rag.embeddings import generate_query_embedding
+from rag.intent_router import normalize_arabic
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_TOP_K = 15
-MIN_SIMILARITY = 0.15  # Low threshold to avoid filtering real matches
+DEFAULT_TOP_K = 10   # Fetch more candidates for re-ranking
+FINAL_TOP_K = 4      # Return top 4 after re-ranking
+MIN_SIMILARITY = 0.15
 
 
 def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
@@ -29,20 +29,80 @@ def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     return float(dot / (norm_a * norm_b))
 
 
-def vector_search(query_text: str, top_k: int = DEFAULT_TOP_K) -> list[dict]:
+def _rerank(results: list[dict], query: str, entities: dict) -> list[dict]:
     """
-    Embed the user's query, then find the closest product embeddings
-    using cosine similarity computed in Python.
+    Lightweight heuristic re-ranking. Zero external dependencies.
+    
+    Boosts:
+    - Keyword overlap with query (+0.15 per keyword hit)
+    - Price within range (+0.1)
+    - Location match (+0.1)
+    - Category match (+0.1)
+    """
+    if not results:
+        return results
 
-    Returns a list of dicts with product info + similarity score.
-    Only returns active products ABOVE the minimum similarity threshold.
+    query_words = set(normalize_arabic(query).split())
+    product_term = normalize_arabic(entities.get("product", query))
+    product_words = set(product_term.split())
+    price_min = entities.get("price_min")
+    price_max = entities.get("price_max")
+    location = entities.get("location")
+    category = entities.get("category")
+
+    for item in results:
+        boost = 0.0
+        title_norm = normalize_arabic(item.get('title', ''))
+
+        # Keyword overlap boost
+        title_words = set(title_norm.split())
+        overlap = product_words & title_words
+        boost += len(overlap) * 0.15
+
+        # Exact product term in title
+        if product_term in title_norm:
+            boost += 0.2
+
+        # Price relevance
+        price = item.get('price', 0)
+        if price and price_max and price <= price_max:
+            boost += 0.1
+        if price and price_min and price >= price_min:
+            boost += 0.05
+
+        # Location match
+        if location and location in (item.get('location', '') or ''):
+            boost += 0.1
+
+        # Category match
+        if category and item.get('category') == category:
+            boost += 0.1
+
+        item['rerank_score'] = item.get('similarity', 0) + boost
+
+    # Sort by re-ranked score
+    results.sort(key=lambda x: x.get('rerank_score', 0), reverse=True)
+    return results[:FINAL_TOP_K]
+
+
+def vector_search(query_text: str, entities: dict = None, top_k: int = FINAL_TOP_K) -> list[dict]:
+    """
+    Embed query → cosine search → heuristic re-rank → top K.
+    
+    Args:
+        query_text: Raw user query
+        entities: Extracted {product, price_min, price_max, location, category}
+        top_k: Number of results to return
     """
     from rag.models import ProductEmbedding
+
+    if entities is None:
+        entities = {"product": query_text}
 
     try:
         query_vector = generate_query_embedding(query_text)
     except Exception as e:
-        logger.error(f"[RAG/Vector] Failed to embed query: {e}")
+        logger.error(f"[Vector] Failed to embed query: {e}")
         return []
 
     query_vec = np.array(query_vector, dtype=np.float32)
@@ -53,27 +113,26 @@ def vector_search(query_text: str, top_k: int = DEFAULT_TOP_K) -> list[dict]:
     ).select_related('product').all()
 
     if not embeddings:
-        logger.info("[RAG/Vector] No embeddings found in database.")
+        logger.info("[Vector] No embeddings in database.")
         return []
 
-    # Compute similarities
+    # Cosine similarity scoring
     scored = []
     for pe in embeddings:
         try:
             product_vec = np.array(pe.embedding, dtype=np.float32)
             sim = _cosine_similarity(query_vec, product_vec)
-            # Only keep results above minimum similarity threshold
             if sim >= MIN_SIMILARITY:
                 scored.append((sim, pe))
         except Exception:
             continue
 
-    # Sort by similarity descending, take top K
     scored.sort(key=lambda x: x[0], reverse=True)
-    top = scored[:top_k]
+    candidates = scored[:DEFAULT_TOP_K]  # Over-fetch for re-ranking
 
+    # Build result dicts
     results = []
-    for similarity, pe in top:
+    for similarity, pe in candidates:
         product = pe.product
         results.append({
             'product_id': product.id,
@@ -89,8 +148,8 @@ def vector_search(query_text: str, top_k: int = DEFAULT_TOP_K) -> list[dict]:
             'source': 'vector',
         })
 
-    logger.info(
-        f"[RAG/Vector] Found {len(results)} results (above {MIN_SIMILARITY} threshold) "
-        f"for: {query_text[:50]}"
-    )
+    # Re-rank with heuristics
+    results = _rerank(results, query_text, entities)
+
+    logger.info(f"[Vector] {len(results)} results after re-ranking for: '{query_text[:40]}'")
     return results

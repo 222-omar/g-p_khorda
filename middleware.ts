@@ -12,10 +12,11 @@ export function middleware(request: NextRequest) {
     const protectedRoutes = ['/create-listing', '/profile', '/sell', '/settings', '/search', '/admin-dashboard', '/dashboard'];
     const isProtectedRoute = protectedRoutes.some(route => cleanPath === route || cleanPath.startsWith(`${route}/`));
 
-    // Get token from cookies
+    // Get token and is_admin flag from cookies
     const token = request.cookies.get('access_token')?.value;
+    const isAdmin = request.cookies.get('is_admin')?.value === 'true';
 
-    console.log(`[Middleware] Path: ${path} | Clean Path: ${cleanPath} | Protected: ${isProtectedRoute} | HasToken: ${!!token}`);
+    console.log(`[Middleware] Path: ${path} | Protected: ${isProtectedRoute} | HasToken: ${!!token} | IsAdmin: ${isAdmin}`);
 
     // 1. Redirect unauthenticated users trying to access protected routes
     if (isProtectedRoute && !token) {
@@ -25,13 +26,24 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl);
     }
 
-    // 2. Redirect authenticated users away from auth pages AND homepage to dashboard
-    const isAuthPage = cleanPath === '/login' || cleanPath === '/register';
-    const isHomePage = cleanPath === '/';
-    
-    if ((isAuthPage || isHomePage) && token) {
-        console.log(`[Middleware] Redirecting authenticated user from ${path} to /dashboard`);
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+    // 2. Role-based routing for authenticated users
+    if (token) {
+        const isAuthPage = cleanPath === '/login' || cleanPath === '/register';
+        const isHomePage = cleanPath === '/';
+        const isUserDashboard = cleanPath === '/dashboard' || cleanPath.startsWith('/dashboard/');
+        const isAdminDashboard = cleanPath === '/admin-dashboard' || cleanPath.startsWith('/admin-dashboard/');
+
+        // If admin tries to access auth pages, home page, or normal user dashboard -> redirect to admin dashboard
+        if (isAdmin && (isAuthPage || isHomePage || isUserDashboard)) {
+            console.log(`[Middleware] Redirecting ADMIN from ${path} to /admin-dashboard`);
+            return NextResponse.redirect(new URL('/admin-dashboard', request.url));
+        }
+
+        // If normal user tries to access auth pages, home page, or admin dashboard -> redirect to user dashboard
+        if (!isAdmin && (isAuthPage || isHomePage || isAdminDashboard)) {
+            console.log(`[Middleware] Redirecting USER from ${path} to /dashboard`);
+            return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
     }
 
     return NextResponse.next();

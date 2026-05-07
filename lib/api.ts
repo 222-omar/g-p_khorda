@@ -48,10 +48,16 @@ export const setRefreshToken = (token: string) => {
     document.cookie = `refresh_token=${token}; path=/; max-age=604800; SameSite=Lax`;
 };
 
+// Helper function to set admin flag in cookies
+export const setAdminCookie = (isAdmin: boolean) => {
+    document.cookie = `is_admin=${isAdmin ? 'true' : 'false'}; path=/; max-age=604800; SameSite=Lax`;
+};
+
 // Helper function to clear auth tokens
 export const clearAuthTokens = () => {
     document.cookie = 'access_token=; path=/; max-age=0';
     document.cookie = 'refresh_token=; path=/; max-age=0';
+    document.cookie = 'is_admin=; path=/; max-age=0';
 };
 
 // Global flag to prevent further API calls after auth is invalidated
@@ -176,7 +182,7 @@ export const authAPI = {
 
     async login(username: string, password: string) {
         resetAuthState(); // Allow API calls for login
-        const response = await apiFetch<{ access: string; refresh: string }>(
+        const response = await apiFetch<{ access: string; refresh: string; is_admin?: boolean }>(
             '/auth/login/',
             {
                 method: 'POST',
@@ -186,6 +192,7 @@ export const authAPI = {
 
         setAuthToken(response.access);
         setRefreshToken(response.refresh);
+        setAdminCookie(!!response.is_admin);
 
         return response;
     },
@@ -365,9 +372,11 @@ export const generalAPI = {
         return apiFetch<{
             total_users: number;
             products_sold: number;
-            scrap_count: number;
+            active_auctions: number;
             active_governorates: number;
-        }>('/general-stats/');
+            weekly_activity: number[];
+            category_distribution: { name: string; count: number }[];
+        }>('/general-stats/', { cache: 'no-store' });
     },
 };
 

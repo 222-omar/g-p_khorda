@@ -1,434 +1,92 @@
 """
-Hybrid RAG Engine - the heart of the system.
+Hybrid RAG Engine — V2 (LangGraph wrapper).
 
-Orchestrates parallel retrieval from both tracks (Vector + SQL),
-merges results by product ID, and synthesises a final answer with Gemini.
+Thin wrapper that delegates to the V2 LangGraph agent.
+API surface stays identical — no frontend changes needed.
 """
 
-import os
 import time
-import json
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from openai import OpenAI
-
-from rag.vector_search import vector_search
-from rag.sql_generator import sql_search
 
 logger = logging.getLogger(__name__)
 
-MAX_RESULTS = 15
-
-
-# ── Parallel Retrieval ─────────────────────────────────────
-
-def retrieve_hybrid(query: str, run_sql: bool = True) -> dict:
-    """
-    Run vector search and SQL search in parallel using ThreadPoolExecutor.
-    Merge results by product_id, capping at MAX_RESULTS.
-    SQL matches are prioritised for precision.
-    
-    If run_sql=False, only vector search is executed (saves ~500 tokens).
-    """
-    vector_results = []
-    sql_results = []
-    generated_sql = ""
-
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        futures = {
-            executor.submit(vector_search, query, MAX_RESULTS): 'vector',
-        }
-        if run_sql:
-            futures[executor.submit(sql_search, query)] = 'sql'
-        for future in as_completed(futures):
-            track = futures[future]
-            try:
-                result = future.result()
-                if track == 'vector':
-                    vector_results = result
-                elif track == 'sql':
-                    sql_results, generated_sql = result
-            except Exception as e:
-                logger.error(f"[RAG/Hybrid] {track} track failed: {e}")
-
-    # ── Merge by product_id ────────────────────────────────
-    seen_ids = set()
-    merged = []
-
-    # SQL first (higher precision)
-    for item in sql_results:
-        pid = item.get('id') or item.get('product_id')
-        if pid and pid not in seen_ids:
-            seen_ids.add(pid)
-            item['_source'] = 'sql'
-            merged.append(item)
-
-    # Then vector results (semantic relevance)
-    for item in vector_results:
-        pid = item.get('product_id') or item.get('id')
-        if pid and pid not in seen_ids:
-            seen_ids.add(pid)
-            item['_source'] = 'vector'
-            merged.append(item)
-
-    merged = merged[:MAX_RESULTS]
-
-    # ── Enrich with seller info ────────────────────────────
-    merged = _enrich_with_seller_info(merged)
-
-    logger.info(
-        f"[RAG/Hybrid] Merged: {len(merged)} items "
-        f"(SQL={len(sql_results)}, Vector={len(vector_results)})"
-    )
-
-    return {
-        "merged_items": merged,
-        "vector_count": len(vector_results),
-        "sql_count": len(sql_results),
-        "generated_sql": generated_sql,
-    }
-
-
-def _enrich_with_seller_info(items: list) -> list:
-    """Attach seller name, rating, and trust_score to each merged item."""
-    from marketplace.models import Product
-
-    product_ids = []
-    for item in items:
-        pid = item.get('id') or item.get('product_id')
-        if pid:
-            product_ids.append(pid)
-
-    if not product_ids:
-        return items
-
-    try:
-        products = Product.objects.filter(
-            id__in=product_ids
-        ).select_related('owner__profile').only(
-            'id', 'owner__username',
-            'owner__profile__seller_rating',
-            'owner__profile__trust_score',
-            'owner__profile__total_sales',
-        )
-        product_map = {p.id: p for p in products}
-    except Exception as e:
-        logger.error(f"[RAG/Hybrid] Seller enrichment failed: {e}")
-        return items
-
-    for item in items:
-        pid = item.get('id') or item.get('product_id')
-        product = product_map.get(pid)
-        if product:
-            try:
-                profile = product.owner.profile
-                item['seller_name'] = product.owner.username
-                item['seller_rating'] = float(profile.seller_rating)
-                item['trust_score'] = profile.trust_score
-                item['total_sales'] = profile.total_sales
-            except Exception:
-                item['seller_name'] = product.owner.username
-                item['seller_rating'] = 0
-                item['trust_score'] = 50
-                item['total_sales'] = 0
-
-    return items
-
-
-def _build_products_data(answer_item_ids: list) -> list:
-    """
-    Build product data for frontend display from the LLM-selected item IDs.
-    Includes images so the frontend doesn't need N+1 API calls.
-    Returns max 4 products.
-    """
-    from marketplace.models import Product
-
-    item_ids = [int(pid) for pid in answer_item_ids[:4] if pid]
-
-    if not item_ids:
-        return []
-
-    # Single DB query for products + images
-    products = Product.objects.filter(id__in=item_ids).select_related('owner').prefetch_related('images')
-
-    products_map = {}
-    for p in products:
-        primary_img = p.images.filter(is_primary=True).first() or p.images.first()
-        products_map[p.id] = {
-            'id': p.id,
-            'title': p.title,
-            'price': str(p.price),
-            'condition': p.condition,
-            'location': p.location,
-            'is_auction': p.is_auction,
-            'primary_image': primary_img.image.url if primary_img else None,
-            'owner_name': p.owner.username,
-        }
-
-    # Maintain original order
-    return [products_map[pid] for pid in item_ids if pid in products_map]
-
-
-# ── Final Answer Synthesis ─────────────────────────────────
-
-SYNTHESIS_PROMPT = """أنت مساعد ذكي لمنصة "4Sale" - سوق مصري لبيع وشراء المستعمل والخردة.
-
-شغلتك: تاخد نتايج البحث وتلخصها للمستخدم بالعامية المصرية بطريقة ودودة ومفيدة.
-
-القواعد:
-1. اتكلم عامية مصرية طبيعية (مش فصحى). مثال: "لقيتلك" مش "وجدت لك".
-2. متألفش معلومات أبداً - استخدم بس اللي في النتايج.
-3. ⚠️ قاعدة صارمة جداً: استبعد أي منتجات لا تتطابق مع المنتج المطلوب! (لو بيبحث عن "تلاجة" والنتايج "غسالة"، تجاهلها). لكن لو المنتج بديل أو من نفس الفصيلة (طابعة ومكنة تصوير) اعتبره متطابق. ولو اليوزر بيطلب "اقتراحات" مفتوحة (زي: ألبس إيه لفرح؟ أو عندك لبس؟)، اعرض أي ملابس في النتايج (حتى لو ملابس أطفال أو فستان) وقوله "عندي ده، ممكن ينفعك أو ينفع أطفالك".
-4. لو بعد تطبيق القاعدة 3 مفيش أي نتايج مطابقة: قول "مش لاقي حاجة تطابق اللي بتدور عليه دلوقتي. جرب بكلمات تانية 🔍" ورجع المصفوفة items فارغة [].
-5. اذكر السعر والحالة والمكان لكل منتج بشكل طبيعي.
-6. لو البائع تقييمه عالي (rating >= 4): اذكر "بائع موثوق ⭐"
-7. لو البائع تقييمه أقل من 3: متذكرش التقييم.
-8. لو فيه مزاد: قول "عليه مزاد!" أو "مزاد نشط 🔥"
-9. رتب المنتجات من الأنسب للأقل.
-10. خلي الملخص مختصر ومفيد (3-5 جمل).
-
-الرد يكون JSON فقط:
-{
-  "summary": "ملخص بالعامية المصرية",
-  "items": [قائمة IDs المنتجات المطابقة فقط],
-  "suggested_action": "view_listing | place_bid | compare_prices | set_agent"
-}"""
-
-
-FOLLOWUP_PROMPT = """أنت مساعد ذكي لمنصة "4Sale" - سوق مصري لبيع وشراء المستعمل والخردة.
-
-شغلتك: الإجابة على سؤال المستخدم بناءً على سياق المحادثة السابقة (السؤال عن تفاصيل منتج أو بائع تم ذكره).
-
-القواعد:
-1. اتكلم عامية مصرية طبيعية ودودة.
-2. استخرج الإجابة فقط من الرسايل السابقة، متألفش أي معلومات.
-3. جاوب مباشرة على السؤال.
-4. الرد يكون JSON فقط، وخلي الـ items فارغة دايماً لأنك بتجاوب على سؤال ومش بتعرض منتجات جديدة:
-{
-  "summary": "إجابتك بالعامية المصرية",
-  "items": [],
-  "suggested_action": "view_listing"
-}"""
-
-
-def synthesise_answer(query: str, merged_items: list, history: list = None, is_followup: bool = False) -> dict:
-    """Use Gemini to generate a final Egyptian-Arabic answer from merged results."""
-    if not merged_items and not is_followup:
-        return {
-            "summary": "مش لاقي حاجة تطابق اللي بتدور عليه دلوقتي. جرب بكلمات تانية 🔍",
-            "items": [],
-            "suggested_action": "set_agent",
-        }
-
-    # Build concise context for the LLM
-    context_lines = []
-    for item in merged_items:
-        pid = item.get('id') or item.get('product_id')
-        title = item.get('title', '')
-        price = item.get('price', '?')
-        condition = item.get('condition', '')
-        location = item.get('location', '')
-        is_auction = item.get('is_auction', False)
-        seller_name = item.get('seller_name', '')
-        seller_rating = item.get('seller_rating', 0)
-        trust_score = item.get('trust_score', 0)
-
-        line = f"- #{pid}: {title} | {price} EGP | {condition} | {location}"
-        if seller_name:
-            line += f" | Seller: {seller_name} (Rating: {seller_rating}/5, Trust: {trust_score}%)"
-        if is_auction:
-            line += " | AUCTION"
-        context_lines.append(line)
-
-    context = "\n".join(context_lines)
-
-    try:
-        api_key = os.environ.get("GROQ_API_KEY", "").strip('"').strip("'")
-        _client = OpenAI(
-            api_key=api_key,
-            base_url="https://api.groq.com/openai/v1",
-        )
-        # Build messages with optional conversation history
-        prompt_to_use = FOLLOWUP_PROMPT if is_followup else SYNTHESIS_PROMPT
-        messages = [
-            {"role": "system", "content": prompt_to_use},
-        ]
-        
-        # Add last 3 conversation messages for context
-        if history:
-            for msg in history[-3:]:
-                role = msg.get('role', 'user')
-                content = msg.get('content', '')
-                if role in ('user', 'assistant') and content:
-                    messages.append({"role": role, "content": content})
-        
-        messages.append({"role": "user", "content": f"سؤال المستخدم: {query}\n\nالنتايج:\n{context}"})
-        
-        response = _client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=messages,
-            temperature=0.3,
-            max_tokens=600,
-        )
-        raw = response.choices[0].message.content.strip()
-        
-        # Robust JSON extraction (handles markdown blocks and preamble text)
-        start_idx = raw.find('{')
-        end_idx = raw.rfind('}')
-        if start_idx != -1 and end_idx != -1:
-            clean_json = raw[start_idx:end_idx+1]
-        else:
-            clean_json = raw
-            
-        answer = json.loads(clean_json)
-        return answer
-
-    except Exception as e:
-        logger.error(f"[RAG/Synthesis] Failed: {e}")
-        return {
-            "summary": "عذراً، حصلت مشكلة مؤقتة في البحث. جرب بكلمات تانية أو حاول كمان شوية 🔍",
-            "items": [],
-            "suggested_action": "set_agent",
-        }
-
-
-# ── Main Entry Point ───────────────────────────────────────
 
 def rag_query(query: str, user=None, history: list = None) -> dict:
     """
-    Full RAG pipeline with smart token optimization:
-    
-    1. Intent Router → instant response for greetings/FAQ/chitchat (0 tokens)
-    2. Response Cache → cached response for repeated queries (0 tokens)
-    3. Smart Retrieval → skip SQL when not needed (save ~500 tokens)
-    4. Synthesis → LLM summary only when search results exist
-    5. Cache the response for future queries
-    6. Log the query
+    Full RAG pipeline — delegates to the V2 LangGraph agent.
+
+    Returns:
+    {
+        "answer": {"summary": ..., "items": [...], "suggested_action": ...},
+        "products_data": [...],
+        "meta": {"latency_ms": ..., "sql_results": ..., ...}
+    }
     """
     from rag.models import RAGQueryLog
-    from rag.intent_router import classify_intent
     from rag.response_cache import get_cache
+    from rag.graph.rag_graph import get_rag_agent
 
     start = time.time()
     error_msg = ""
     cache = get_cache()
     uid = str(user.id) if user and hasattr(user, 'id') and user.is_authenticated else "anon"
 
-    # ── Step 1: Intent Classification (0 tokens) ──────────
-    intent = classify_intent(query)
-    
-    # Fast-path: instant response (greeting, FAQ, chitchat)
-    if intent["response"]:
-        latency_ms = int((time.time() - start) * 1000)
-        
-        # Log the query even for instant responses
-        try:
-            RAGQueryLog.objects.create(
-                user=user if user and user.is_authenticated else None,
-                query_text=query,
-                generated_sql="",
-                sql_results_count=0,
-                vector_results_count=0,
-                merged_results_count=0,
-                final_answer=intent["response"],
-                latency_ms=latency_ms,
-                error="",
-            )
-        except Exception as e:
-            logger.error(f"[RAG] Logging failed: {e}")
-        
-        return {
-            "answer": {
-                "summary": intent["response"],
-                "items": [],
-                "suggested_action": "view_listing",
-            },
-            "meta": {
-                "latency_ms": latency_ms,
-                "sql_results": 0,
-                "vector_results": 0,
-                "merged_results": 0,
-                "intent": intent["intent"],
-                "tokens_saved": intent["tokens_saved"],
-                "cache_hit": False,
-            }
-        }
-
-    # ── Step 2: Cache Check (0 tokens) ────────────────────
+    # ── Cache Check ──
     cached = cache.get(query, user_id=uid)
     if cached:
         latency_ms = int((time.time() - start) * 1000)
-        
-        # Update latency in cached response
         result = cached.copy()
         result["meta"] = {**result.get("meta", {}), "latency_ms": latency_ms, "cache_hit": True}
-        
-        try:
-            RAGQueryLog.objects.create(
-                user=user if user and user.is_authenticated else None,
-                query_text=query,
-                generated_sql="[CACHED]",
-                sql_results_count=result["meta"].get("sql_results", 0),
-                vector_results_count=result["meta"].get("vector_results", 0),
-                merged_results_count=result["meta"].get("merged_results", 0),
-                final_answer=result.get("answer", {}).get("summary", ""),
-                latency_ms=latency_ms,
-                error="",
-            )
-        except Exception as e:
-            logger.error(f"[RAG] Logging failed: {e}")
-        
+        _log(user, query, result, latency_ms, "")
         return result
 
-    # ── Step 3: Smart Retrieval (skip SQL if not needed) ──
+    # ── Run V2 LangGraph ──
     try:
-        # Follow-up questions: skip search, use history only with synthesis
-        if intent["intent"] == "follow_up" and history:
-            merged = []
-            generated_sql = ""
-            vector_count = 0
-            sql_count = 0
-            answer = synthesise_answer(query, merged, history=history, is_followup=True)
-        else:
-            retrieval = retrieve_hybrid(query, run_sql=intent["run_sql"])
-            merged = retrieval["merged_items"]
-            generated_sql = retrieval["generated_sql"]
-            vector_count = retrieval["vector_count"]
-            sql_count = retrieval["sql_count"]
+        agent = get_rag_agent()
 
-            answer = synthesise_answer(query, merged, history=history)
+        initial_state = {
+            "query": query,
+            "messages": history or [],
+            "retry_count": 0,
+            "entities": {},
+            "vector_results": [],
+            "sql_results": [],
+            "fused_results": [],
+            "products_data": [],
+            "vector_count": 0,
+            "sql_count": 0,
+            "generated_sql": "",
+            "metadata": {},
+        }
+
+        final_state = agent.invoke(initial_state)
+
+        answer = final_state.get("final_response", {
+            "summary": "حصلت مشكلة تقنية. جرب تاني بعد شوية.",
+            "items": [],
+            "suggested_action": "view_listing",
+        })
+        products_data = final_state.get("products_data", [])
+        sql_count = final_state.get("sql_count", 0)
+        vector_count = final_state.get("vector_count", 0)
+        generated_sql = final_state.get("generated_sql", "")
+        fused_count = len(final_state.get("fused_results", []))
+        intent = final_state.get("intent", "unknown")
 
     except Exception as e:
-        logger.error(f"[RAG] Pipeline error: {e}")
+        logger.error(f"[RAG] LangGraph pipeline error: {e}")
         error_msg = str(e)
         answer = {
             "summary": "حصلت مشكلة تقنية. جرب تاني بعد شوية.",
             "items": [],
             "suggested_action": "view_listing",
         }
+        products_data = []
+        sql_count = vector_count = fused_count = 0
         generated_sql = ""
-        vector_count = 0
-        sql_count = 0
-        merged = []
+        intent = "error"
 
     latency_ms = int((time.time() - start) * 1000)
-
-    # ── Build products_data from LLM-selected IDs only ──
-    products_data = _build_products_data(answer.get("items", []))
-
-    # ── Force hardcoded suggested_action (more consistent than LLM) ──
-    if not answer.get("items"):
-        computed_action = "set_agent"
-    elif len(answer.get("items", [])) == 1:
-        computed_action = "view_listing"
-    elif any(item.get("is_auction") for item in merged):
-        computed_action = "place_bid"
-    elif len(answer.get("items", [])) >= 3:
-        computed_action = "compare_prices"
-    else:
-        computed_action = "view_listing"
-    
-    answer["suggested_action"] = computed_action
 
     result = {
         "answer": answer,
@@ -437,31 +95,37 @@ def rag_query(query: str, user=None, history: list = None) -> dict:
             "latency_ms": latency_ms,
             "sql_results": sql_count,
             "vector_results": vector_count,
-            "merged_results": len(merged),
-            "intent": intent["intent"],
-            "tokens_saved": intent["tokens_saved"],
+            "fused_results": fused_count,
+            "intent": intent,
             "cache_hit": False,
         }
     }
 
-    # ── Step 4: Cache the result ───────────────────────────
+    # ── Cache ──
     if not error_msg:
         cache.set(query, result, user_id=uid)
 
-    # ── Step 5: Log ───────────────────────────────────────
+    # ── Log ──
+    _log(user, query, result, latency_ms, error_msg, generated_sql)
+
+    return result
+
+
+def _log(user, query, result, latency_ms, error, sql=""):
+    """Log query to database."""
+    from rag.models import RAGQueryLog
     try:
+        meta = result.get("meta", {})
         RAGQueryLog.objects.create(
             user=user if user and user.is_authenticated else None,
             query_text=query,
-            generated_sql=generated_sql,
-            sql_results_count=sql_count,
-            vector_results_count=vector_count,
-            merged_results_count=len(merged),
-            final_answer=answer.get("summary", ""),
+            generated_sql=sql or "[N/A]",
+            sql_results_count=meta.get("sql_results", 0),
+            vector_results_count=meta.get("vector_results", 0),
+            merged_results_count=meta.get("fused_results", 0),
+            final_answer=result.get("answer", {}).get("summary", ""),
             latency_ms=latency_ms,
-            error=error_msg,
+            error=error,
         )
     except Exception as e:
         logger.error(f"[RAG] Logging failed: {e}")
-
-    return result

@@ -70,7 +70,7 @@ export function Stats() {
         const fetchStats = async () => {
             try {
                 const data = await generalAPI.getGeneralStats();
-                setStatsData(data);
+                setStatsData(data as any);
             } catch (error) {
                 console.error('Failed to fetch stats:', error);
             }

@@ -1,37 +1,42 @@
 """
-Track B: Text-to-SQL generation using Google Gemini.
+Smart SQL Generator — V2 Single-Shot with JOINs.
 
-1. Takes a user query in Egyptian Arabic.
-2. Uses Gemini LLM to generate a safe SQL SELECT statement.
-3. Validates the SQL against a strict whitelist.
-4. Executes on the database (read-only).
-5. Returns structured results.
+Replaces the heavy LangChain Agent (~15s) with a single LLM call (~3s).
+The LLM receives the DB schema + extracted entities and writes optimal SQL.
+
+Key improvement: SQL includes JOINs to auth_user + user_profiles,
+so seller data comes back in ONE query (no separate enrichment step).
 """
 
 import os
 import re
 import logging
-from openai import OpenAI
 from django.db import connection
+from langchain_core.prompts import ChatPromptTemplate
+from rag.graph.config import get_llm
 
 logger = logging.getLogger(__name__)
 
-# ── SQL Safety ──────────────────────────────────────────────
+MAX_ROWS = 4
 
+# Tables the LLM is allowed to reference
+ALLOWED_TABLES = {'products', 'auctions', 'bids', 'product_images',
+                  'auth_user', 'user_profiles'}
+
+# Write operations that must never appear
 FORBIDDEN_KEYWORDS = [
     'DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'TRUNCATE',
     'CREATE', 'REPLACE', 'GRANT', 'REVOKE', 'EXEC', 'EXECUTE',
-    'MERGE', 'CALL', 'SET', 'COMMIT', 'ROLLBACK', 'SAVEPOINT',
-    '--', ';', 'pg_', 'information_schema', 'auth_user',
+    'MERGE', 'COMMIT', 'ROLLBACK', 'SAVEPOINT',
 ]
 
-MAX_ROWS = 15
 
-ALLOWED_TABLES = {'marketplace_product', 'marketplace_auction', 'marketplace_bid', 'marketplace_productimage'}
-
+# ═══════════════════════════════════════════════════════════
+# Safety Validator
+# ═══════════════════════════════════════════════════════════
 
 def validate_sql(sql: str) -> tuple[bool, str]:
-    """Validate that the generated SQL is safe to execute."""
+    """Block any non-SELECT or dangerous SQL."""
     if not sql or not sql.strip():
         return False, "Empty SQL"
 
@@ -39,136 +44,141 @@ def validate_sql(sql: str) -> tuple[bool, str]:
     sql_upper = sql.upper()
 
     if not sql_upper.startswith('SELECT'):
-        return False, "Only SELECT statements are allowed"
+        return False, "Only SELECT allowed"
 
-    for keyword in FORBIDDEN_KEYWORDS:
-        if keyword.startswith('-') or keyword == ';':
-            if keyword in sql:
-                return False, f"Forbidden pattern: {keyword}"
-        else:
-            pattern = r'\b' + re.escape(keyword) + r'\b'
-            if re.search(pattern, sql_upper):
-                return False, f"Forbidden keyword: {keyword}"
+    for kw in FORBIDDEN_KEYWORDS:
+        if re.search(r'\b' + re.escape(kw) + r'\b', sql_upper):
+            return False, f"Forbidden: {kw}"
 
-    table_pattern = r'(?:FROM|JOIN)\s+([a-zA-Z_][a-zA-Z0-9_]*)'
-    referenced_tables = set(
-        match.lower() for match in re.findall(table_pattern, sql, re.IGNORECASE)
+    # Check no access to sensitive tables
+    referenced = set(
+        m.lower() for m in re.findall(
+            r'(?:FROM|JOIN)\s+([a-zA-Z_][a-zA-Z0-9_]*)', sql, re.IGNORECASE
+        )
     )
-    illegal_tables = referenced_tables - ALLOWED_TABLES
-    if illegal_tables:
-        return False, f"Illegal tables: {illegal_tables}"
+    illegal = referenced - ALLOWED_TABLES
+    if illegal:
+        return False, f"Illegal tables: {illegal}"
 
     return True, ""
 
 
-# ── LLM ────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════
+# Schema (embedded — no need for dynamic discovery)
+# ═══════════════════════════════════════════════════════════
 
-DB_SCHEMA = """
-You have access to these PostgreSQL tables (Django-managed):
-
-TABLE marketplace_product (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(200),
-    description TEXT,
-    price DECIMAL(10,2),       -- EGP (Egyptian Pounds)
-    category VARCHAR(20),      -- 'scrap_metals','electronics','appliances','furniture','cars','real_estate','books','other'
-    condition VARCHAR(10),     -- 'new','like-new','good','fair'
-    status VARCHAR(10),        -- 'active','sold','pending','inactive'
-    location VARCHAR(200),
-    is_auction BOOLEAN,
-    detected_item VARCHAR(100),
-    views_count INTEGER,
-    created_at TIMESTAMP WITH TIME ZONE
+SCHEMA = """
+TABLE products (
+  id BIGINT PK, title VARCHAR(200), description TEXT, price NUMERIC(10,2),
+  category VARCHAR(20), condition VARCHAR(10), status VARCHAR(10),
+  location VARCHAR(200), is_auction BOOLEAN, owner_id INT FK→auth_user,
+  phone_number VARCHAR(20), detected_item VARCHAR(100),
+  views_count INT, created_at TIMESTAMP
 )
 
-TABLE marketplace_auction (
-    id SERIAL PRIMARY KEY,
-    product_id INTEGER REFERENCES marketplace_product(id),
-    starting_bid DECIMAL(10,2),
-    current_bid DECIMAL(10,2),
-    highest_bidder_id INTEGER,
-    start_time TIMESTAMP WITH TIME ZONE,
-    end_time TIMESTAMP WITH TIME ZONE,
-    is_active BOOLEAN
+TABLE auth_user (id INT PK, username VARCHAR(150))
+
+TABLE user_profiles (
+  user_id INT FK→auth_user, seller_rating DECIMAL(3,2),
+  trust_score INT, total_sales INT, is_verified BOOLEAN
 )
 
-TABLE marketplace_bid (
-    id SERIAL PRIMARY KEY,
-    auction_id INTEGER REFERENCES marketplace_auction(id),
-    bidder_id INTEGER,
-    amount DECIMAL(10,2),
-    created_at TIMESTAMP WITH TIME ZONE
+TABLE auctions (
+  id BIGINT PK, product_id BIGINT FK→products,
+  starting_bid NUMERIC, current_bid NUMERIC,
+  end_time TIMESTAMP, is_active BOOLEAN
 )
-
-Egyptian slang → SQL mappings:
-- "تلاجة"/"تلاجه"/"فريزر"/"ديب فريزر" → category='appliances'
-- "غسالة"/"غساله"/"نص أوتوماتيك"/"فول أوتوماتيك" → category='appliances'
-- "تكييف"/"مكيف"/"تكيف" → category='appliances'
-- "بوتاجاز"/"فرن"/"كوكر" → category='appliances'
-- "مكواة"/"مكنسة"/"خلاط"/"سخان"/"فلتر مياه" → category='appliances'
-- "خردة"/"خرده"/"حديد"/"نحاس"/"ألومنيوم"/"موتور" → category='scrap_metals'
-- "عربية"/"عربيه"/"سيارة" → category='cars'
-- "لابتوب"/"لاب"/"كمبيوتر"/"بلايستيشن" → category='electronics'
-- "موبايل"/"تليفون"/"شاشة"/"تلفزيون" → category='electronics'
-- "كنبة"/"كنبه"/"سرير"/"ترابيزة"/"دولاب"/"نيش"/"سفرة" → category='furniture'
-- "شقة"/"عقار"/"مكتب"/"محل" → category='real_estate'
-- "كتاب"/"كتب" → category='books'
-- "لقطة"/"رخيص"/"رخيصة"/"أرخص" → ORDER BY price ASC
-- "أغلى"/"غالي" → ORDER BY price DESC
-- "أحدث"/"جديد" → ORDER BY created_at DESC
-- "أكتر مشاهدة" → ORDER BY views_count DESC
 """
 
-SYSTEM_PROMPT = f"""You are a SQL expert for "4Sale", an Egyptian scrap & used-items marketplace.
-Convert the user's question (often Egyptian Arabic slang) into a single PostgreSQL SELECT.
 
-{DB_SCHEMA}
+# ═══════════════════════════════════════════════════════════
+# Single-Shot SQL Prompt
+# ═══════════════════════════════════════════════════════════
+
+SQL_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", """You are a PostgreSQL expert for "4Sale" (Egyptian marketplace).
+Write ONE optimal SELECT query. Output ONLY raw SQL, no markdown.
+
+SCHEMA:
+{schema}
 
 RULES:
-1. Output ONLY raw SQL. No markdown, no explanation, no backticks.
-2. Always include WHERE status = 'active' unless user asks for sold/history.
-3. If user mentions price/budget, add price filters.
-4. If user asks about auctions, JOIN marketplace_auction and filter is_active=true.
-5. LIMIT 15 always.
-6. Use ILIKE for Arabic text searches on title and description.
-7. NEVER use DELETE, UPDATE, INSERT, DROP, or any write operation.
-8. Always use the full table name with 'marketplace_' prefix.
-9. For location searches, use ILIKE with the city/governorate name.
-"""
+1. Always JOIN auth_user and user_profiles to get seller data:
+   JOIN auth_user u ON p.owner_id = u.id
+   LEFT JOIN user_profiles up ON u.id = up.user_id
+2. Always include: WHERE p.status = 'active'
+3. Use ILIKE with multiple OR patterns for Arabic text variations (at least 3 patterns).
+   Example: "دراعات بلاستيشن" → '%بلاستيشن%', '%بلايستيشن%', '%جاك%', '%PS%'
+4. Search BOTH p.title AND p.description
+5. LIMIT {max_rows}
+6. SELECT these columns:
+   p.id, p.title, p.description, p.price, p.category, p.condition,
+   p.location, p.is_auction, p.phone_number, p.views_count,
+   u.username as seller_name,
+   COALESCE(up.seller_rating, 0) as seller_rating,
+   COALESCE(up.trust_score, 50) as trust_score,
+   COALESCE(up.total_sales, 0) as total_sales
+7. If price/location constraints are provided, add them as WHERE clauses.
+8. Output ONLY the SQL. No explanation. No backticks."""),
+    ("user", """Query: {query}
+Product: {product}
+Price Min: {price_min}
+Price Max: {price_max}
+Location: {location}
+Category: {category}""")
+])
 
 
-def generate_sql(user_query: str) -> str:
-    """Use Groq to convert user's Egyptian Arabic query into SQL."""
-    try:
-        api_key = os.environ.get("GROQ_API_KEY", "").strip('"').strip("'")
-        _client = OpenAI(
-            api_key=api_key,
-            base_url="https://api.groq.com/openai/v1",
-        )
-        response = _client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_query},
-            ],
-            temperature=0,
-            max_tokens=500,
-        )
-        sql = response.choices[0].message.content.strip()
-        sql = sql.replace("```sql", "").replace("```", "").strip()
-        logger.info(f"[RAG/SQL] Generated: {sql[:120]}")
-        return sql
-    except Exception as e:
-        logger.error(f"[RAG/SQL] Grok SQL generation failed: {e}")
-        return ""
+def generate_sql(query: str, entities: dict) -> str:
+    """Single-shot LLM call to generate SQL with JOINs. Retries on 429."""
+    from rag.graph.config import mark_key_exhausted
+
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            llm, current_key = get_llm(temperature=0)
+            chain = SQL_PROMPT | llm
+
+            result = chain.invoke({
+                "schema": SCHEMA.strip(),
+                "max_rows": MAX_ROWS,
+                "query": query,
+                "product": entities.get("product", query),
+                "price_min": entities.get("price_min") or "none",
+                "price_max": entities.get("price_max") or "none",
+                "location": entities.get("location") or "none",
+                "category": entities.get("category") or "none",
+            })
+
+            sql = result.content.strip()
+            sql = sql.replace("```sql", "").replace("```", "").strip()
+
+            if not sql.upper().startswith("SELECT"):
+                logger.warning(f"[SQL] Non-SELECT output: {sql[:80]}")
+                return ""
+
+            logger.info(f"[SQL] Generated: {sql[:120]}")
+            return sql
+
+        except Exception as e:
+            error_str = str(e)
+            if "429" in error_str or "rate_limit" in error_str:
+                mark_key_exhausted(current_key)
+                logger.warning(f"[SQL] 429 on attempt {attempt+1}/{max_retries}, rotating key...")
+                continue
+            logger.error(f"[SQL] Generation failed: {e}")
+            return ""
+
+    logger.error("[SQL] All retries exhausted")
+    return ""
 
 
 def execute_safe_sql(sql: str) -> tuple[list[dict], str]:
-    """Validate and execute the generated SQL."""
+    """Validate and execute SQL via Django connection."""
     is_valid, error = validate_sql(sql)
     if not is_valid:
-        logger.warning(f"[RAG/SQL] Rejected SQL: {error}")
-        return [], f"SQL validation failed: {error}"
+        logger.warning(f"[SQL] Rejected: {error}")
+        return [], error
 
     if 'LIMIT' not in sql.upper():
         sql = sql.rstrip().rstrip(';') + f" LIMIT {MAX_ROWS}"
@@ -188,23 +198,25 @@ def execute_safe_sql(sql: str) -> tuple[list[dict], str]:
             item['source'] = 'sql'
             results.append(item)
 
-        logger.info(f"[RAG/SQL] Executed OK, {len(results)} rows")
+        logger.info(f"[SQL] Executed → {len(results)} rows")
         return results, ""
 
     except Exception as e:
-        logger.error(f"[RAG/SQL] Execution failed: {e}")
+        logger.error(f"[SQL] Execution failed: {e}")
         return [], str(e)
 
 
-def sql_search(user_query: str) -> tuple[list[dict], str]:
-    """Full pipeline: generate SQL -> validate -> execute."""
-    sql = generate_sql(user_query)
+def sql_search(query: str, entities: dict = None) -> tuple[list[dict], str]:
+    """Full pipeline: generate SQL → validate → execute."""
+    if entities is None:
+        entities = {"product": query}
+
+    sql = generate_sql(query, entities)
     if not sql:
         return [], ""
 
     results, error = execute_safe_sql(sql)
     if error:
-        logger.warning(f"[RAG/SQL] Error: {error}")
         return [], sql
 
     return results, sql

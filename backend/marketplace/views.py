@@ -31,7 +31,7 @@ def close_expired_auctions():
         auction.save(update_fields=['is_active'])
         # Mark the product as sold
         auction.product.status = 'sold'
-        auction.product.save(update_fields=['status'])
+        auction.product.save()
 
         # ── Wallet: Refund losers & deduct winner ──
         winner = auction.highest_bidder
@@ -329,7 +329,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         # Mark product as sold
         product.status = 'sold'
-        product.save(update_fields=['status'])
+        product.save()
 
         # Send message to seller
         try:
@@ -691,7 +691,7 @@ def get_general_stats(request):
     """
     total_users = User.objects.count()
     products_sold = Product.objects.filter(status='sold').count()
-    scrap_count = Product.objects.filter(category='scrap_metals').count()
+    active_auctions = Auction.objects.filter(is_active=True).count()
     
     # Calculate active governorates/cities from profiles and products
     user_locations = UserProfile.objects.values_list('city', flat=True).distinct()
@@ -703,11 +703,48 @@ def get_general_stats(request):
     
     active_governorates = len(locations)
     
+    # Calculate real weekly activity (last 7 days)
+    from datetime import timedelta
+    today = timezone.now().date()
+    weekly_activity = []
+    
+    for i in range(6, -1, -1):
+        target_date = today - timedelta(days=i)
+        
+        # Products created on this day
+        products_created = Product.objects.filter(created_at__date=target_date).count()
+        # Products sold on this day (using updated_at as proxy for when status changed)
+        products_sold_today = Product.objects.filter(status='sold', updated_at__date=target_date).count()
+        # Bids placed on this day
+        bids_placed = Bid.objects.filter(created_at__date=target_date).count()
+        
+        # Activity score
+        daily_activity = products_created + products_sold_today + bids_placed
+        
+        # Add 1 as base so chart isn't completely flat
+        weekly_activity.append(daily_activity + 1)
+        
+    # Calculate category distribution of sold products
+    category_choices = dict(Product.CATEGORY_CHOICES)
+    raw_stats = Product.objects.filter(status='sold') \
+        .values('category') \
+        .annotate(count=models.Count('id')) \
+        .order_by('-count')[:5]
+    
+    category_distribution = []
+    for item in raw_stats:
+        category_distribution.append({
+            'name': category_choices.get(item['category'], item['category']),
+            'count': item['count']
+        })
+    
     return Response({
         'total_users': total_users,
         'products_sold': products_sold,
-        'scrap_count': scrap_count,
-        'active_governorates': active_governorates
+        'active_auctions': active_auctions,
+        'active_governorates': active_governorates,
+        'weekly_activity': weekly_activity,
+        'category_distribution': category_distribution
     })
 
 

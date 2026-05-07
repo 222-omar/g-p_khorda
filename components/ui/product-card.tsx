@@ -206,7 +206,9 @@ export function ProductCard({
                                     {product.seller.name || 'مستخدم'}
                                 </span>
                                 {product.seller.is_verified && (
-                                    <BadgeCheck size={14} className="text-blue-500 flex-shrink-0" title="بائع موثوق" />
+                                    <div title="بائع موثوق">
+                                        <BadgeCheck size={14} className="text-blue-500 flex-shrink-0" />
+                                    </div>
                                 )}
                             </div>
                         </Link>

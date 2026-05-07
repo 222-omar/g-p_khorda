@@ -1,17 +1,22 @@
 """
-Intent Router — Smart Query Classifier.
+Intent Router — Smart Query Classifier + Entity Extractor.
 
-Classifies user queries into intents WITHOUT using any LLM (zero tokens).
+V2 Architecture: Zero-LLM classification AND entity extraction.
 Uses keyword matching, regex patterns, and Arabic text normalization.
 
 Intents:
 - greeting:     "ازيك" / "أهلا" → instant template response
 - faq:          "انت مين" / "ازاي أبيع" → instant FAQ response
 - chitchat:     "شكرا" / "تمام" → instant casual response
-- search_full:  "غسالة أقل من 5000 في القاهرة" → SQL + Vector + Synthesis
-- search_light: "عايز غسالة" → Vector + Synthesis (skip SQL)
-- price_check:  "كام سعر اللابتوب" → Vector + Synthesis
-- recommendation: "ايه أحسن تلاجة" → Vector + Synthesis
+- search:       "غسالة أقل من 5000 في القاهرة" → full pipeline
+- follow_up:    references previous context
+
+Entities extracted (for search intents):
+- product:   the item being searched for
+- price_min: minimum price constraint
+- price_max: maximum price constraint
+- location:  city/area filter
+- category:  mapped product category
 """
 
 import re
@@ -60,10 +65,12 @@ SEARCH_KEYWORDS = [
     # ── إلكترونيات (Electronics) ──
     'لابتوب', 'لاب توب', 'لاب', 'موبايل', 'تليفون', 'شاشة', 'شاشه',
     'تلفزيون', 'كمبيوتر', 'طابعة', 'طابعه', 'راوتر',
-    'سماعة', 'سماعه', 'سماعات', 'بلايستيشن', 'بلاي ستيشن',
+    'سماعة', 'سماعه', 'سماعات', 'بلايستيشن', 'بلاي ستيشن', 'بلاستيشن',
     'كاميرا', 'ساعة', 'ساعه', 'كيبورد', 'ماوس', 'هارد',
     'فلاشة', 'فلاشه', 'رسيفر', 'سبيكر',
+    'دراع', 'دراعات', 'جاك', 'يد تحكم', 'كنترولر', 'controller',
     'iphone', 'samsung', 'hp', 'dell', 'lenovo', 'ps4', 'ps5', 'xbox',
+    'playstation', 'جيمنج', 'gaming',
 
     # ── أثاث (Furniture) ──
     'كنبة', 'كنبه', 'سرير', 'ترابيزة', 'ترابيزه', 'دولاب',
@@ -312,40 +319,16 @@ def classify_intent(query: str) -> dict:
     # ── 4. Product Search Detection ────────────────────
     has_search_keyword = any(kw in q for kw in SEARCH_KEYWORDS)
     
-    # Check if SQL is needed (structured filters present)
-    has_sql_trigger = False
-    for trigger in SQL_TRIGGER_KEYWORDS:
-        if trigger.startswith(r'\d'):
-            # Regex pattern (numbers)
-            if re.search(trigger, q):
-                has_sql_trigger = True
-                break
-        elif trigger in q:
-            has_sql_trigger = True
-            break
-    
-    if has_search_keyword and has_sql_trigger:
-        # Full search with SQL (user wants structured filters)
-        logger.info(f"[IntentRouter] SEARCH_FULL: '{q[:40]}' (SQL triggers found)")
+    if has_search_keyword:
+        # V2: Always run full pipeline (SQL is now fast single-shot)
+        logger.info(f"[IntentRouter] SEARCH: '{q[:40]}'")
         return {
-            "intent": "search_full",
+            "intent": "search",
             "response": None,
             "run_sql": True,
             "run_vector": True,
             "run_synthesis": True,
-            "tokens_saved": "0 (full pipeline needed)",
-        }
-    
-    if has_search_keyword:
-        # Light search - vector only (no structured filters)
-        logger.info(f"[IntentRouter] SEARCH_LIGHT: '{q[:40]}' (no SQL triggers)")
-        return {
-            "intent": "search_light",
-            "response": None,
-            "run_sql": False,
-            "run_vector": True,
-            "run_synthesis": True,
-            "tokens_saved": "~500 (skipped SQL generation)",
+            "tokens_saved": "0",
         }
     
     # ── 5. Follow-up Question Detection ────────────────
@@ -378,14 +361,149 @@ def classify_intent(query: str) -> dict:
             "tokens_saved": "~500 (skipped SQL, vector uses history only)",
         }
     
-    # ── 6. Fallback: try light search ──────────────────
-    # If we can't classify, still try vector search but skip SQL
-    logger.info(f"[IntentRouter] FALLBACK search_light: '{q[:40]}'")
+    # ── 6. Fallback: try search ──────────────────────────
+    # If we can't classify, still try the full pipeline
+    logger.info(f"[IntentRouter] FALLBACK search: '{q[:40]}'")
     return {
-        "intent": "search_light",
+        "intent": "search",
         "response": None,
-        "run_sql": False,
+        "run_sql": True,
         "run_vector": True,
         "run_synthesis": True,
-        "tokens_saved": "~500 (skipped SQL generation)",
+        "tokens_saved": "0",
     }
+
+
+# ═══════════════════════════════════════════════════════════
+# Entity Extraction — Zero LLM
+# ═══════════════════════════════════════════════════════════
+
+# Location patterns (Egyptian cities and neighborhoods)
+_LOCATIONS = [
+    'القاهرة', 'القاهره', 'الجيزة', 'الجيزه', 'الإسكندرية', 'اسكندريه', 'الاسكندريه',
+    'المنصورة', 'المنصوره', 'طنطا', 'أسيوط', 'اسيوط', 'الزقازيق',
+    'بنها', 'دمنهور', 'بورسعيد', 'السويس', 'الفيوم', 'المنيا', 'سوهاج',
+    'الغردقة', 'الغردقه', 'شرم الشيخ', 'شرم', 'مرسى مطروح',
+    'المعادي', 'المعادى', 'مدينة نصر', 'مدينه نصر', 'مصر الجديدة', 'مصر الجديده',
+    'الدقي', 'الدقى', 'المهندسين', 'الهرم', 'فيصل', 'العباسية', 'العباسيه',
+    'شبرا', 'عين شمس', 'حلوان', 'التجمع', 'الشروق', 'مدينتي', 'العبور',
+    '6 أكتوبر', 'اكتوبر', 'الشيخ زايد', 'زايد',
+]
+
+# Category mapping
+_CATEGORY_KEYWORDS = {
+    'electronics': ['لابتوب', 'لاب', 'موبايل', 'تليفون', 'شاشة', 'شاشه', 'تلفزيون',
+                     'كمبيوتر', 'طابعة', 'طابعه', 'سماعة', 'سماعات', 'بلايستيشن',
+                     'بلاستيشن', 'كاميرا', 'كيبورد', 'ماوس', 'هارد', 'فلاشة', 'رسيفر',
+                     'دراع', 'دراعات', 'جاك', 'كنترولر', 'iphone', 'samsung', 'ps4', 'ps5', 'xbox'],
+    'appliances': ['غسالة', 'غساله', 'تلاجة', 'تلاجه', 'ثلاجة', 'تكييف', 'تكيف', 'مكيف',
+                    'بوتاجاز', 'فرن', 'مكنسة', 'سخان', 'فلتر', 'فريزر', 'مكواة', 'خلاط',
+                    'مروحة', 'مروحه', 'دفاية'],
+    'furniture': ['كنبة', 'كنبه', 'سرير', 'ترابيزة', 'ترابيزه', 'دولاب', 'نيش', 'سفرة',
+                   'مكتب', 'كرسي', 'انتريه', 'تسريحة'],
+    'cars': ['عربية', 'عربيه', 'سيارة', 'سياره'],
+    'real_estate': ['شقة', 'شقه', 'عقار', 'محل', 'أرض', 'ارض', 'فيلا'],
+    'scrap_metals': ['خردة', 'خرده', 'حديد', 'نحاس', 'ألومنيوم', 'المونيوم'],
+    'books': ['كتاب', 'كتب', 'رواية', 'روايه'],
+}
+
+# Price patterns
+_PRICE_PATTERNS = [
+    # "أقل من 5000" / "اقل من 5000"
+    (r'(?:أقل|اقل|ارخص|أرخص)\s*(?:من)?\s*(\d[\d,\.]*)', 'max'),
+    # "أكتر من 1000" / "اكتر من 1000"
+    (r'(?:أكتر|اكتر|أكثر|اغلى|أغلى)\s*(?:من)?\s*(\d[\d,\.]*)', 'min'),
+    # "من 1000 لحد 5000" / "من 1000 ل 5000"
+    (r'من\s*(\d[\d,\.]*)\s*(?:لحد|لغاية|ل|الى|إلى)\s*(\d[\d,\.]*)', 'range'),
+    # "ب 5000" / "بسعر 5000"
+    (r'(?:ب|بسعر|بـ)\s*(\d[\d,\.]*)', 'exact'),
+    # Standalone numbers >= 100 likely prices
+    (r'\b(\d{3,})\b', 'approx'),
+]
+
+
+def extract_entities(query: str) -> dict:
+    """
+    Extract structured entities from an Egyptian Arabic query.
+    Zero LLM — pure regex + keyword matching.
+
+    Returns:
+    {
+        "product": str,        # cleaned product search term
+        "price_min": float|None,
+        "price_max": float|None,
+        "location": str|None,
+        "category": str|None,
+    }
+    """
+    q = query.strip()
+    product_terms = q  # Will remove extracted parts
+    price_min = None
+    price_max = None
+    location = None
+    category = None
+
+    # ── Extract Location ──
+    for loc in sorted(_LOCATIONS, key=len, reverse=True):  # longest match first
+        patterns = [
+            f'في {loc}', f'ف{loc}', f'فى {loc}', f'من {loc}', f'ب{loc}',
+            loc,  # standalone
+        ]
+        for pat in patterns:
+            if pat in q:
+                location = loc
+                product_terms = product_terms.replace(pat, '').strip()
+                break
+        if location:
+            break
+
+    # ── Extract Price ──
+    for pattern, ptype in _PRICE_PATTERNS:
+        match = re.search(pattern, q)
+        if match:
+            if ptype == 'max':
+                price_max = float(match.group(1).replace(',', ''))
+                product_terms = product_terms[:match.start()] + product_terms[match.end():]
+            elif ptype == 'min':
+                price_min = float(match.group(1).replace(',', ''))
+                product_terms = product_terms[:match.start()] + product_terms[match.end():]
+            elif ptype == 'range':
+                price_min = float(match.group(1).replace(',', ''))
+                price_max = float(match.group(2).replace(',', ''))
+                product_terms = product_terms[:match.start()] + product_terms[match.end():]
+            elif ptype == 'exact':
+                val = float(match.group(1).replace(',', ''))
+                price_min = val * 0.7  # ±30% range
+                price_max = val * 1.3
+                product_terms = product_terms[:match.start()] + product_terms[match.end():]
+            break  # Take first match only
+
+    # ── Extract Category ──
+    q_lower = normalize_arabic(q)
+    for cat, keywords in _CATEGORY_KEYWORDS.items():
+        for kw in keywords:
+            if kw in q or normalize_arabic(kw) in q_lower:
+                category = cat
+                break
+        if category:
+            break
+
+    # ── Clean product terms ──
+    # Remove filler words
+    fillers = ['عايز', 'عاوز', 'محتاج', 'عندك', 'عندكم', 'فيه', 'في',
+               'بتاع', 'ابغى', 'دور', 'دورلي', 'هات', 'هاتلي', 'جيبلي',
+               'لو سمحت', 'من فضلك', 'يا', 'بقى', 'كدا', 'كده']
+    for f in fillers:
+        product_terms = product_terms.replace(f, '')
+    product_terms = ' '.join(product_terms.split()).strip('؟?!. ')
+
+    entities = {
+        "product": product_terms or q,
+        "price_min": price_min,
+        "price_max": price_max,
+        "location": location,
+        "category": category,
+    }
+
+    logger.info(f"[IntentRouter] Entities: {entities}")
+    return entities
