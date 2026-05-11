@@ -1,18 +1,18 @@
 // Centralized API Base URL
-// In production on Vercel, call the backend service directly via /_/backend/api
+// In production on Vercel, call the backend service directly via Render URL
 // (Next.js rewrites to relative internal paths don't proxy correctly in Next.js 16+)
 // In development, NEXT_PUBLIC_API_URL from .env.local points to localhost:8000/api
 const getApiBase = (): string => {
     if (process.env.NEXT_PUBLIC_API_URL) {
         return process.env.NEXT_PUBLIC_API_URL;
     }
-    // On Vercel production, use the backend service route directly
+    // On Vercel production, use the Render backend service route directly
     if (typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app')) {
-        return '/_/backend/api';
+        return 'https://four-sale-backend.onrender.com/api';
     }
     // Fallback for SSR on Vercel
     if (process.env.VERCEL === '1') {
-        return '/_/backend/api';
+        return 'https://four-sale-backend.onrender.com/api';
     }
     if (process.env.NODE_ENV === 'development') {
         return 'http://localhost:8000/api';
