@@ -239,7 +239,7 @@ def classify_image(image_path: str) -> dict:
     elif not hf_space_url.startswith("http"):
         hf_space_url = "https://" + hf_space_url.replace("/", "-").replace("_", "-").lower() + ".hf.space"
 
-    print(f"[AI] 🔗 Using HF Space URL: {hf_space_url}")
+    print(f"[AI] [LINK] Using HF Space URL: {hf_space_url}")
 
     is_url = image_path.startswith("http://") or image_path.startswith("https://")
 
@@ -252,7 +252,7 @@ def classify_image(image_path: str) -> dict:
                 "url": image_path,
                 "meta": {"_type": "gradio.FileData"}
             }
-            print(f"[AI] 📤 Sending image URL directly: {image_path[:80]}...")
+            print(f"[AI] [OUT] Sending image URL directly: {image_path[:80]}...")
         else:
             # For local files, upload to the HF Space first
             upload_url = f"{hf_space_url}/gradio_api/upload"
@@ -275,7 +275,7 @@ def classify_image(image_path: str) -> dict:
                 return fallback
             
             uploaded_path = uploaded_files[0]
-            print(f"[AI] 📤 Uploaded to HF Space: {uploaded_path}")
+            print(f"[AI] [OUT] Uploaded to HF Space: {uploaded_path}")
             image_data = {
                 "path": uploaded_path,
                 "meta": {"_type": "gradio.FileData"}
@@ -299,7 +299,7 @@ def classify_image(image_path: str) -> dict:
             logger.error(f"No event_id in response: {event_id_json}")
             return fallback
         
-        print(f"[AI] 🎫 Got event_id: {event_id}")
+        print(f"[AI] [TICKET] Got event_id: {event_id}")
 
         # ── Step 3: Get result from event stream ──
         result_url = f"{hf_space_url}/gradio_api/call/predict/{event_id}"
@@ -322,7 +322,7 @@ def classify_image(image_path: str) -> dict:
             logger.error("No result data received from HF Space SSE stream")
             return fallback
 
-        print(f"[AI] 📥 HF Space raw response: {json.dumps(result_data, ensure_ascii=False)[:500]}")
+        print(f"[AI] [IN] HF Space raw response: {json.dumps(result_data, ensure_ascii=False)[:500]}")
 
         # ── Step 4: Extract the class name from response ──
         # Gradio returns [output1, output2, ...] in the SSE data
@@ -337,7 +337,7 @@ def classify_image(image_path: str) -> dict:
             raw_val = data[0]
             best_class = str(raw_val).strip() if not isinstance(raw_val, dict) else "other"
 
-        print(f"[AI] 🔍 Hugging Face API returned YOLO class: '{best_class}'")
+        print(f"[AI] [SEARCH] Hugging Face API returned YOLO class: '{best_class}'")
 
         arabic_label = _lookup_category(best_class)
 
@@ -354,7 +354,7 @@ def classify_image(image_path: str) -> dict:
                 return fallback
 
         category_id = ARABIC_TO_CATEGORY_ID.get(arabic_label, 'other')
-        print(f"[AI] ✅ Result: '{best_class}' → '{arabic_label}' ({category_id})")
+        print(f"[AI] [OK] Result: '{best_class}' -> ({category_id})")
 
         return {
             'category': category_id,

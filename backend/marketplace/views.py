@@ -1,20 +1,22 @@
 from rest_framework import viewsets, status, filters
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
+from rest_framework.throttling import ScopedRateThrottle, AnonRateThrottle
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly, IsAdminUser
-from .permissions import IsAdminRole
+from .permissions import IsAdminRole, IsOwnerOrAdmin
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db import models
 from django_filters.rest_framework import DjangoFilterBackend
+from django.views.decorators.cache import cache_page
 from decimal import Decimal
 import random
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from .models import Product, ProductImage, Auction, Bid, UserProfile, SellerRating, Conversation, Message, Wishlist, UserAgent, Notification, WalletTransaction
+from .models import Product, ProductImage, Auction, Bid, UserProfile, SellerRating, Conversation, Message, Wishlist, UserAgent, Notification, WalletTransaction, Order
 from .serializers import (
     ProductListSerializer, ProductDetailSerializer, ProductCreateSerializer,
     AuctionSerializer, BidSerializer, UserProfileSerializer, UserSerializer,
@@ -145,9 +147,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'auth'
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([AnonRateThrottle])
 def register_view(request):
     """User registration endpoint"""
     print(f"\n[Backend Auth] Registration attempt received")
@@ -197,8 +202,12 @@ class ProductViewSet(viewsets.ModelViewSet):
     ViewSet for Product CRUD operations
     List, Create, Retrieve, Update, Delete products
     """
-    queryset = Product.objects.select_related('owner', 'owner__profile').prefetch_related('images', 'auction')
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    queryset = Product.objects.select_related('owner', 'owner__profile').prefetch_related(
+        'images', 
+        'auction', 
+        'auction__bids__bidder__profile'
+    )
+    permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrAdmin]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['category', 'condition', 'status', 'is_auction', 'owner']
     search_fields = ['title', 'description', 'location']
@@ -215,6 +224,19 @@ class ProductViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         
+        # Only show active products to normal users, unless they own the product or are admin
+        user = self.request.user
+        if not user.is_authenticated:
+            queryset = queryset.filter(status='active')
+        else:
+            is_admin = False
+            try:
+                is_admin = user.is_staff or getattr(user.profile, 'role', '') == 'admin'
+            except Exception:
+                pass
+            if not is_admin:
+                queryset = queryset.filter(models.Q(status='active') | models.Q(owner=user))
+
         # Filter by price range
         min_price = self.request.query_params.get('min_price')
         max_price = self.request.query_params.get('max_price')
@@ -242,8 +264,9 @@ class ProductViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
     
     def perform_create(self, serializer):
-        """Set owner to current user when creating product"""
-        serializer.save(owner=self.request.user)
+        """Set owner to current user when creating product.
+        Force status='pending' so every new listing goes through admin review."""
+        serializer.save(owner=self.request.user, status='pending')
     
     def perform_update(self, serializer):
         """Allow admin to update any product"""
@@ -268,70 +291,98 @@ class ProductViewSet(viewsets.ModelViewSet):
         serializer = ProductListSerializer(products, many=True, context={'request': request})
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
-    def purchase(self, request, pk=None):
-        """Purchase a non-auction product directly using wallet balance"""
-        product = self.get_object()
+    @action(detail=True, methods=['post'], url_path='buy', permission_classes=[IsAuthenticated])
+    def buy(self, request, pk=None):
+        """POST /api/products/{id}/buy/ — atomic direct purchase"""
+        from django.db import transaction
 
-        # Can't buy your own product
-        if product.owner == request.user:
-            return Response({'error': 'لا يمكنك شراء منتجك الخاص'}, status=status.HTTP_400_BAD_REQUEST)
+        product_id = pk
 
-        # Must be active and non-auction
-        if product.status != 'active':
-            return Response({'error': 'هذا المنتج غير متاح للشراء (مباع أو غير نشط)'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if product.is_auction:
-            return Response({'error': 'هذا المنتج مطروح في مزاد، لا يمكن شراؤه مباشرة'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Check buyer wallet
         try:
-            buyer_profile = request.user.profile
+            with transaction.atomic():
+                # Lock the product row
+                product = (
+                    Product.objects
+                    .select_for_update()
+                    .select_related('owner')
+                    .get(id=product_id)
+                )
+
+                # Validations
+                if product.owner == request.user:
+                    return Response({'error': 'لا يمكنك شراء منتجك الخاص'}, status=status.HTTP_400_BAD_REQUEST)
+
+                if product.status != 'active':
+                    return Response({'error': 'هذا المنتج غير متاح للشراء (مباع أو غير نشط)'}, status=status.HTTP_400_BAD_REQUEST)
+
+                if product.is_auction:
+                    return Response({'error': 'هذا المنتج مطروح في مزاد، لا يمكن شراؤه مباشرة'}, status=status.HTTP_400_BAD_REQUEST)
+
+                price = product.price
+
+                # Lock buyer wallet
+                buyer_profile = (
+                    UserProfile.objects
+                    .select_for_update()
+                    .get(user=request.user)
+                )
+
+                if buyer_profile.wallet_balance < price:
+                    return Response({
+                        'error': f'رصيدك غير كافي لشراء هذا المنتج. رصيدك: {buyer_profile.wallet_balance} جنيه، والسعر: {price} جنيه.',
+                        'insufficient_balance': True,
+                        'current_balance': float(buyer_profile.wallet_balance),
+                        'required': float(price),
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                # Lock seller wallet
+                seller_profile = (
+                    UserProfile.objects
+                    .select_for_update()
+                    .get(user=product.owner)
+                )
+
+                # Deduct from buyer
+                buyer_profile.wallet_balance -= price
+                buyer_profile.save(update_fields=['wallet_balance'])
+                WalletTransaction.objects.create(
+                    user=request.user,
+                    transaction_type='purchase',
+                    amount=price,
+                    balance_after=buyer_profile.wallet_balance,
+                    description=f'شراء منتج: "{product.title}"',
+                )
+
+                # Credit seller
+                seller_profile.wallet_balance += price
+                seller_profile.total_sales = (seller_profile.total_sales or 0) + 1
+                seller_profile.save(update_fields=['wallet_balance', 'total_sales'])
+                WalletTransaction.objects.create(
+                    user=product.owner,
+                    transaction_type='sale',
+                    amount=price,
+                    balance_after=seller_profile.wallet_balance,
+                    description=f'بيع منتج: "{product.title}" للمشتري {request.user.username}',
+                )
+
+                # Mark sold
+                product.status = 'sold'
+                product.save(update_fields=['status'])
+
+                # Create Order record
+                order = Order.objects.create(
+                    buyer=request.user,
+                    seller=product.owner,
+                    product=product,
+                    amount=price,
+                )
+
+        except Product.DoesNotExist:
+            return Response({'error': 'المنتج غير موجود'}, status=status.HTTP_404_NOT_FOUND)
         except UserProfile.DoesNotExist:
             return Response({'error': 'الملف الشخصي غير موجود'}, status=status.HTTP_400_BAD_REQUEST)
 
-        price = product.price
-
-        if buyer_profile.wallet_balance < price:
-            return Response({
-                'error': f'رصيدك غير كافي لشراء هذا المنتج. رصيدك: {buyer_profile.wallet_balance} جنيه، والسعر: {price} جنيه.',
-                'insufficient_balance': True,
-                'current_balance': float(buyer_profile.wallet_balance),
-                'required': float(price),
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Deduct from buyer
-        buyer_profile.wallet_balance -= price
-        buyer_profile.save(update_fields=['wallet_balance'])
-        WalletTransaction.objects.create(
-            user=request.user,
-            transaction_type='bid_deduct',
-            amount=price,
-            balance_after=buyer_profile.wallet_balance,
-            description=f'شراء منتج: "{product.title}"',
-        )
-
-        # Add to seller
-        try:
-            seller_profile = product.owner.profile
-            seller_profile.wallet_balance += price
-            seller_profile.total_sales = (seller_profile.total_sales or 0) + 1
-            seller_profile.save(update_fields=['wallet_balance', 'total_sales'])
-            WalletTransaction.objects.create(
-                user=product.owner,
-                transaction_type='topup',
-                amount=price,
-                balance_after=seller_profile.wallet_balance,
-                description=f'بيع منتج: "{product.title}" للمشتري {request.user.username}',
-            )
-        except UserProfile.DoesNotExist:
-            pass
-
-        # Mark product as sold
-        product.status = 'sold'
-        product.save()
-
-        # Send message to seller
+        # Chat notification (non-critical, outside atomic)
         try:
             conversation, _ = Conversation.objects.get_or_create(
                 product=product,
@@ -347,17 +398,17 @@ class ProductViewSet(viewsets.ModelViewSet):
             pass
 
         return Response({
-            'status': 'success',
-            'message': f'تم شراء "{product.title}" بنجاح!',
-            'new_balance': float(buyer_profile.wallet_balance),
-        })
+            'order_id': order.id,
+            'amount': float(order.amount),
+            'product_title': product.title,
+        }, status=status.HTTP_201_CREATED)
 
 
 class AuctionViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for viewing auctions"""
     queryset = Auction.objects.select_related(
         'product', 'product__owner', 'highest_bidder'
-    ).prefetch_related('bids', 'product__images')
+    ).prefetch_related('bids__bidder__profile', 'product__images')
     serializer_class = AuctionSerializer
     permission_classes = [AllowAny]
     
@@ -376,103 +427,132 @@ class AuctionViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def place_bid(self, request, pk=None):
-        """Place a bid on an auction"""
-        auction = self.get_object()
-        
-        # Validation
-        if not auction.is_active:
-            return Response({'error': 'المزاد غير نشط'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        if auction.end_time < timezone.now():
-            # Auto-close this auction
-            auction.is_active = False
-            auction.save(update_fields=['is_active'])
-            auction.product.status = 'sold'
-            auction.product.save(update_fields=['status'])
-            if auction.highest_bidder:
-                send_winner_message(auction)
-            return Response({'error': 'المزاد انتهى'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        if auction.product.owner == request.user:
-            return Response({'error': 'لا يمكنك المزايدة على مزادك الخاص'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        amount = Decimal(str(request.data.get('amount', 0)))
-        
-        if amount <= auction.current_bid:
-            return Response({
-                'error': f'يجب أن تكون المزايدة أعلى من السعر الحالي ({auction.current_bid} جنيه)'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # ── Wallet Balance Check + Hold ──────────────────
+        """Place a bid on an auction (atomic + row-level lock)"""
+        from django.db import transaction
+
+        # ── Pre-lock validation (cheap, no DB lock needed) ────
+        auction_id = pk
+        amount_raw = request.data.get('amount', 0)
+        try:
+            amount = Decimal(str(amount_raw))
+        except Exception:
+            return Response({'error': 'مبلغ المزايدة غير صالح'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if amount <= 0:
+            return Response({'error': 'مبلغ المزايدة يجب أن يكون أكبر من صفر'}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             profile = request.user.profile
         except UserProfile.DoesNotExist:
             return Response({'error': 'الملف الشخصي غير موجود'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Check if user had a previous bid on this auction (to refund)
-        previous_bid = Bid.objects.filter(auction=auction, bidder=request.user).order_by('-amount').first()
-        available_balance = profile.wallet_balance
-        if previous_bid:
-            # User already has a held bid; they only need to cover the difference
-            needed = amount - previous_bid.amount
-        else:
-            needed = amount
-        
-        if available_balance < needed:
-            return Response({
-                'error': f'رصيدك غير كافي للمزايدة. رصيدك الحالي: {profile.wallet_balance} جنيه، والمطلوب: {needed} جنيه.',
-                'insufficient_balance': True,
-                'current_balance': float(profile.wallet_balance),
-                'required': float(needed),
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # If user had a previous bid, refund it first
-        if previous_bid:
-            profile.wallet_balance += previous_bid.amount
-            WalletTransaction.objects.create(
-                user=request.user,
-                transaction_type='bid_refund',
-                amount=previous_bid.amount,
-                balance_after=profile.wallet_balance,
-                description=f'استرداد مزايدة سابقة: "{auction.product.title}"',
-                related_auction=auction,
-            )
-        
-        # Hold the new bid amount
-        profile.wallet_balance -= amount
-        profile.save(update_fields=['wallet_balance'])
-        WalletTransaction.objects.create(
-            user=request.user,
-            transaction_type='bid_hold',
-            amount=amount,
-            balance_after=profile.wallet_balance,
-            description=f'حجز مزايدة: "{auction.product.title}"',
-            related_auction=auction,
-        )
-        # ───────────────────────────────────────────────────
-        
-        # Create bid
-        bid = Bid.objects.create(
-            auction=auction,
-            bidder=request.user,
-            amount=amount
-        )
-        
-        # Update auction
-        auction.current_bid = amount
-        auction.highest_bidder = request.user
-        auction.save()
-        
-        # ── Agent Counter-Bid (Synchronous for Vercel) ───────
+
+        # ── Atomic block: lock auction row, validate, mutate ──
+        try:
+            with transaction.atomic():
+                # Row-level lock prevents two bids racing on the same auction
+                auction = (
+                    Auction.objects
+                    .select_for_update()
+                    .select_related('product', 'product__owner', 'highest_bidder')
+                    .get(id=auction_id)
+                )
+
+                # Validation: active
+                if not auction.is_active:
+                    return Response({'error': 'المزاد غير نشط'}, status=status.HTTP_400_BAD_REQUEST)
+
+                # Validation: not expired
+                now = timezone.now()
+                if auction.end_time < now:
+                    auction.is_active = False
+                    auction.save(update_fields=['is_active'])
+                    auction.product.status = 'sold'
+                    auction.product.save(update_fields=['status'])
+                    if auction.highest_bidder:
+                        send_winner_message(auction)
+                    return Response({'error': 'المزاد انتهى'}, status=status.HTTP_400_BAD_REQUEST)
+
+                # Validation: not owner
+                if auction.product.owner == request.user:
+                    return Response({'error': 'لا يمكنك المزايدة على مزادك الخاص'}, status=status.HTTP_400_BAD_REQUEST)
+
+                # Validation: bid > current_bid (re-checked under lock)
+                if amount <= auction.current_bid:
+                    return Response({
+                        'error': f'يجب أن تكون المزايدة أعلى من السعر الحالي ({auction.current_bid} جنيه)'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                # ── Wallet: lock profile row too ──
+                profile = (
+                    UserProfile.objects
+                    .select_for_update()
+                    .get(user=request.user)
+                )
+
+                # Previous bid refund calculation
+                previous_bid = (
+                    Bid.objects
+                    .filter(auction=auction, bidder=request.user)
+                    .order_by('-amount')
+                    .first()
+                )
+                needed = amount - previous_bid.amount if previous_bid else amount
+
+                if profile.wallet_balance < needed:
+                    return Response({
+                        'error': f'رصيدك غير كافي للمزايدة. رصيدك الحالي: {profile.wallet_balance} جنيه، والمطلوب: {needed} جنيه.',
+                        'insufficient_balance': True,
+                        'current_balance': float(profile.wallet_balance),
+                        'required': float(needed),
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                # Refund previous bid
+                if previous_bid:
+                    profile.wallet_balance += previous_bid.amount
+                    WalletTransaction.objects.create(
+                        user=request.user,
+                        transaction_type='bid_refund',
+                        amount=previous_bid.amount,
+                        balance_after=profile.wallet_balance,
+                        description=f'استرداد مزايدة سابقة: "{auction.product.title}"',
+                        related_auction=auction,
+                    )
+
+                # Hold new bid amount
+                profile.wallet_balance -= amount
+                profile.save(update_fields=['wallet_balance'])
+                WalletTransaction.objects.create(
+                    user=request.user,
+                    transaction_type='bid_hold',
+                    amount=amount,
+                    balance_after=profile.wallet_balance,
+                    description=f'حجز مزايدة: "{auction.product.title}"',
+                    related_auction=auction,
+                )
+
+                # Create bid record
+                bid = Bid.objects.create(
+                    auction=auction,
+                    bidder=request.user,
+                    amount=amount,
+                )
+
+                # Update auction atomically
+                auction.current_bid = amount
+                auction.highest_bidder = request.user
+                auction.save(update_fields=['current_bid', 'highest_bidder'])
+
+        except Auction.DoesNotExist:
+            return Response({'error': 'المزاد غير موجود'}, status=status.HTTP_404_NOT_FOUND)
+
+        # ── Agent Counter-Bid (outside atomic — non-critical) ──
         from .serializers import agent_counter_bid
         try:
-            # Pass the actual user object as manual_bidder
             agent_counter_bid(auction, request.user)
         except Exception as e:
             import logging
             logging.getLogger(__name__).error(f"[Agent] Counter-bid error: {e}")
-        # ───────────────────────────────────────────────────
-        
+
         return Response(BidSerializer(bid).data, status=status.HTTP_201_CREATED)
 
 
@@ -685,6 +765,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@cache_page(60 * 15) # Cache for 15 minutes
 def get_general_stats(request):
     """
     Get general statistics for the landing page
@@ -743,6 +824,7 @@ def get_general_stats(request):
         'products_sold': products_sold,
         'active_auctions': active_auctions,
         'active_governorates': active_governorates,
+        'pending_products': Product.objects.filter(status='pending').count(),
         'weekly_activity': weekly_activity,
         'category_distribution': category_distribution
     })
@@ -916,16 +998,59 @@ def notifications_unread_count(request):
 # ADMIN DASHBOARD API ENDPOINTS
 # ──────────────────────────────────────────────────────────────
 
+@api_view(['POST'])
+@permission_classes([IsAdminRole])
+def admin_review_product(request, product_id):
+    """Admin endpoint to approve or reject a pending product"""
+    product = get_object_or_404(Product, id=product_id)
+    action = request.data.get('action') # 'approve' or 'reject'
+    
+    if action == 'approve':
+        product.status = 'active'
+        product.save()
+        
+        # Notify the user
+        Notification.objects.create(
+            user=product.owner,
+            title='تم الموافقة على إعلانك',
+            message=f'تمت المراجعة والموافقة على إعلانك: {product.title}',
+            related_product=product
+        )
+        return Response({'status': 'approved'})
+        
+    elif action == 'reject':
+        reason = request.data.get('reason', 'مخالف لشروط النشر')
+        product.status = 'inactive'
+        product.save()
+        
+        # Notify the user
+        Notification.objects.create(
+            user=product.owner,
+            title='تم رفض إعلانك',
+            message=f'تم رفض إعلانك ({product.title}). السبب: {reason}',
+            related_product=product
+        )
+        return Response({'status': 'rejected'})
+        
+    return Response({'error': 'Invalid action. Use approve or reject.'}, status=status.HTTP_400_BAD_REQUEST)
+
+
 @api_view(['GET'])
 @permission_classes([IsAdminRole])
 def admin_products_list(request):
-    """Get ALL products for admin dashboard (no pagination, all statuses)"""
-    products = Product.objects.select_related('owner').prefetch_related('images').order_by('-created_at')
+    """Get ALL products for admin dashboard (paginated for safety)"""
+    from rest_framework.pagination import PageNumberPagination
+    
+    queryset = Product.objects.select_related('owner').prefetch_related('images').order_by('-created_at')
+    
+    paginator = PageNumberPagination()
+    paginator.page_size = 50
+    paginated_queryset = paginator.paginate_queryset(queryset, request)
+    
     data = []
-    for p in products:
-        primary_image = p.images.filter(is_primary=True).first()
-        if not primary_image:
-            primary_image = p.images.first()
+    for p in paginated_queryset:
+        images = list(p.images.all())
+        primary_image = next((img for img in images if img.is_primary), images[0] if images else None)
         data.append({
             'id': p.id,
             'title': p.title,
@@ -935,20 +1060,26 @@ def admin_products_list(request):
             'status': p.status,
             'is_auction': p.is_auction,
             'owner_name': p.owner.username,
-            'primary_image': request.build_absolute_uri(primary_image.image.url) if primary_image else None,
+            'primary_image': request.build_absolute_uri(primary_image.image.url) if primary_image and primary_image.image else None,
             'created_at': p.created_at.isoformat(),
         })
-    return Response(data)
+    return paginator.get_paginated_response(data)
 
 
 @api_view(['GET'])
 @permission_classes([IsAdminRole])
 def admin_users_list(request):
-    """Get ALL users for admin dashboard"""
-    users = User.objects.select_related('profile').order_by('-date_joined')
+    """Get ALL users for admin dashboard (paginated for safety)"""
+    from rest_framework.pagination import PageNumberPagination
+    
+    queryset = User.objects.select_related('profile').order_by('-date_joined')
+    
+    paginator = PageNumberPagination()
+    paginator.page_size = 50
+    paginated_queryset = paginator.paginate_queryset(queryset, request)
+    
     data = []
-    for u in users:
-        profile_data = {}
+    for u in paginated_queryset:
         try:
             profile = u.profile
             profile_data = {
@@ -957,16 +1088,11 @@ def admin_users_list(request):
                 'trust_score': profile.trust_score,
                 'is_verified': profile.is_verified,
                 'total_sales': profile.total_sales,
+                'is_admin': profile.role == 'admin'
             }
-        except UserProfile.DoesNotExist:
-            profile_data = {'city': '', 'phone': '', 'trust_score': 0, 'is_verified': False, 'total_sales': 0}
-        
-        try:
-            profile = u.profile
-            is_admin = profile.role == 'admin'
         except Exception:
-            is_admin = False
-
+            profile_data = {'city': '', 'phone': '', 'trust_score': 0, 'is_verified': False, 'total_sales': 0, 'is_admin': False}
+        
         data.append({
             'id': u.id,
             'username': u.username,
@@ -974,11 +1100,10 @@ def admin_users_list(request):
             'first_name': u.first_name,
             'last_name': u.last_name,
             'is_staff': u.is_staff,
-            'is_admin': is_admin,
             'date_joined': u.date_joined.isoformat(),
             **profile_data,
         })
-    return Response(data)
+    return paginator.get_paginated_response(data)
 
 
 @api_view(['DELETE'])
@@ -1001,7 +1126,9 @@ def admin_delete_user(request, user_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def wallet_topup_view(request):
-    """Simulated payment: add funds to wallet instantly (no real payment)"""
+    """POST /api/wallet/topup/ — atomic wallet top-up"""
+    from django.db import transaction
+
     amount_raw = request.data.get('amount')
     if amount_raw is None:
         return Response({'error': 'المبلغ مطلوب'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1014,29 +1141,31 @@ def wallet_topup_view(request):
     if amount <= 0:
         return Response({'error': 'المبلغ يجب أن يكون أكبر من صفر'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if amount > 100000:
-        return Response({'error': 'الحد الأقصى للشحن الواحد 100,000 جنيه'}, status=status.HTTP_400_BAD_REQUEST)
+    if amount > 10000:
+        return Response({'error': 'الحد الأقصى للشحن الواحد 10,000 جنيه'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        profile = request.user.profile
+        with transaction.atomic():
+            profile = (
+                UserProfile.objects
+                .select_for_update()
+                .get(user=request.user)
+            )
+            profile.wallet_balance += amount
+            profile.save(update_fields=['wallet_balance'])
+
+            WalletTransaction.objects.create(
+                user=request.user,
+                transaction_type='topup',
+                amount=amount,
+                balance_after=profile.wallet_balance,
+                description=f'شحن رصيد: {amount} جنيه',
+            )
     except UserProfile.DoesNotExist:
         return Response({'error': 'الملف الشخصي غير موجود'}, status=status.HTTP_404_NOT_FOUND)
 
-    profile.wallet_balance += amount
-    profile.save(update_fields=['wallet_balance'])
-
-    WalletTransaction.objects.create(
-        user=request.user,
-        transaction_type='topup',
-        amount=amount,
-        balance_after=profile.wallet_balance,
-        description=f'شحن رصيد: {amount} جنيه',
-    )
-
     return Response({
-        'status': 'success',
         'new_balance': float(profile.wallet_balance),
-        'amount_added': float(amount),
     })
 
 
@@ -1294,3 +1423,27 @@ def visual_search_view(request):
         )
 
 
+
+# ──────────────────────────────────────────────────────────────
+# ORDERS ENDPOINT
+# ──────────────────────────────────────────────────────────────
+
+class OrderViewSet(viewsets.ReadOnlyModelViewSet):
+    """GET /api/orders/ — buyer and seller order history (paginated 20/page)"""
+    permission_classes = [IsAuthenticated]
+
+    from .serializers import OrderSerializer
+    serializer_class = OrderSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        return (
+            Order.objects
+            .filter(models.Q(buyer=user) | models.Q(seller=user))
+            .select_related('product', 'buyer', 'seller')
+        )
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['request'] = self.request
+        return ctx

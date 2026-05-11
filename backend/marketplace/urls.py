@@ -8,6 +8,7 @@ from .views import (
     UserProfileViewSet,
     ConversationViewSet,
     UserAgentViewSet,
+    OrderViewSet,
     register_view,
     current_user_view,
     get_general_stats,
@@ -22,6 +23,7 @@ from .views import (
     notifications_mark_read,
     notifications_unread_count,
     admin_products_list,
+    admin_review_product,
     admin_users_list,
     admin_delete_user,
     wallet_topup_view,
@@ -39,6 +41,7 @@ router.register(r'auctions', AuctionViewSet, basename='auction')
 router.register(r'profiles', UserProfileViewSet, basename='profile')
 router.register(r'conversations', ConversationViewSet, basename='conversation')
 router.register(r'agents', UserAgentViewSet, basename='agent')
+router.register(r'orders', OrderViewSet, basename='order')
 
 urlpatterns = [
     # Authentication endpoints
@@ -69,8 +72,9 @@ urlpatterns = [
     path('notifications/mark-read/', notifications_mark_read, name='notifications-mark-read'),
     path('notifications/unread-count/', notifications_unread_count, name='notifications-unread-count'),
     
-    # Admin Dashboard API (IsAdminUser protected)
+    # Admin Dashboard API (IsAdminRole protected)
     path('admin-api/products/', admin_products_list, name='admin-products'),
+    path('admin-api/products/<int:product_id>/review/', admin_review_product, name='admin-review-product'),
     path('admin-api/users/', admin_users_list, name='admin-users'),
     path('admin-api/users/<int:user_id>/', admin_delete_user, name='admin-delete-user'),
     

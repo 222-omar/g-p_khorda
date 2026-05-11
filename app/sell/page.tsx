@@ -6,7 +6,7 @@ import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { useLanguage } from '@/components/providers/language-provider';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Camera, Sparkles, Upload, X, Loader2, Bot } from 'lucide-react';
+import { Camera, Sparkles, Upload, X, Loader2, Bot, Clock, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { productsAPI, classifyAPI } from '@/lib/api';
 
@@ -33,6 +33,7 @@ export default function SellPage() {
     const [error, setError] = useState<string | null>(null);
     const [classifying, setClassifying] = useState(false);
     const [aiCategory, setAiCategory] = useState<{ category: string; category_label: string; confidence: number; detected_class: string | null } | null>(null);
+    const [submitted, setSubmitted] = useState(false);
 
     // Redirect if not authenticated
     if (!authLoading && !user) {
@@ -166,12 +167,8 @@ export default function SellPage() {
 
             await productsAPI.create(formDataToSend);
 
-            // Redirect based on product type
-            if (formData.is_auction) {
-                router.push('/auctions');
-            } else {
-                router.push('/dashboard');
-            }
+            // Show success / pending review message
+            setSubmitted(true);
         } catch (err: any) {
             console.error('Error creating product:', err);
             setError(err.message || 'حدث خطأ في نشر الإعلان');
@@ -186,6 +183,64 @@ export default function SellPage() {
                 <div className="min-h-screen pt-32 flex justify-center items-start">
                     <Loader2 className="animate-spin text-primary" size={40} />
                 </div>
+            </>
+        );
+    }
+
+    // ── Success / Pending Review Screen ──
+    if (submitted) {
+        return (
+            <>
+                <Navbar />
+                <main className="pt-24 pb-12 min-h-screen px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-lg mx-auto">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm text-center space-y-6"
+                        >
+                            <div className="mx-auto w-20 h-20 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                                <Clock className="text-amber-500" size={40} />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-black mb-2">{'\u062a\u0645 \u0631\u0641\u0639 \u0625\u0639\u0644\u0627\u0646\u0643 \u0628\u0646\u062c\u0627\u062d!'}</h2>
+                                <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
+                                    {'\u0625\u0639\u0644\u0627\u0646\u0643 \u0642\u064a\u062f \u0627\u0644\u0645\u0631\u0627\u062c\u0639\u0629 \u0645\u0646 \u0641\u0631\u064a\u0642 \u0627\u0644\u0625\u062f\u0627\u0631\u0629. \u0647\u062a\u0648\u0635\u0644\u0643 \u0625\u0634\u0639\u0627\u0631 \u0641\u0648\u0631 \u0627\u0644\u0645\u0648\u0627\u0641\u0642\u0629 \u0639\u0644\u064a\u0647 \u0648\u0633\u064a\u0638\u0647\u0631 \u0641\u064a \u0627\u0644\u0645\u062a\u062c\u0631 \u0644\u0644\u0645\u0634\u062a\u0631\u064a\u0646.'}
+                                </p>
+                            </div>
+                            <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-200 dark:border-amber-800">
+                                <div className="flex items-center gap-3 justify-center">
+                                    <CheckCircle2 className="text-amber-500" size={18} />
+                                    <span className="text-sm font-bold text-amber-700 dark:text-amber-300">
+                                        {'\u0639\u0627\u062f\u0629\u064b \u0628\u062a\u062a\u0645 \u0627\u0644\u0645\u0631\u0627\u062c\u0639\u0629 \u062e\u0644\u0627\u0644 \u062f\u0642\u0627\u0626\u0642'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    onClick={() => router.push('/dashboard')}
+                                    className="flex-1 bg-primary hover:bg-primary-700 text-white py-3 rounded-xl font-bold transition-all"
+                                >
+                                    {'\u0627\u0644\u0630\u0647\u0627\u0628 \u0644\u0644\u0645\u062a\u062c\u0631'}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setSubmitted(false);
+                                        setStep(1);
+                                        setUploadedImages([]);
+                                        setImagePreviews([]);
+                                        setFormData({ title: '', price: '', category: '', condition: 'good', description: '', location: '', phone_number: '', is_auction: false, auction_end_time: '' });
+                                        setAiCategory(null);
+                                    }}
+                                    className="flex-1 border-2 border-slate-300 dark:border-slate-600 py-3 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
+                                >
+                                    {'\u0625\u0636\u0627\u0641\u0629 \u0645\u0646\u062a\u062c \u0622\u062e\u0631'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                </main>
+                <Footer />
             </>
         );
     }
@@ -475,6 +530,12 @@ export default function SellPage() {
                                             <Sparkles className="text-primary flex-shrink-0 mt-1" size={20} />
                                             <p className="text-xs text-primary-800 dark:text-primary-300 leading-relaxed">
                                                 {dict.addItem.aiNotice}
+                                            </p>
+                                        </div>
+                                        <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl flex items-start gap-3 border border-amber-200 dark:border-amber-800">
+                                            <Clock className="text-amber-500 flex-shrink-0 mt-1" size={20} />
+                                            <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                                                منتجك هيتراجع من فريق الإدارة قبل ما يظهر للمشترين. هتوصلك إشعار لما يتم قبول إعلانك.
                                             </p>
                                         </div>
                                         {error && (

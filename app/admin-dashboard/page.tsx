@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Users, ShoppingCart, MapPin, Gavel, BarChart3, TrendingUp } from 'lucide-react';
+import { Users, ShoppingCart, MapPin, Gavel, BarChart3, TrendingUp, Clock, AlertCircle } from 'lucide-react';
 import { generalAPI } from '@/lib/api';
+import Link from 'next/link';
 
 export default function AdminOverviewPage() {
     const [stats, setStats] = useState({
@@ -10,6 +11,7 @@ export default function AdminOverviewPage() {
         products_sold: 0,
         active_auctions: 0,
         active_governorates: 0,
+        pending_products: 0,
         weekly_activity: [0, 0, 0, 0, 0, 0, 0],
         category_distribution: [] as { name: string; count: number }[]
     });
@@ -89,6 +91,26 @@ export default function AdminOverviewPage() {
                     borderClass="border-purple-500/20"
                 />
             </div>
+
+            {/* Pending Products Alert */}
+            {!loading && stats.pending_products > 0 && (
+                <Link href="/admin-dashboard/products">
+                    <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-2xl p-5 flex items-center justify-between cursor-pointer hover:border-amber-500/60 transition-all group">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 rounded-xl bg-amber-500/20 text-amber-400 group-hover:scale-110 transition-transform">
+                                <AlertCircle className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-amber-200 font-bold text-lg">
+                                    {stats.pending_products} {stats.pending_products === 1 ? '\u0645\u0646\u062a\u062c \u064a\u0646\u062a\u0638\u0631' : '\u0645\u0646\u062a\u062c\u0627\u062a \u062a\u0646\u062a\u0638\u0631'} \u0627\u0644\u0645\u0631\u0627\u062c\u0639\u0629
+                                </p>
+                                <p className="text-amber-400/60 text-sm">\u0627\u0636\u063a\u0637 \u0647\u0646\u0627 \u0644\u0645\u0631\u0627\u062c\u0639\u0629 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0627\u0644\u0645\u0639\u0644\u0642\u0629</p>
+                            </div>
+                        </div>
+                        <div className="text-amber-400 group-hover:translate-x-1 transition-transform text-2xl">&#8592;</div>
+                    </div>
+                </Link>
+            )}
 
             {/* Visualizations Section */}
             <div className="grid grid-cols-1 gap-6">

@@ -14,6 +14,9 @@ const getApiBase = (): string => {
     if (process.env.VERCEL === '1') {
         return '/_/backend/api';
     }
+    if (process.env.NODE_ENV === 'development') {
+        return 'http://localhost:8000/api';
+    }
     return '/api';
 };
 export const API_BASE = getApiBase();
@@ -561,8 +564,16 @@ export const ragAPI = {
 
 // Admin Dashboard API
 export const adminAPI = {
-    async listProducts() {
-        return apiFetch<any[]>('/admin-api/products/');
+    async listProducts(page: number = 1) {
+        const data = await apiFetch<any>(`/admin-api/products/?page=${page}`);
+        return Array.isArray(data) ? data : (data.results || []);
+    },
+
+    async reviewProduct(id: number, action: 'approve' | 'reject', reason?: string) {
+        return apiFetch<{ status: string }>(`/admin-api/products/${id}/review/`, {
+            method: 'POST',
+            body: JSON.stringify({ action, reason }),
+        });
     },
 
     async listUsers() {

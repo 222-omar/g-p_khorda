@@ -6,7 +6,7 @@ import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { AuctionTimer } from '@/components/ui/auction-timer';
 import { useLanguage } from '@/components/providers/language-provider';
-import { ArrowRight, ShoppingCart, MapPin, Star, Loader2, Edit, Trash2, MessageCircle, CheckCircle2, Wallet, Tag } from 'lucide-react';
+import { ArrowRight, ShoppingCart, MapPin, Star, Loader2, Edit, Trash2, MessageCircle, CheckCircle2, Wallet, Tag, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { productsAPI, auctionsAPI, authAPI, chatAPI } from '@/lib/api';
@@ -257,8 +257,14 @@ export default function ProductPage() {
                                                 تم البيع
                                             </span>
                                         )}
+                                        {product.status === 'pending' && (
+                                            <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs px-3 py-1.5 rounded-lg font-bold border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+                                                <Clock size={12} />
+                                                قيد المراجعة
+                                            </span>
+                                        )}
                                         {isOwner && (
-                                            <span className="bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-md font-bold border border-amber-200">
+                                            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-md font-bold border border-blue-200">
                                                 منتجك
                                             </span>
                                         )}
@@ -520,6 +526,14 @@ export default function ProductPage() {
                                             <div className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 py-4 rounded-xl font-bold flex items-center justify-center gap-2 cursor-not-allowed border border-slate-200 dark:border-slate-700">
                                                 <Tag size={20} />
                                                 تم بيع هذا المنتج
+                                            </div>
+                                        )}
+
+                                        {/* Pending badge inline */}
+                                        {product.status === 'pending' && (
+                                            <div className="flex-1 bg-amber-50 dark:bg-amber-900/10 text-amber-600 py-4 rounded-xl font-bold flex items-center justify-center gap-2 cursor-not-allowed border border-amber-200 dark:border-amber-800 text-center px-4">
+                                                <Clock size={20} />
+                                                المنتج قيد المراجعة ولن يظهر للمشترين في المتجر حتى تتم الموافقة عليه
                                             </div>
                                         )}
 

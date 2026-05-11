@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.utils import timezone
-from .models import UserProfile, Product, ProductImage, Auction, Bid, Conversation, Message, UserAgent, Notification, WalletTransaction
+from .models import UserProfile, Product, ProductImage, Auction, Bid, Conversation, Message, UserAgent, Notification, WalletTransaction, Order
 
 import logging
 logger = logging.getLogger(__name__)
@@ -28,6 +28,26 @@ class UserProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'role', 'trust_score', 'wallet_balance', 'total_sales', 'seller_rating', 'created_at']
 
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        request = self.context.get('request')
+        
+        # Hide wallet_balance if requesting user is not the owner and not an admin
+        if request and request.user.is_authenticated:
+            is_admin = request.user.is_staff or request.user.is_superuser
+            try:
+                if hasattr(request.user, 'profile') and request.user.profile.role == 'admin':
+                    is_admin = True
+            except Exception:
+                pass
+                
+            if instance.user != request.user and not is_admin:
+                ret.pop('wallet_balance', None)
+        else:
+            ret.pop('wallet_balance', None)
+            
+        return ret
+
 
 class ProductImageSerializer(serializers.ModelSerializer):
     """Product image serializer"""
@@ -46,6 +66,32 @@ class BidSerializer(serializers.ModelSerializer):
         model = Bid
         fields = ['id', 'auction', 'bidder', 'bidder_name', 'bidder_avatar', 'amount', 'created_at']
         read_only_fields = ['id', 'created_at']
+
+    def validate_amount(self, value):
+        """Ensure bid amount is strictly greater than the auction's current bid."""
+        from decimal import Decimal
+        if value <= Decimal('0'):
+            raise serializers.ValidationError('مبلغ المزايدة يجب أن يكون أكبر من صفر')
+
+        # When used in a create context with auction data available
+        auction = None
+        if 'auction' in self.initial_data:
+            try:
+                from .models import Auction
+                auction = Auction.objects.get(id=self.initial_data['auction'])
+            except (Auction.DoesNotExist, ValueError, TypeError):
+                pass
+
+        # If we're validating inside a view that already set the instance
+        if auction is None and self.instance and hasattr(self.instance, 'auction'):
+            auction = self.instance.auction
+
+        if auction is not None and value <= auction.current_bid:
+            raise serializers.ValidationError(
+                f'يجب أن تكون المزايدة أعلى من السعر الحالي ({auction.current_bid} جنيه)'
+            )
+        return value
+
 
 
 class AuctionSerializer(serializers.ModelSerializer):
@@ -1156,3 +1202,21 @@ def run_agent_discovery(product):
         except Exception as e:
             logger.error(f"[AgentDiscovery] Error evaluating agent {agent.user.username}: {e}")
 
+
+class OrderSerializer(serializers.ModelSerializer):
+    """Order serializer with buyer/seller role context."""
+    product_title = serializers.CharField(source='product.title', read_only=True)
+    role = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Order
+        fields = ['id', 'product_title', 'amount', 'role', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+    def get_role(self, obj):
+        request = self.context.get('request')
+        if request and request.user:
+            if obj.buyer_id == request.user.id:
+                return 'buyer'
+            return 'seller'
+        return None

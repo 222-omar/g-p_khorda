@@ -427,8 +427,8 @@ export default function ProfilePage() {
                                                     <p className="font-semibold text-sm">{item.title}</p>
                                                     <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">{item.price} {dict.currency}</p>
                                                 </div>
-                                                <div className={`px-2 py-1 rounded text-xs font-bold ${item.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'}`}>
-                                                    {item.status === 'active' ? 'نشط' : item.status}
+                                                <div className={`px-2 py-1 rounded text-xs font-bold ${item.status === 'active' ? 'bg-green-100 text-green-700' : item.status === 'pending' ? 'bg-amber-100 text-amber-700' : item.status === 'inactive' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}`}>
+                                                    {item.status === 'active' ? 'نشط' : item.status === 'pending' ? 'قيد المراجعة' : item.status === 'inactive' ? 'مرفوض' : item.status}
                                                 </div>
                                                 <motion.button
                                                     onClick={() => router.push(`/product/edit/${item.id}`)}

@@ -143,6 +143,12 @@ export function ProductCard({
                             تم البيع
                         </div>
                     )}
+                    {product.status === 'pending' && (
+                        <div className="bg-amber-500/90 backdrop-blur-md text-white text-[11px] px-2.5 py-1 rounded-full font-bold shadow-md flex items-center gap-1">
+                            <Clock size={11} />
+                            قيد المراجعة
+                        </div>
+                    )}
                 </div>
 
                 {/* Category badge */}

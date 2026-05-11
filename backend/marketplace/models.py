@@ -1,7 +1,14 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
+from django.core.exceptions import ValidationError
 from pgvector.django import VectorField
+
+def validate_image_size(value):
+    filesize = value.size
+    # 5MB max size
+    if filesize > 5 * 1024 * 1024:
+        raise ValidationError("حجم الصورة يجب أن لا يتجاوز 5 ميجابايت")
 
 
 class UserProfile(models.Model):
@@ -19,7 +26,15 @@ class UserProfile(models.Model):
         validators=[MinValueValidator(0), MaxValueValidator(100)]
     )
     is_verified = models.BooleanField(default=False)
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+    avatar = models.ImageField(
+        upload_to='avatars/', 
+        blank=True, 
+        null=True,
+        validators=[
+            FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp']),
+            validate_image_size
+        ]
+    )
     wallet_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_sales = models.IntegerField(default=0)
     seller_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0)
@@ -88,7 +103,7 @@ class Product(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
     condition = models.CharField(max_length=10, choices=CONDITION_CHOICES, default='good')
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     location = models.CharField(max_length=200)
     phone_number = models.CharField(max_length=20, blank=True, default='')
     is_auction = models.BooleanField(default=False)
@@ -113,7 +128,13 @@ class Product(models.Model):
 class ProductImage(models.Model):
     """Product images - supporting multiple images per product"""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to='products/')
+    image = models.ImageField(
+        upload_to='products/',
+        validators=[
+            FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp']),
+            validate_image_size
+        ]
+    )
     is_primary = models.BooleanField(default=False)
     order = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -275,6 +296,8 @@ class WalletTransaction(models.Model):
         ('bid_hold', 'حجز مزايدة'),
         ('bid_refund', 'استرداد مزايدة'),
         ('bid_deduct', 'خصم فوز مزايدة'),
+        ('purchase', 'شراء مباشر'),
+        ('sale', 'بيع مباشر'),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='wallet_transactions')
@@ -291,6 +314,26 @@ class WalletTransaction(models.Model):
 
     def __str__(self):
         return f"{self.user.username} | {self.transaction_type} | {self.amount}"
+
+
+class Order(models.Model):
+    """Record of a completed direct-sale purchase."""
+    buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders_as_buyer')
+    seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders_as_seller')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='orders')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'orders'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['buyer', '-created_at']),
+            models.Index(fields=['seller', '-created_at']),
+        ]
+
+    def __str__(self):
+        return f"Order #{self.id}: {self.buyer.username} → {self.seller.username} ({self.amount})"
 
 
 class ProductVisualEmbedding(models.Model):
