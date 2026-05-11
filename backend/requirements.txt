@@ -8,13 +8,10 @@ python-dotenv==1.0.0
 dj-database-url==3.1.2
 django-filter==24.1
 langchain
-langchain-google-genai
 langgraph
-openai
 pgvector
 google-generativeai
 cloudinary==1.36.0
 django-cloudinary-storage==0.3.0
-gradio-client==0.15.0
 langchain-groq
 drf-spectacular
