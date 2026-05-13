@@ -30,7 +30,7 @@ SYNTHESIS_PROMPT = ChatPromptTemplate.from_messages([
    - "دراعات بلاستيشن" = "جاك بلاستيشن" = "controller" (نفس المنتج!)
    - لو المنتج بديل أو من نفس الفصيلة → متطابق
    - بس لو الكاتيجوري مختلفة خالص (تلاجة vs غسالة) → استبعده
-4. لو مفيش نتايج مطابقة: قول "مش لاقي حاجة تطابق اللي بتدور عليه دلوقتي 🔍" ورجع items فارغة.
+4. لو مفيش نتائج مطابقة، أو لو المستخدم بيسأل سؤال عام ملوش علاقة بالمنتجات: جاوب عليه بشكل طبيعي وودي كبوت ذكي، بس فكره بذوق إن تخصصك الأساسي هو البيع والشراء في 4Sale، وفي الحالتين رجع items فارغة [].
 5. اذكر السعر والحالة والمكان.
 6. لو البائع تقييمه >= 4: اذكر "بائع موثوق ⭐"
 7. لو فيه مزاد: قول "عليه مزاد! 🔥"
@@ -80,6 +80,7 @@ def synthesis_node(state: AgentState) -> dict:
     from rag.graph.config import mark_key_exhausted
 
     synthesis = None
+    last_error = None
     for attempt in range(3):
         try:
             llm, current_key = get_llm(temperature=0.3)
@@ -90,38 +91,26 @@ def synthesis_node(state: AgentState) -> dict:
             synthesis = result.model_dump()
             break  # Success
         except Exception as e:
+            last_error = e
             error_str = str(e)
             if "429" in error_str or "rate_limit" in error_str:
                 mark_key_exhausted(current_key)
                 logger.warning(f"[Node/Synthesis] 429 on attempt {attempt+1}/3, rotating key...")
                 continue
-            logger.error(f"[Node/Synthesis] LLM failed: {e}")
             break
 
     if synthesis is None:
+        logger.error(f"[Node/Synthesis] LLM failed after loop. Last error: {last_error}")
         synthesis = {
             "summary": "حصلت مشكلة تقنية. جرب تاني بعد شوية 🔧",
             "items": [],
             "suggested_action": "set_agent",
         }
 
-    # ── Inline Guardrails (no extra LLM call) ──
-    returned_ids = synthesis.get("items", [])
-
-    # Guardrail 1: Remove hallucinated IDs (not in actual results)
-    filtered_ids = [pid for pid in returned_ids if pid in valid_ids]
-    if len(filtered_ids) < len(returned_ids):
-        hallucinated = set(returned_ids) - set(filtered_ids)
-        logger.warning(f"[Guardrail] Removed hallucinated IDs: {hallucinated}")
-        synthesis["items"] = filtered_ids
-
-    # Guardrail 2: If retry needed and we haven't retried yet
-    if not filtered_ids and valid_ids and retry < 1:
-        logger.info("[Guardrail] No items matched but results exist → retry")
-        return {
-            "retry_count": retry + 1,
-            "next_step": "retry",
-        }
+    # ── Apply Guardrails ──
+    retry_update = _apply_guardrails(synthesis, valid_ids, retry)
+    if retry_update:
+        return retry_update
 
     # ── Set suggested action ──
     items = synthesis["items"]
@@ -131,7 +120,7 @@ def synthesis_node(state: AgentState) -> dict:
         synthesis["suggested_action"] = "view_listing"
     elif any(
         item.get("is_auction") for item in fused
-        if (item.get("id") or item.get("product_id")) in items
+        if int(item.get("id") or item.get("product_id") or 0) in items
     ):
         synthesis["suggested_action"] = "place_bid"
     elif len(items) >= 3:
@@ -139,8 +128,8 @@ def synthesis_node(state: AgentState) -> dict:
     else:
         synthesis["suggested_action"] = "view_listing"
 
-    # ── Build products_data for frontend ──
-    products_data = _build_products_data(items)
+    # ── Build products_data for frontend (From Fused Results, No DB Query) ──
+    products_data = _build_products_data(items, fused)
 
     logger.info(f"[Node/Synthesis] Done: {len(items)} items, action={synthesis['suggested_action']}")
 
@@ -151,34 +140,62 @@ def synthesis_node(state: AgentState) -> dict:
     }
 
 
-def _build_products_data(item_ids: list) -> list:
-    """Build frontend-ready product cards."""
-    from marketplace.models import Product
+def _apply_guardrails(synthesis: dict, valid_ids: set, retry: int) -> dict:
+    """Apply guardrails to synthesis output and return retry update if needed."""
+    returned_ids = synthesis.get("items", [])
+    
+    # Type mismatch normalize
+    valid_ids_normalized = {int(vid) for vid in valid_ids}
+    returned_ids_normalized = []
+    for pid in returned_ids:
+        try:
+            returned_ids_normalized.append(int(pid))
+        except (ValueError, TypeError):
+            continue
 
-    ids = [int(pid) for pid in item_ids[:4] if pid]
+    # Guardrail 1: Remove hallucinated IDs
+    filtered_ids = [pid for pid in returned_ids_normalized if pid in valid_ids_normalized]
+    
+    if len(filtered_ids) < len(returned_ids):
+        hallucinated = set(returned_ids_normalized) - set(filtered_ids)
+        logger.warning(f"[Guardrail] Removed hallucinated IDs: {hallucinated}")
+        synthesis["items"] = filtered_ids
+
+    # Guardrail 2: If retry needed and we haven't retried yet
+    if not filtered_ids and valid_ids and retry < 1:
+        logger.info("[Guardrail] No items matched but results exist → retry")
+        return {
+            "retry_count": retry + 1,
+            "next_step": "retry",
+            "final_response": None,  # Explicitly clear old response
+        }
+        
+    return None
+
+
+def _build_products_data(item_ids: list, fused: list) -> list:
+    """Build frontend-ready product cards from fused results instead of DB."""
+    ids = {int(pid) for pid in item_ids[:4] if pid}
     if not ids:
         return []
 
-    try:
-        products = Product.objects.filter(
-            id__in=ids
-        ).select_related('owner').prefetch_related('images')
-
-        products_map = {}
-        for p in products:
-            primary_img = p.images.filter(is_primary=True).first() or p.images.first()
-            products_map[p.id] = {
-                'id': p.id,
-                'title': p.title,
-                'price': str(p.price),
-                'condition': p.condition,
-                'location': p.location,
-                'is_auction': p.is_auction,
-                'primary_image': primary_img.image.url if primary_img else None,
-                'owner_name': p.owner.username,
-            }
-
-        return [products_map[pid] for pid in ids if pid in products_map]
-    except Exception as e:
-        logger.error(f"[Synthesis] _build_products_data failed: {e}")
-        return []
+    products_data = []
+    for item in fused:
+        pid = item.get('id') or item.get('product_id')
+        if pid is None:
+            continue
+        pid = int(pid)
+        if pid in ids:
+            products_data.append({
+                'id': pid,
+                'title': item.get('title', ''),
+                'price': str(item.get('price', '?')),
+                'condition': item.get('condition', ''),
+                'location': item.get('location', ''),
+                'is_auction': item.get('is_auction', False),
+                'primary_image': item.get('image_url') or item.get('primary_image'),
+                'owner_name': item.get('seller_name', 'بائع'),
+            })
+            ids.remove(pid)  # Avoid duplicates
+            
+    return products_data
