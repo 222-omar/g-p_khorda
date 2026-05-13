@@ -8,8 +8,10 @@ import { MessageCircle, Send, ArrowLeft, Package, User, MoreVertical, Search, Sm
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navbar } from '@/components/layout/navbar';
 import Link from 'next/link';
+import { useLanguage } from '@/components/providers/language-provider';
 
 export default function MessagesPage() {
+    const { dict, isRtl, locale } = useLanguage();
     const { user: authUser } = useAuth();
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -144,7 +146,7 @@ export default function MessagesPage() {
 
     const formatTime = (dateStr: string) => {
         const date = new Date(dateStr);
-        return date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleTimeString(locale === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' });
     };
 
     const formatShortDate = (dateStr: string) => {
@@ -154,9 +156,9 @@ export default function MessagesPage() {
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
         if (days === 0) return formatTime(dateStr);
-        if (days === 1) return 'أمس';
-        if (days < 7) return date.toLocaleDateString('ar-EG', { weekday: 'short' });
-        return date.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' });
+        if (days === 1) return dict.messages.yesterday;
+        if (days < 7) return date.toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'short' });
+        return date.toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' });
     };
 
     const getParticipantAvatar = (participant: any) => {
@@ -169,7 +171,7 @@ export default function MessagesPage() {
     // ─── Delete entire conversation ───
     const handleDeleteConversation = async () => {
         if (!selectedConversation) return;
-        if (!confirm('هل أنت متأكد من حذف هذه المحادثة بالكامل؟')) return;
+        if (!confirm(dict.messages.confirmDelete)) return;
         try {
             await chatAPI.deleteConversation(selectedConversation.id);
             setConversations(prev => prev.filter(c => c.id !== selectedConversation.id));
@@ -185,7 +187,7 @@ export default function MessagesPage() {
     // ─── Delete a single message ───
     const handleDeleteMessage = async (msgId: number) => {
         if (!selectedConversation) return;
-        if (!confirm('حذف هذه الرسالة؟')) return;
+        if (!confirm(dict.messages.confirmDeleteMsg)) return;
         try {
             await chatAPI.deleteMessage(selectedConversation.id, msgId);
             setMessages(prev => prev.filter(m => m.id !== msgId));
@@ -244,7 +246,7 @@ export default function MessagesPage() {
                         {/* Sidebar Header */}
                         <div className="p-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
                             <div className="flex items-center justify-between mb-4">
-                                <h1 className="text-xl font-bold text-slate-800 dark:text-white">المحادثات</h1>
+                                <h1 className="text-xl font-bold text-slate-800 dark:text-white">{dict.messages.title}</h1>
                                 <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
                                     <MoreVertical size={20} className="text-slate-500" />
                                 </button>
@@ -253,7 +255,7 @@ export default function MessagesPage() {
                                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                                 <input 
                                     type="text" 
-                                    placeholder="بحث في المحادثات..." 
+                                    placeholder={dict.messages.searchPlaceholder} 
                                     className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl py-2 px-10 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                                     dir="rtl"
                                 />
@@ -265,15 +267,15 @@ export default function MessagesPage() {
                             {loading ? (
                                 <div className="flex flex-col items-center justify-center h-40 gap-3">
                                     <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent"></div>
-                                    <p className="text-xs text-slate-400">جاري تحميل المحادثات...</p>
+                                    <p className="text-xs text-slate-400">{dict.messages.loading}</p>
                                 </div>
                             ) : conversations.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-full text-center p-8">
                                     <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
                                         <MessageCircle size={28} className="text-slate-400" />
                                     </div>
-                                    <h3 className="font-bold text-slate-800 dark:text-slate-100">لا توجد محادثات</h3>
-                                    <p className="text-xs text-slate-500 mt-1">ابدأ محادثة مع بائع من صفحة أي منتج</p>
+                                    <h3 className="font-bold text-slate-800 dark:text-slate-100">{dict.messages.noConversations}</h3>
+                                    <p className="text-xs text-slate-500 mt-1">{dict.messages.startFromProduct}</p>
                                 </div>
                             ) : (
                                 conversations.map(conv => (
@@ -301,7 +303,7 @@ export default function MessagesPage() {
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex justify-between items-center mb-0.5">
                                                     <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
-                                                        {conv.other_participant?.username || 'مستخدم غير معروف'}
+                                                        {conv.other_participant?.username || dict.messages.unknownUser}
                                                     </h3>
                                                     <span className="text-[10px] text-slate-400 shrink-0">
                                                         {conv.last_message ? formatShortDate(conv.last_message.created_at) : ''}
@@ -315,7 +317,7 @@ export default function MessagesPage() {
 
                                                 <div className="flex justify-between items-center gap-2">
                                                     <p className={`text-xs truncate ${conv.unread_count > 0 ? 'text-slate-900 dark:text-slate-100 font-semibold' : 'text-slate-500 dark:text-slate-400'}`}>
-                                                        {conv.last_message?.content || 'ابدأ المحادثة الآن...'}
+                                                        {conv.last_message?.content || dict.messages.startChat}
                                                     </p>
                                                     {conv.unread_count > 0 && (
                                                         <span className="bg-indigo-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
@@ -356,11 +358,11 @@ export default function MessagesPage() {
                                         
                                         <div>
                                             <h2 className="font-bold text-sm text-slate-800 dark:text-slate-100">
-                                                {selectedConversation.other_participant?.username || 'مستخدم'}
+                                                {selectedConversation.other_participant?.username || dict.messages.unknownUser}
                                             </h2>
                                             <div className="flex items-center gap-1.5 mt-0.5">
                                                 <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                                                <span className="text-[10px] text-slate-400">نشط الآن</span>
+                                                <span className="text-[10px] text-slate-400">{dict.messages.activeNow}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -380,7 +382,7 @@ export default function MessagesPage() {
                                             </div>
                                             <div className="max-w-[120px]">
                                                 <p className="text-[10px] font-bold text-slate-800 dark:text-slate-100 truncate">{selectedConversation.product_title}</p>
-                                                <p className="text-[8px] text-indigo-600 dark:text-indigo-400 uppercase tracking-wider font-semibold">عرض المنتج</p>
+                                                <p className="text-[8px] text-indigo-600 dark:text-indigo-400 uppercase tracking-wider font-semibold">{dict.messages.viewProduct}</p>
                                             </div>
                                         </Link>
 
@@ -401,7 +403,7 @@ export default function MessagesPage() {
                                                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                                         >
                                                             <Trash2 size={16} />
-                                                            حذف المحادثة
+                                                            {dict.messages.deleteConversation}
                                                         </button>
                                                     </div>
                                                 </>
@@ -415,14 +417,14 @@ export default function MessagesPage() {
                                 <div id="messages-container" dir="ltr" className="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50/50 dark:bg-slate-950/20 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:20px_20px]">
                                     {loading ? (
                                         <div className="flex items-center justify-center h-full">
-                                            <div className="animate-pulse text-slate-400 text-sm">جاري تحميل المحادثة...</div>
+                                            <div className="animate-pulse text-slate-400 text-sm">{dict.messages.loadingChat}</div>
                                         </div>
                                     ) : messages.length === 0 ? (
                                         <div className="flex flex-col items-center justify-center h-full text-center">
                                             <div className="w-20 h-20 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center mb-4 shadow-sm">
                                                 <Smile size={32} className="text-indigo-500" />
                                             </div>
-                                            <p className="text-slate-500 font-medium tracking-wide">ابدأ المحادثة الآن! رحب بـ {selectedConversation.other_participant?.username}</p>
+                                            <p className="text-slate-500 font-medium tracking-wide">{dict.messages.sayHi} {selectedConversation.other_participant?.username}</p>
                                         </div>
                                     ) : (
                                         <div className="space-y-4">
@@ -535,7 +537,7 @@ export default function MessagesPage() {
                                                 value={newMessage}
                                                 onChange={(e) => setNewMessage(e.target.value)}
                                                 onKeyDown={handleKeyDown}
-                                                placeholder="اكتب رسالتك..."
+                                                placeholder={dict.messages.typePlaceholder}
                                                 className="w-full bg-transparent border-none focus:ring-0 text-sm py-2 px-1 outline-none resize-none min-h-[40px] text-slate-800 dark:text-slate-100"
                                                 dir="rtl"
                                             />
@@ -558,7 +560,7 @@ export default function MessagesPage() {
                                             )}
                                         </motion.button>
                                     </form>
-                                    <p className="text-[9px] text-center text-slate-400 mt-2 tracking-wide font-medium">مؤمن بتقنية التشفير من 4Sale • محادثة آمنة</p>
+                                    <p className="text-[9px] text-center text-slate-400 mt-2 tracking-wide font-medium">{dict.messages.secureChat}</p>
                                 </div>
                             </>
                         ) : (
@@ -571,16 +573,16 @@ export default function MessagesPage() {
                                 >
                                     <MessageCircle size={48} className="text-indigo-500" />
                                 </motion.div>
-                                <h1 className="text-2xl font-bold text-slate-800 dark:text-white mb-3">مرحباً بك في المحادثات</h1>
+                                <h1 className="text-2xl font-bold text-slate-800 dark:text-white mb-3">{dict.messages.welcomeTitle}</h1>
                                 <p className="text-slate-500 dark:text-slate-400 max-w-sm text-sm leading-relaxed">
-                                    اختر محادثة من القائمة على اليمين لبدء الدردشة مع المشترين أو البائعين. جميع محادثاتك محمية وخاصة.
+                                    {dict.messages.welcomeDesc}
                                 </p>
                                 <div className="mt-8 flex gap-3">
                                     <div className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-sm">
-                                        ⚡ سريع وموثوق
+                                        {dict.messages.fast}
                                     </div>
                                     <div className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-sm">
-                                        🔒 آمن تماماً
+                                        {dict.messages.secure}
                                     </div>
                                 </div>
                             </div>

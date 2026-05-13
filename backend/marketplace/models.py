@@ -273,12 +273,21 @@ class UserAgent(models.Model):
 
 class Notification(models.Model):
     """Notification for agent actions and other system events"""
+    NOTIFICATION_TYPES = [
+        ('info', 'Info'),                  # Regular notification
+        ('bid_approval', 'Bid Approval'),  # Requires user approval to place bid
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     title = models.CharField(max_length=200)
     message = models.TextField()
     is_read = models.BooleanField(default=False)
     related_product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
+    related_auction = models.ForeignKey('Auction', on_delete=models.SET_NULL, null=True, blank=True)
     reasoning = models.TextField(blank=True, default='', help_text="AI reasoning for match or rejection")
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='info')
+    is_approved = models.BooleanField(null=True, blank=True, default=None, help_text="User's response to bid_approval: True=approved, False=rejected, None=pending")
+    suggested_bid = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Suggested bid amount for bid_approval notifications")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -526,12 +526,6 @@ export default function SellPage() {
                                                 className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900 resize-none"
                                             />
                                         </div>
-                                        <div className="bg-primary-50 dark:bg-primary-900/20 p-4 rounded-xl flex items-start gap-3 border border-primary-200 dark:border-primary-800">
-                                            <Sparkles className="text-primary flex-shrink-0 mt-1" size={20} />
-                                            <p className="text-xs text-primary-800 dark:text-primary-300 leading-relaxed">
-                                                {dict.addItem.aiNotice}
-                                            </p>
-                                        </div>
                                         <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl flex items-start gap-3 border border-amber-200 dark:border-amber-800">
                                             <Clock className="text-amber-500 flex-shrink-0 mt-1" size={20} />
                                             <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">

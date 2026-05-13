@@ -78,16 +78,16 @@ export function Hero() {
     // Format helper for display
     const formatStat = (val: number, fallback: string) => {
         if (!val || val === 0) return fallback;
-        if (val >= 1000000) return `+${(val / 1000000).toFixed(1)} مليون`;
-        if (val >= 1000) return `+${(val / 1000).toFixed(0)} ألف`;
+        if (val >= 1000000) return `+${(val / 1000000).toFixed(1)} ${dict.hero.million}`;
+        if (val >= 1000) return `+${(val / 1000).toFixed(0)} ${dict.hero.thousand}`;
         return `+${val}`;
     };
 
     // Typewriter: loop through different phrases
     const animatedText = useLoopingTypewriter([
-        "سوقك الذكي لبيع وشراء المستعمل والخردة في مصر",
-        "ابحث، زايد، واشترِ بأفضل الأسعار",
-        "منصتك الموثوقة للمزادات والتجارة"
+        dict.hero.typewriter1,
+        dict.hero.typewriter2,
+        dict.hero.typewriter3,
     ], 60, 30, 2500);
 
     const textSide = {
@@ -131,7 +131,7 @@ export function Hero() {
                                 className="inline-flex items-center gap-2 bg-primary/5 text-primary px-3.5 py-1.5 rounded-full text-[12px] font-tajawal font-bold mb-4 border border-primary/10"
                             >
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                                مرحباً بك في 4Sale
+                                {dict.hero.welcomeBadge}
                             </motion.div>
 
                             {/* Heading with Looping Typewriter */}
@@ -205,10 +205,10 @@ export function Hero() {
                 <div className="mt-auto pt-6 pb-8 border-t border-slate-200/40 dark:border-white/[0.05]">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                         {[
-                            { value: formatStat(statsData.total_users, '+٢٠٠ ألف'), label: 'مستخدم نشط' },
-                            { value: formatStat(statsData.products_sold, '+٥٠٠ ألف'), label: 'إعلان منشور' },
-                            { value: '٩٨٪', label: 'رضا العملاء' },
-                            { value: '٢٤/٧', label: 'دعم متاح' },
+                            { value: formatStat(statsData.total_users, '+300K'), label: dict.hero.statUsers },
+                            { value: formatStat(statsData.products_sold, '+500K'), label: dict.hero.statListings },
+                            { value: dict.hero.satisfactionVal, label: dict.hero.statSatisfaction },
+                            { value: dict.hero.supportVal, label: dict.hero.statSupport },
                         ].map((stat, idx) => (
                             <div
                                 key={stat.label}

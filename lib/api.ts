@@ -321,7 +321,7 @@ export const productsAPI = {
     },
 
     async purchase(id: string) {
-        return apiFetch<{ status: string; message: string; new_balance: number }>(`/products/${id}/purchase/`, {
+        return apiFetch<{ status: string; message: string; new_balance: number }>(`/products/${id}/buy/`, {
             method: 'POST',
         });
     },
@@ -538,6 +538,19 @@ export const notificationsAPI = {
     async unreadCount() {
         return apiFetch<{ unread_count: number }>('/notifications/unread-count/');
     },
+
+    async deleteAll() {
+        return apiFetch<{ status: string }>('/notifications/delete-all/', {
+            method: 'DELETE',
+        });
+    },
+
+    async respond(notificationId: number, action: 'approve' | 'reject') {
+        return apiFetch<{ status: string; bid_amount?: number; message: string }>(`/notifications/${notificationId}/respond/`, {
+            method: 'POST',
+            body: JSON.stringify({ action }),
+        });
+    },
 };
 
 // RAG Smart Search API
@@ -577,7 +590,8 @@ export const adminAPI = {
     },
 
     async listUsers() {
-        return apiFetch<any[]>('/admin-api/users/');
+        const data = await apiFetch<any>('/admin-api/users/');
+        return Array.isArray(data) ? data : (data.results || []);
     },
 
     async deleteUser(userId: number) {

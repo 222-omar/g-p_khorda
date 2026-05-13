@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Leaf, Loader2, AlertCircle, Phone, Mail, ArrowRight, EyeOff, Eye, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '@/components/providers/language-provider';
 
 export default function ForgotPasswordPage() {
     const router = useRouter();
+    const { dict, isRtl } = useLanguage();
     const [step, setStep] = useState<1 | 2>(1);
     
     // Step 1: Email
@@ -44,7 +46,7 @@ export default function ForgotPasswordPage() {
             const data = await res.json();
             
             if (!res.ok) {
-                throw new Error(data.error || 'حدث خطأ غير متوقع');
+                throw new Error(data.error || 'Error');
             }
             
             setMaskedNumbers(data.masked_numbers);
@@ -60,22 +62,22 @@ export default function ForgotPasswordPage() {
         e.preventDefault();
         
         if (!selectedMask) {
-            setError('الرجاء اختيار أحد الأرقام المموهة المقترحة');
+            setError(dict.forgotPassword.errSelectMask);
             return;
         }
         
         if (!fullPhone) {
-            setError('الرجاء كتابة رقم هاتفك بالكامل');
+            setError(dict.forgotPassword.errEnterPhone);
             return;
         }
 
         if (newPassword !== confirmPassword) {
-            setError('كلمات المرور غير متطابقة');
+            setError(dict.forgotPassword.errMismatch);
             return;
         }
         
         if (newPassword.length < 6) {
-            setError('يجب أن تتكون كلمة المرور من 6 أحرف على الأقل');
+            setError(dict.forgotPassword.errMinLength);
             return;
         }
         
@@ -97,10 +99,10 @@ export default function ForgotPasswordPage() {
             
             if (!res.ok) {
                 // If it's a specific validation error, display it
-                throw new Error(data.error || 'فشل إعادة التعيين');
+                throw new Error(data.error || 'Reset failed');
             }
             
-            setSuccess('تم تغيير كلمة المرور بنجاح! جاري تحويلك لصفحة تسجيل الدخول...');
+            setSuccess(dict.forgotPassword.success);
             
             // Redirect after 3 seconds
             setTimeout(() => {
@@ -118,7 +120,7 @@ export default function ForgotPasswordPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-black overflow-hidden relative" dir="rtl">
+        <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-black overflow-hidden relative" dir={isRtl ? 'rtl' : 'ltr'}>
             {/* Background elements */}
             <motion.div
                 className="absolute top-10 left-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none"
@@ -145,12 +147,12 @@ export default function ForgotPasswordPage() {
                 >
                     <div className="mb-6">
                         <h2 className="text-2xl font-black text-slate-900 dark:text-white">
-                            {step === 1 ? 'نسيت كلمة المرور؟' : 'تأكيد الهوية وتعيين كلمة المرور'}
+                            {step === 1 ? dict.forgotPassword.title1 : dict.forgotPassword.title2}
                         </h2>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium">
                             {step === 1 
-                                ? 'أدخل بريدك الإلكتروني المرتبط بالحساب لاستعادة الوصول.'
-                                : 'اختر رقماً مموهاً ثم اكتب رقمك بالكامل وأدخل كلمة المرور الجديدة.'}
+                                ? dict.forgotPassword.desc1
+                                : dict.forgotPassword.desc2}
                         </p>
                     </div>
 
@@ -191,7 +193,7 @@ export default function ForgotPasswordPage() {
                         >
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                                    البريد الإلكتروني
+                                    {dict.forgotPassword.email}
                                 </label>
                                 <div className="relative">
                                     <input
@@ -213,7 +215,7 @@ export default function ForgotPasswordPage() {
                                 disabled={loading || !email}
                                 className="w-full bg-primary hover:bg-primary-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
                             >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'متابعة'}
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : dict.forgotPassword.continue}
                                 {!loading && <ArrowRight className="w-4 h-4 mr-1 rotate-180" />}
                             </button>
                         </motion.form>
@@ -230,7 +232,7 @@ export default function ForgotPasswordPage() {
                             {/* Masked Numbers Selection */}
                             <div className="space-y-3">
                                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
-                                    اختر الرقم الذي يتطابق مع هاتفك المسجل:
+                                    {dict.forgotPassword.chooseNumber}
                                 </label>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     {maskedNumbers.map((mask, idx) => (
@@ -254,14 +256,14 @@ export default function ForgotPasswordPage() {
                             {/* Full Phone Verification */}
                             <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">
-                                    يرجى كتابة رقم هاتفك بالكامل لتأكيد هويتك
+                                    {dict.forgotPassword.enterPhone}
                                 </label>
                                 <div className="relative">
                                     <input
                                         type="tel"
                                         value={fullPhone}
                                         onChange={(e) => setFullPhone(e.target.value)}
-                                        placeholder="مثال: 01012345678"
+                                        placeholder={dict.forgotPassword.phonePlaceholder}
                                         className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 bg-white dark:bg-slate-900 transition-all font-sans text-left"
                                         dir="ltr"
                                         required
@@ -275,7 +277,7 @@ export default function ForgotPasswordPage() {
                             <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                                        كلمة المرور الجديدة
+                                        {dict.forgotPassword.newPassword}
                                     </label>
                                     <div className="relative">
                                         <input
@@ -298,7 +300,7 @@ export default function ForgotPasswordPage() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-                                        تأكيد كلمة المرور الجديدة
+                                        {dict.forgotPassword.confirmPassword}
                                     </label>
                                     <input
                                         type={showPassword ? 'text' : 'password'}
@@ -317,7 +319,7 @@ export default function ForgotPasswordPage() {
                                 disabled={loading || !selectedMask || !fullPhone || !newPassword || !confirmPassword}
                                 className="w-full bg-primary hover:bg-primary-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
                             >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'تأكيد وحفظ'}
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : dict.forgotPassword.confirmSave}
                             </button>
                         </motion.form>
                     )}
@@ -327,7 +329,7 @@ export default function ForgotPasswordPage() {
                 {!success && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-8 text-center">
                         <Link href="/login" className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-semibold transition-colors text-sm">
-                            العودة لصفحة تسجيل الدخول
+                            {dict.forgotPassword.backToLogin}
                         </Link>
                     </motion.div>
                 )}

@@ -49,35 +49,11 @@ def _run_discovery_in_background(product_id):
 @receiver(post_save, sender='marketplace.Product')
 def trigger_agent_discovery(sender, instance, created, **kwargs):
     """
-    Trigger agent discovery for non-auction products when:
-    1. A NEW active, non-auction product is created with detected_item already set, OR
-    2. An existing product's detected_item is updated (YOLO runs after creation).
-    
-    Case 2 is the common path: ProductCreateSerializer creates the product first,
-    then runs YOLO classification, then calls product.save(update_fields=['detected_item']).
+    DISABLED — Agent now only works for AUCTIONS.
+    Non-auction (store) products are completely ignored by the agent.
+    Auction products are handled by run_auto_bidding in ProductCreateSerializer.
     """
-    if instance.status != 'active':
-        return
-
-    if instance.is_auction:
-        return  # Auctions are handled by run_auto_bidding
-
-    if not instance.detected_item:
-        return  # No YOLO classification = can't match agents
-
-    # Check update_fields to avoid infinite loops — only trigger when
-    # detected_item was actually part of the update (or on creation)
-    update_fields = kwargs.get('update_fields')
-    if not created and update_fields and 'detected_item' not in update_fields:
-        return  # Unrelated field update, skip
-
-    logger.info(f"[Marketplace/Signal] Product #{instance.id} detected as '{instance.detected_item}', triggering agent discovery")
-
-    # Run discovery SYNCHRONOUSLY for Vercel compatibility
-    try:
-        from marketplace.serializers import run_agent_discovery_async
-        run_agent_discovery_async(instance.id)
-    except Exception as e:
-        logger.error(f"[Marketplace/Signal] Discovery failed for product #{instance.id}: {e}")
-
+    # Agent discovery for non-auction products is disabled.
+    # All agent logic now runs only for auctions via run_auto_bidding.
+    return
 

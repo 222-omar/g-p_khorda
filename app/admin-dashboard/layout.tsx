@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Users, Package, LogOut, Settings, ArrowLeft } from 'lucide-react';
 import { authAPI } from '@/lib/api';
+import { useLanguage } from '@/components/providers/language-provider';
 
 const SidebarLink = ({ href, icon: Icon, label, active }: { href: string, icon: any, label: string, active: boolean }) => (
     <Link
@@ -20,6 +21,7 @@ const SidebarLink = ({ href, icon: Icon, label, active }: { href: string, icon: 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
+    const { dict, isRtl } = useLanguage();
 
     const handleLogout = () => {
         authAPI.logout();
@@ -28,7 +30,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     return (
         // Force dark mode context inside the admin layout
-        <div className="flex h-screen bg-slate-950 text-slate-100 font-sans" dir="rtl">
+        <div className={`flex h-screen bg-slate-950 text-slate-100 font-sans`} dir={isRtl ? 'rtl' : 'ltr'}>
             {/* Sidebar */}
             <aside className="w-64 border-l border-slate-800 bg-slate-900 flex flex-col h-full z-10 hidden md:flex">
                 <div className="p-6 border-b border-slate-800 flex items-center justify-center">
@@ -41,19 +43,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <SidebarLink
                         href="/admin-dashboard"
                         icon={LayoutDashboard}
-                        label="نظرة عامة"
+                        label={dict.adminDashboard.overview}
                         active={pathname === '/admin-dashboard' || pathname === '/admin-dashboard/'}
                     />
                     <SidebarLink
                         href="/admin-dashboard/users"
                         icon={Users}
-                        label="المستخدمين"
+                        label={dict.adminDashboard.users}
                         active={pathname.includes('/admin-dashboard/users')}
                     />
                     <SidebarLink
                         href="/admin-dashboard/products"
                         icon={Package}
-                        label="المنتجات"
+                        label={dict.adminDashboard.products}
                         active={pathname.includes('/admin-dashboard/products')}
                     />
                 </div>
@@ -64,7 +66,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
                     >
                         <LogOut className="w-5 h-5" />
-                        <span className="font-medium">تسجيل الخروج</span>
+                        <span className="font-medium">{dict.adminDashboard.logout}</span>
                     </button>
                 </div>
             </aside>
@@ -79,7 +81,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         </h1>
                     </div>
                     <div className="hidden md:block">
-                        <h2 className="text-lg font-semibold text-slate-100 tracking-tight">لوحة تحكم الإدارة</h2>
+                        <h2 className="text-lg font-semibold text-slate-100 tracking-tight">{dict.adminDashboard.controlPanel}</h2>
                     </div>
                 </header>
 

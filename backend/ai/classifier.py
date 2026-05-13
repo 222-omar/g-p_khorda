@@ -13,8 +13,7 @@ logger = logging.getLogger(__name__)
 # Path to the YOLO model
 MODEL_PATH = Path(__file__).resolve().parent.parent.parent / 'ai' / 'best.pt'
 
-# Map detected YOLO class names → Arabic category labels
-# NOTE: Variants like food_trip / "Food trip" and wardrobe / "Wardrobe" are ALL mapped.
+# Map detected YOLO class names (canonicalized) → Arabic category labels
 CATEGORY_MAP = {
     # ─── أثاث وديكور (Furniture & Decor) ───
     'bed': 'أثاث وديكور',
@@ -27,10 +26,8 @@ CATEGORY_MAP = {
     'sofa': 'أثاث وديكور',
     'table': 'أثاث وديكور',
     'wardrobe': 'أثاث وديكور',
-    'Wardrobe': 'أثاث وديكور',
-    'Dressing Table': 'أثاث وديكور',
+    'dressing_table': 'أثاث وديكور',
     'food_trip': 'أثاث وديكور',
-    'Food trip': 'أثاث وديكور',
     'safe': 'أثاث وديكور',
     'office': 'أثاث وديكور',
 
@@ -38,7 +35,6 @@ CATEGORY_MAP = {
     'laptop': 'الكترونيات واجهزه',
     'computer': 'الكترونيات واجهزه',
     'mobile_phone': 'الكترونيات واجهزه',
-    'phone': 'الكترونيات واجهزه',
     'tv': 'الكترونيات واجهزه',
     'camera': 'الكترونيات واجهزه',
     'headphone': 'الكترونيات واجهزه',
@@ -56,9 +52,7 @@ CATEGORY_MAP = {
     # ─── أجهزة منزلية (Home Appliances) ───
     'washing_machine': 'أجهزة منزلية',
     'fridge': 'أجهزة منزلية',
-    'refrigerator': 'أجهزة منزلية',
     'cooker': 'أجهزة منزلية',
-    'stove': 'أجهزة منزلية',
     'microwave': 'أجهزة منزلية',
     'blender': 'أجهزة منزلية',
     'ac_unit': 'أجهزة منزلية',
@@ -67,10 +61,8 @@ CATEGORY_MAP = {
     'water_heater': 'أجهزة منزلية',
     'iron': 'أجهزة منزلية',
     'vacuum_cleaner': 'أجهزة منزلية',
-    'vacuum cleaner': 'أجهزة منزلية',
     'water_filter': 'أجهزة منزلية',
     'gas_cylinder': 'أجهزة منزلية',
-    'gas_bottle': 'أجهزة منزلية',
     'freighter': 'أجهزة منزلية',
 
     # ─── خورده ومعادن (Scrap & Metals) ───
@@ -92,9 +84,6 @@ CATEGORY_MAP = {
     'book': 'كتب',
 }
 
-# Build case-insensitive lookup (lowercase key → original Arabic label)
-_CATEGORY_MAP_LOWER = {k.lower(): v for k, v in CATEGORY_MAP.items()}
-
 # Map Arabic category labels → Django model category IDs
 ARABIC_TO_CATEGORY_ID = {
     'أثاث وديكور': 'furniture',
@@ -113,13 +102,11 @@ YOLO_CLASS_LABELS = {
     'bed': 'سرير', 'chair': 'كرسي', 'cabinet': 'خزانة',
     'cupboard': 'دولاب', 'curtain': 'ستارة', 'lamp': 'لمبة / أباجورة',
     'mirror': 'مرآة', 'sofa': 'كنبة', 'table': 'طاولة / ترابيزة',
-    'wardrobe': 'دولاب ملابس', 'Wardrobe': 'دولاب ملابس',
-    'Dressing Table': 'تسريحة', 'food_trip': 'سفرة', 'Food trip': 'سفرة',
-    'safe': 'خزنة',
+    'wardrobe': 'دولاب ملابس', 'dressing_table': 'تسريحة', 
+    'food_trip': 'سفرة', 'safe': 'خزنة',
     # الكترونيات
     'laptop': 'لابتوب', 'computer': 'كمبيوتر',
-    'mobile_phone': 'موبايل', 'phone': 'موبايل',
-    'tv': 'تلفزيون', 'camera': 'كاميرا',
+    'mobile_phone': 'موبايل', 'tv': 'تلفزيون', 'camera': 'كاميرا',
     'headphone': 'سماعات', 'airpods': 'سماعات إيربودز',
     'speaker': 'سبيكر', 'receiver': 'رسيفر',
     'router': 'راوتر', 'printer': 'طابعة',
@@ -127,15 +114,12 @@ YOLO_CLASS_LABELS = {
     'controller': 'دراعة تحكم', 'ps_console': 'بلايستيشن',
     'pc_case': 'كيسة كمبيوتر',
     # أجهزة منزلية
-    'washing_machine': 'غسالة', 'fridge': 'ثلاجة', 'refrigerator': 'ثلاجة',
-    'cooker': 'بوتاجاز', 'stove': 'بوتاجاز',
-    'microwave': 'ميكروويف', 'blender': 'خلاط',
+    'washing_machine': 'غسالة', 'fridge': 'ثلاجة', 
+    'cooker': 'بوتاجاز', 'microwave': 'ميكروويف', 'blender': 'خلاط',
     'ac_unit': 'تكييف', 'fan': 'مروحة',
     'heater': 'دفاية', 'water_heater': 'سخان مياه',
-    'iron': 'مكواة',
-    'vacuum_cleaner': 'مكنسة كهربائية', 'vacuum cleaner': 'مكنسة كهربائية',
-    'water_filter': 'فلتر مياه',
-    'gas_cylinder': 'أنبوبة غاز', 'gas_bottle': 'أنبوبة غاز',
+    'iron': 'مكواة', 'vacuum_cleaner': 'مكنسة كهربائية', 
+    'water_filter': 'فلتر مياه', 'gas_cylinder': 'أنبوبة غاز', 
     'freighter': 'ديب فريزر',
     # خردة
     'korda': 'خردة', 'scrap_metal': 'خردة معادن',
@@ -149,20 +133,31 @@ YOLO_CLASS_LABELS = {
     'book': 'كتاب',
 }
 
+def normalize_class(class_name: str) -> str:
+    """Normalize YOLO raw class to a unified canonical key."""
+    if not class_name:
+        return 'other'
+    
+    key = class_name.strip().lower().replace(' ', '_')
+    
+    # Merge duplicates and synonyms
+    unified = {
+        'refrigerator': 'fridge',
+        'stove': 'cooker',
+        'gas_bottle': 'gas_cylinder',
+        'phone': 'mobile_phone',
+    }
+    
+    return unified.get(key, key)
+
 
 def get_available_targets():
     """
     Return a list of all YOLO classes the agent can target,
     grouped by their Arabic category, for the frontend dropdown.
-    Deduplicates variant names (e.g. wardrobe/Wardrobe → one entry).
     """
     targets = []
-    seen = set()  # track lowercase keys to avoid duplicates
     for class_name, arabic_category in CATEGORY_MAP.items():
-        key = class_name.lower().replace(' ', '_')
-        if key in seen:
-            continue
-        seen.add(key)
         label = YOLO_CLASS_LABELS.get(class_name, class_name)
         targets.append({
             'id': class_name,
@@ -203,11 +198,7 @@ def guess_item_from_text(text: str) -> str:
 
 def _lookup_category(class_name: str):
     """Case-insensitive category lookup. Returns Arabic label or None."""
-    # Try exact match first
-    if class_name in CATEGORY_MAP:
-        return CATEGORY_MAP[class_name]
-    # Try case-insensitive
-    return _CATEGORY_MAP_LOWER.get(class_name.lower())
+    return CATEGORY_MAP.get(class_name)
 
 
 def classify_image(image_path: str) -> dict:
@@ -337,30 +328,32 @@ def classify_image(image_path: str) -> dict:
             raw_val = data[0]
             best_class = str(raw_val).strip() if not isinstance(raw_val, dict) else "other"
 
-        print(f"[AI] [SEARCH] Hugging Face API returned YOLO class: '{best_class}'")
+        normalized_class = normalize_class(best_class)
 
-        arabic_label = _lookup_category(best_class)
+        print(f"[AI] [SEARCH] Hugging Face API returned YOLO class: '{best_class}' -> Normalized: '{normalized_class}'")
+
+        arabic_label = _lookup_category(normalized_class)
 
         if not arabic_label:
-            logger.warning(f"Unknown class predicted: {best_class}")
+            logger.warning(f"Unknown class predicted: {normalized_class}")
             # Try fuzzy match
             for k in CATEGORY_MAP.keys():
-                if k.lower() in best_class.lower():
+                if k in normalized_class:
                     arabic_label = CATEGORY_MAP[k]
-                    best_class = k
+                    normalized_class = k
                     break
 
             if not arabic_label:
                 return fallback
 
         category_id = ARABIC_TO_CATEGORY_ID.get(arabic_label, 'other')
-        print(f"[AI] [OK] Result: '{best_class}' -> ({category_id})")
+        print(f"[AI] [OK] Result: '{normalized_class}' -> ({category_id})")
 
         return {
             'category': category_id,
             'category_label': arabic_label,
             'confidence': 0.95,
-            'detected_class': best_class,
+            'detected_class': normalized_class,
         }
 
     except requests.exceptions.Timeout:

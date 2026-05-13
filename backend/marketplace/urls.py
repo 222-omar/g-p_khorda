@@ -22,6 +22,8 @@ from .views import (
     notifications_list,
     notifications_mark_read,
     notifications_unread_count,
+    notifications_delete_all,
+    notification_respond,
     admin_products_list,
     admin_review_product,
     admin_users_list,
@@ -71,6 +73,8 @@ urlpatterns = [
     path('notifications/', notifications_list, name='notifications-list'),
     path('notifications/mark-read/', notifications_mark_read, name='notifications-mark-read'),
     path('notifications/unread-count/', notifications_unread_count, name='notifications-unread-count'),
+    path('notifications/delete-all/', notifications_delete_all, name='notifications-delete-all'),
+    path('notifications/<int:notification_id>/respond/', notification_respond, name='notification-respond'),
     
     # Admin Dashboard API (IsAdminRole protected)
     path('admin-api/products/', admin_products_list, name='admin-products'),

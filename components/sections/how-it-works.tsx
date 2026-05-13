@@ -3,43 +3,46 @@
 import { motion } from 'framer-motion';
 import { Search, ShieldCheck, Handshake, Rocket } from 'lucide-react';
 import { staggerContainer, staggerItem } from '@/lib/animations';
-
-const steps = [
-    {
-        icon: Search,
-        number: '01',
-        title: 'تصفح المنتجات',
-        desc: 'اكتشف آلاف الإعلانات المتنوعة في مختلف الفئات بحث ذكي وسريع.',
-        color: 'from-blue-400 to-blue-600',
-        shadow: 'shadow-blue-500/25',
-    },
-    {
-        icon: ShieldCheck,
-        number: '02',
-        title: 'تحقق من البائع',
-        desc: 'اطلع على تقييمات البائع ودرجة الموثوقية قبل اتخاذ قرار الشراء.',
-        color: 'from-emerald-400 to-emerald-600',
-        shadow: 'shadow-emerald-500/25',
-    },
-    {
-        icon: Handshake,
-        number: '03',
-        title: 'تواصل وتفاوض',
-        desc: 'تواصل مباشرة مع البائع عبر المراسلة الفورية وتفاوض على أفضل سعر.',
-        color: 'from-orange-400 to-orange-600',
-        shadow: 'shadow-orange-500/25',
-    },
-    {
-        icon: Rocket,
-        number: '04',
-        title: 'أتمم الصفقة',
-        desc: 'ادفع بأمان واستلم منتجك بكل ثقة واطمئنان.',
-        color: 'from-purple-400 to-purple-600',
-        shadow: 'shadow-purple-500/25',
-    },
-];
+import { useLanguage } from '@/components/providers/language-provider';
 
 export function HowItWorks() {
+    const { dict } = useLanguage();
+
+    const steps = [
+        {
+            icon: Search,
+            number: '01',
+            title: dict.howItWorks.step1Title,
+            desc: dict.howItWorks.step1Desc,
+            color: 'from-blue-400 to-blue-600',
+            shadow: 'shadow-blue-500/25',
+        },
+        {
+            icon: ShieldCheck,
+            number: '02',
+            title: dict.howItWorks.step2Title,
+            desc: dict.howItWorks.step2Desc,
+            color: 'from-emerald-400 to-emerald-600',
+            shadow: 'shadow-emerald-500/25',
+        },
+        {
+            icon: Handshake,
+            number: '03',
+            title: dict.howItWorks.step3Title,
+            desc: dict.howItWorks.step3Desc,
+            color: 'from-orange-400 to-orange-600',
+            shadow: 'shadow-orange-500/25',
+        },
+        {
+            icon: Rocket,
+            number: '04',
+            title: dict.howItWorks.step4Title,
+            desc: dict.howItWorks.step4Desc,
+            color: 'from-purple-400 to-purple-600',
+            shadow: 'shadow-purple-500/25',
+        },
+    ];
+
     return (
         <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white dark:bg-[#0a0c10] relative overflow-hidden">
             
@@ -58,20 +61,20 @@ export function HowItWorks() {
                 >
                     <motion.div variants={staggerItem} className="inline-block">
                         <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[11px] font-bold tracking-widest uppercase mb-6 font-tajawal shadow-sm">
-                            رحلتك معنا تبدأ هنا
+                            {dict.howItWorks.badge}
                         </span>
                     </motion.div>
                     <motion.h2 
                         variants={staggerItem}
                         className="font-noto-kufi text-3xl md:text-5xl font-black text-slate-900 dark:text-white leading-[1.2] mb-6"
                     >
-                        خطوات بسيطة <span className="text-primary">لهدفك</span>
+                        {dict.howItWorks.title} <span className="text-primary">{dict.howItWorks.titleHighlight}</span>
                     </motion.h2>
                     <motion.p 
                         variants={staggerItem}
                         className="font-tajawal text-base md:text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed"
                     >
-                        رحلة تبدأ بضغطة زر وتنتهي بصفقة ناجحة ومضمونة
+                        {dict.howItWorks.subtitle}
                     </motion.p>
                 </motion.div>
 

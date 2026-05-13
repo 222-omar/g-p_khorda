@@ -256,46 +256,30 @@ def run_auto_bidding_async(auction_id, detected_item):
 
 def run_auto_bidding(auction, detected_item):
     """
-    Core auto-bidding logic. Called after a new auction is created.
+    Agent discovery for auctions. Called after a new auction is created.
     
-    1. Find all active UserAgents targeting this detected_item.
-    2. Filter out the seller's own agents and agents with budget < starting_bid.
-    3. If one agent: place a bid at the starting_bid.
-    4. If multiple agents: simulate a bidding war.
-       - Sort agents by max_budget descending.
-       - Winner pays: min(winner_budget, second_highest_budget + increment).
-    5. Create Bid records, update the Auction, and notify winners.
+    Instead of placing bids automatically, this now:
+    1. Finds matching active UserAgents for the detected_item.
+    2. Evaluates each agent's requirements via LLM.
+    3. Sends a 'bid_approval' notification with suggested bid amount.
+    4. The user must approve the notification to place the actual bid.
     """
     from decimal import Decimal
-    
-    # Dynamic bid increment: 5% of current bid (min 50, max 500 EGP)
-    def calc_increment(current):
-        inc = max(Decimal('50.00'), min(current * Decimal('0.05'), Decimal('500.00')))
-        return inc.quantize(Decimal('1.00'))  # Round to nearest pound
-    
-    BID_INCREMENT = calc_increment(auction.current_bid)
     
     seller = auction.product.owner
     starting_bid = auction.starting_bid
     
-    # Find matching active agents (exclude seller and the current leader)
-    # They must have budget >= (current_bid + increment) to outbid the leader.
-    min_required_budget = auction.current_bid + BID_INCREMENT
-    if auction.highest_bidder is None:
-        min_required_budget = starting_bid
-
+    # Find matching active agents (exclude seller)
     potential_agents = list(
         UserAgent.objects.filter(
             target_item=detected_item,
             is_active=True,
-            max_budget__gte=min_required_budget
+            max_budget__gte=starting_bid
         ).exclude(user=seller)
-         .exclude(user=auction.highest_bidder) # Don't bid against yourself
          .select_related('user')
     )
     
-    # Filter out agents already notified about this product (bid or rejection)
-    # This prevents duplicate LLM calls and notifications on every loop cycle
+    # Filter out agents already notified about this product
     already_notified_user_ids = set(
         Notification.objects.filter(
             related_product=auction.product,
@@ -309,7 +293,6 @@ def run_auto_bidding(auction, detected_item):
     
     # --- LLM Evaluation Step ---
     from ai.agent_graph import smart_agent_evaluator
-    matching_agents = []
     product = auction.product
     
     for agent in potential_agents:
@@ -330,204 +313,50 @@ def run_auto_bidding(auction, detected_item):
 
             if is_match:
                 logger.info(f"[AgentGraph] MATCH: {reason}")
-                # Store reasoning on the agent object temporarily for notification
                 agent._ai_reasoning = reason
-                agent._ai_decision_type = decision_type
-                matching_agents.append(agent)
+                _send_bid_approval_notification(agent, auction, starting_bid, detected_item)
             else:
                 logger.info(f"[AgentGraph] REJECT ({decision_type}): {reason}")
-                # Send a rejection notification so the user knows why it didn't bid
                 _notify_agent_rejection(agent, product, reason, decision_type)
         else:
             # No specific requirements, automatically match
             agent._ai_reasoning = f"المنتج طابق الفئة المطلوبة — السعر {product.price} جنيه في حدود ميزانيتك {agent.max_budget} جنيه ✅"
-            agent._ai_decision_type = 'matched'
-            matching_agents.append(agent)
-            
-    # Sort agents by budget for the bidding war logic
-    matching_agents.sort(key=lambda a: a.max_budget, reverse=True)
-    # ---------------------------
-
-    if not matching_agents:
-        logger.info(f"[Agent] No matching agents for '{detected_item}'")
-        return
-    
-    logger.info(f"[Agent] 🤖 Found {len(matching_agents)} true matching agent(s) for '{detected_item}'")
-    
-    if len(matching_agents) == 1:
-        # Single agent — place bid at starting price
-        agent = matching_agents[0]
-        bid_amount = starting_bid
-        
-        # ── Wallet balance check ──
-        try:
-            agent_profile = agent.user.profile
-        except UserProfile.DoesNotExist:
-            logger.info(f"[Agent] ⛔ {agent.user.username} has no profile, skipping")
-            return
-        
-        if agent_profile.wallet_balance < bid_amount:
-            logger.info(f"[Agent] ⛔ {agent.user.username} insufficient balance ({agent_profile.wallet_balance} < {bid_amount})")
-            _notify_agent_insufficient_balance(agent, auction, bid_amount)
-            return
-        
-        # Hold funds
-        agent_profile.wallet_balance -= bid_amount
-        agent_profile.save(update_fields=['wallet_balance'])
-        WalletTransaction.objects.create(
-            user=agent.user,
-            transaction_type='bid_hold',
-            amount=bid_amount,
-            balance_after=agent_profile.wallet_balance,
-            description=f'حجز مزايدة وكيل ذكي: "{auction.product.title}"',
-            related_auction=auction,
-        )
-        # ─────────────────────────
-        
-        bid = Bid.objects.create(
-            auction=auction,
-            bidder=agent.user,
-            amount=bid_amount
-        )
-        auction.current_bid = bid_amount
-        auction.highest_bidder = agent.user
-        auction.save(update_fields=['current_bid', 'highest_bidder'])
-        
-        _notify_agent_bid(agent, auction, bid_amount, detected_item)
-        logger.info(f"[Agent] ✅ Single agent {agent.user.username} bid {bid_amount}")
-    
-    else:
-        # Multiple agents — simulate bidding war
-        # Agents are sorted by max_budget DESC
-        winner = matching_agents[0]
-        runner_up = matching_agents[1]
-        
-        # Winner pays just enough to beat the runner-up
-        winning_bid = min(
-            winner.max_budget,
-            runner_up.max_budget + BID_INCREMENT
-        )
-        
-        # ── Notify ALL losing agents (3rd place and below) ──
-        # These agents matched the product but lost the bidding war
-        for loser in matching_agents[2:]:
-            _notify_agent_bid(loser, auction, loser.max_budget, detected_item, outbid=True)
-            logger.info(f"[Agent] 📢 Notified losing agent {loser.user.username} (budget {loser.max_budget})")
-        # ─────────────────────────────────────────────────────
-        
-        # ── Wallet balance checks ──
-        # Runner-up bid
-        runner_up_bid_amount = runner_up.max_budget
-        try:
-            runner_up_profile = runner_up.user.profile
-            if runner_up_profile.wallet_balance >= runner_up_bid_amount:
-                runner_up_profile.wallet_balance -= runner_up_bid_amount
-                runner_up_profile.save(update_fields=['wallet_balance'])
-                WalletTransaction.objects.create(
-                    user=runner_up.user,
-                    transaction_type='bid_hold',
-                    amount=runner_up_bid_amount,
-                    balance_after=runner_up_profile.wallet_balance,
-                    description=f'حجز مزايدة وكيل ذكي: "{auction.product.title}"',
-                    related_auction=auction,
-                )
-                Bid.objects.create(
-                    auction=auction,
-                    bidder=runner_up.user,
-                    amount=runner_up_bid_amount
-                )
-                _notify_agent_bid(runner_up, auction, runner_up_bid_amount, detected_item, outbid=True)
-            else:
-                logger.info(f"[Agent] ⛔ Runner-up {runner_up.user.username} insufficient balance")
-                _notify_agent_insufficient_balance(runner_up, auction, runner_up_bid_amount)
-        except UserProfile.DoesNotExist:
-            pass
-        
-        # Winner bid
-        try:
-            winner_profile = winner.user.profile
-            if winner_profile.wallet_balance >= winning_bid:
-                winner_profile.wallet_balance -= winning_bid
-                winner_profile.save(update_fields=['wallet_balance'])
-                WalletTransaction.objects.create(
-                    user=winner.user,
-                    transaction_type='bid_hold',
-                    amount=winning_bid,
-                    balance_after=winner_profile.wallet_balance,
-                    description=f'حجز مزايدة وكيل ذكي: "{auction.product.title}"',
-                    related_auction=auction,
-                )
-                Bid.objects.create(
-                    auction=auction,
-                    bidder=winner.user,
-                    amount=winning_bid
-                )
-                auction.current_bid = winning_bid
-                auction.highest_bidder = winner.user
-                auction.save(update_fields=['current_bid', 'highest_bidder'])
-                _notify_agent_bid(winner, auction, winning_bid, detected_item)
-                logger.info(
-                    f"[Agent] ✅ Bidding war: {winner.user.username} wins at {winning_bid} "
-                    f"(beat {runner_up.user.username} at {runner_up_bid_amount})"
-                )
-            else:
-                logger.info(f"[Agent] ⛔ Winner {winner.user.username} insufficient balance")
-                _notify_agent_insufficient_balance(winner, auction, winning_bid)
-        except UserProfile.DoesNotExist:
-            pass
-        # ─────────────────────────
+            _send_bid_approval_notification(agent, auction, starting_bid, detected_item)
 
 
-def _notify_agent_bid(agent, auction, amount, detected_item, outbid=False):
-    """Send a notification + chat message to the agent owner about a bid."""
+def _send_bid_approval_notification(agent, auction, suggested_amount, detected_item):
+    """Send a bid_approval notification asking the user to approve/reject bidding."""
     from ai.classifier import YOLO_CLASS_LABELS
     
     item_label = YOLO_CLASS_LABELS.get(detected_item, detected_item)
     product = auction.product
     reasoning = getattr(agent, '_ai_reasoning', '')
     
-    if outbid:
-        title = f"🤖 الوكيل خسر المزايدة على: {product.title}"
-        message = (
-            f"الوكيل الذكي بتاعك زايد بمبلغ {amount} جنيه على \"{product.title}\" ({item_label}) "
-            f"لكن فيه مزايد تاني كسب بمبلغ أعلى.\n"
-            f"ميزانيتك القصوى: {agent.max_budget} جنيه."
-        )
-    else:
-        title = f"✅ الوكيل زايد بنجاح على: {product.title}"
-        message = (
-            f"الوكيل الذكي بتاعك حطّ مزايدة بقيمة {amount} جنيه "
-            f"على \"{product.title}\" ({item_label}).\n"
-            f"سعر المنتج: {product.price} جنيه | ميزانيتك: {agent.max_budget} جنيه"
-        )
+    title = f"🔔 الوكيل لقيلك منتج مناسب: {product.title[:60]}"
+    message = (
+        f"الوكيل الذكي بتاعك لقى \"{product.title}\" ({item_label}) "
+        f"في مزاد بسعر بداية {auction.starting_bid} جنيه.\n"
+        f"المبلغ المقترح للمزايدة: {suggested_amount} جنيه\n"
+        f"ميزانيتك القصوى: {agent.max_budget} جنيه\n\n"
+        f"عايز تزايد على المنتج ده؟"
+    )
     
-    # Add AI reasoning to the visible message
     if reasoning:
-        message += f"\n\n📋 سبب القرار: {reasoning}"
+        message += f"\n\n📋 تحليل الوكيل: {reasoning}"
     
-    # Create notification record
     Notification.objects.create(
         user=agent.user,
         title=title,
         message=message,
         related_product=product,
-        reasoning=reasoning
+        related_auction=auction,
+        reasoning=reasoning,
+        notification_type='bid_approval',
+        is_approved=None,
+        suggested_bid=suggested_amount,
     )
     
-    # Also send a chat message via the existing Conversation system
-    try:
-        conversation, _ = Conversation.objects.get_or_create(
-            product=product,
-            buyer=agent.user,
-            defaults={'seller': product.owner}
-        )
-        Message.objects.create(
-            conversation=conversation,
-            sender=product.owner,
-            content=f"🤖 {message}"
-        )
-    except Exception as e:
-        logger.error(f"[Agent] Failed to send chat notification: {e}")
+    logger.info(f"[Agent] 📩 Sent bid approval request to {agent.user.username} for '{product.title}' (suggested: {suggested_amount})")
 
 def _notify_agent_rejection(agent, product, reason, decision_type=''):
     """Notify the user that their agent matched the category but was rejected by LLM."""
@@ -616,18 +445,14 @@ def agent_counter_bid_async(auction_id, manual_bidder_id):
 def agent_counter_bid(auction, manual_bidder):
     """
     Called AFTER a manual bid is placed.
-    Find active agents targeting this product's detected item and
-    auto-counter-bid, as long as max_budget and wallet balance allow.
-    
-    TOKEN OPTIMIZATION: If the agent already has a bid on this auction,
-    skip LLM evaluation (already proven match). This saves ~500 tokens
-    per counter-bid cycle.
+    Instead of auto-counter-bidding, sends bid_approval notifications
+    to matching agents so the user can decide whether to counter-bid.
     """
     product = auction.product
     detected_item = product.detected_item
 
     if not detected_item:
-        return  # Product was never classified by YOLO
+        return
 
     # Find active agents for this item, excluding the manual bidder and the seller
     potential_agents = list(
@@ -641,26 +466,43 @@ def agent_counter_bid(auction, manual_bidder):
     if not potential_agents:
         return
 
-    # --- Smart LLM Evaluation (with caching) ---
-    from ai.agent_graph import smart_agent_evaluator
-    matching_agents = []
-    
-    # Check which agents already bid on this auction (proven matches)
-    agents_with_bids = set(
-        Bid.objects.filter(
-            auction=auction,
-            bidder__in=[a.user for a in potential_agents]
-        ).values_list('bidder_id', flat=True)
+    # Filter out agents that already have a pending approval notification for this auction
+    already_notified_user_ids = set(
+        Notification.objects.filter(
+            related_auction=auction,
+            notification_type='bid_approval',
+            is_approved=None,  # Still pending
+            user__in=[a.user for a in potential_agents]
+        ).values_list('user_id', flat=True)
     )
-    
+    potential_agents = [a for a in potential_agents if a.user_id not in already_notified_user_ids]
+
+    if not potential_agents:
+        return
+
+    # Calculate the counter-bid amount
+    counter_amount = auction.current_bid + _calc_bid_increment(auction.current_bid)
+
+    from ai.agent_graph import smart_agent_evaluator
+
     for agent in potential_agents:
-        # If agent already bid → skip LLM (already proven match, save tokens)
-        if agent.user_id in agents_with_bids:
-            logger.info(f"[Agent] ⚡ {agent.user.username} already bid → skip LLM (token saved)")
-            matching_agents.append(agent)
+        if counter_amount > agent.max_budget:
+            logger.info(
+                f"[Agent] ⛔ {agent.user.username}'s budget ({agent.max_budget}) "
+                f"can't cover counter-bid ({counter_amount})"
+            )
             continue
+
+        # Check if agent already bid (proven match — skip LLM)
+        already_bid = Bid.objects.filter(auction=auction, bidder=agent.user).exists()
         
-        # First time seeing this product → run LLM evaluation
+        if already_bid:
+            # Already proven match, send counter-bid approval directly
+            agent._ai_reasoning = ''
+            _send_bid_approval_notification(agent, auction, counter_amount, detected_item)
+            continue
+
+        # First time — run LLM evaluation
         if agent.requirements_prompt.strip():
             eval_result = smart_agent_evaluator.invoke({
                 "product_title": product.title,
@@ -670,82 +512,19 @@ def agent_counter_bid(auction, manual_bidder):
                 "agent_max_budget": str(agent.max_budget),
                 "agent_requirements": agent.requirements_prompt,
             })
-            if eval_result.get("is_match"):
-                matching_agents.append(agent)
+            is_match = eval_result.get("is_match", False) if isinstance(eval_result, dict) else getattr(eval_result, 'is_match', False)
+            reason = eval_result.get("reason", "") if isinstance(eval_result, dict) else getattr(eval_result, 'reason', '')
+            decision_type = eval_result.get("decision_type", "") if isinstance(eval_result, dict) else getattr(eval_result, 'decision_type', '')
+            
+            if is_match:
+                agent._ai_reasoning = reason
+                _send_bid_approval_notification(agent, auction, counter_amount, detected_item)
             else:
-                reason = eval_result.get("reason", "")
-                decision_type = eval_result.get("decision_type", "")
                 logger.info(f"[Agent] ❌ {agent.user.username} rejected by LLM ({decision_type}): {reason}")
                 _notify_agent_rejection(agent, product, reason, decision_type)
         else:
-            matching_agents.append(agent)
-    # ---------------------------
-
-    for agent in matching_agents:
-        counter_amount = auction.current_bid + _calc_bid_increment(auction.current_bid)
-
-        if counter_amount > agent.max_budget:
-            logger.info(
-                f"[Agent] ⛔ {agent.user.username}'s agent can't counter-bid "
-                f"({counter_amount} > budget {agent.max_budget})"
-            )
-            _notify_agent_bid(agent, auction, auction.current_bid, detected_item, outbid=True)
-            continue
-
-        # ── Wallet balance check + hold ──
-        try:
-            agent_profile = agent.user.profile
-        except UserProfile.DoesNotExist:
-            continue
-        
-        # Refund any previous held bid for this auction
-        prev_bid = Bid.objects.filter(auction=auction, bidder=agent.user).order_by('-amount').first()
-        if prev_bid:
-            agent_profile.wallet_balance += prev_bid.amount
-            WalletTransaction.objects.create(
-                user=agent.user,
-                transaction_type='bid_refund',
-                amount=prev_bid.amount,
-                balance_after=agent_profile.wallet_balance,
-                description=f'استرداد مزايدة سابقة (وكيل ذكي): "{product.title}"',
-                related_auction=auction,
-            )
-        
-        if agent_profile.wallet_balance < counter_amount:
-            logger.info(f"[Agent] ⛔ {agent.user.username} insufficient balance for counter-bid")
-            _notify_agent_insufficient_balance(agent, auction, counter_amount)
-            if prev_bid:
-                agent_profile.save(update_fields=['wallet_balance'])
-            continue
-        
-        # Hold the counter-bid amount
-        agent_profile.wallet_balance -= counter_amount
-        agent_profile.save(update_fields=['wallet_balance'])
-        WalletTransaction.objects.create(
-            user=agent.user,
-            transaction_type='bid_hold',
-            amount=counter_amount,
-            balance_after=agent_profile.wallet_balance,
-            description=f'حجز مزايدة وكيل ذكي: "{product.title}"',
-            related_auction=auction,
-        )
-        # ─────────────────────────────────
-
-        # Place the counter-bid
-        Bid.objects.create(
-            auction=auction,
-            bidder=agent.user,
-            amount=counter_amount
-        )
-        auction.current_bid = counter_amount
-        auction.highest_bidder = agent.user
-        auction.save(update_fields=['current_bid', 'highest_bidder'])
-
-        logger.info(
-            f"[Agent] 🤖 {agent.user.username}'s agent counter-bid "
-            f"{counter_amount} on '{product.title}'"
-        )
-        _notify_agent_bid(agent, auction, counter_amount, detected_item)
+            agent._ai_reasoning = f"المنتج طابق الفئة المطلوبة — السعر الحالي {auction.current_bid} جنيه في حدود ميزانيتك {agent.max_budget} جنيه ✅"
+            _send_bid_approval_notification(agent, auction, counter_amount, detected_item)
 
 
 # ──────────────────────────────────────────────────────────────
@@ -1071,8 +850,17 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Notification
-        fields = ['id', 'title', 'message', 'reasoning', 'is_read', 'related_product', 'product_title', 'created_at']
-        read_only_fields = ['id', 'title', 'message', 'reasoning', 'related_product', 'created_at']
+        fields = [
+            'id', 'title', 'message', 'reasoning', 'is_read',
+            'related_product', 'product_title', 'related_auction',
+            'notification_type', 'is_approved', 'suggested_bid',
+            'created_at'
+        ]
+        read_only_fields = [
+            'id', 'title', 'message', 'reasoning',
+            'related_product', 'related_auction',
+            'notification_type', 'suggested_bid', 'created_at'
+        ]
 
 
 # ──────────────────────────────────────────────────────────────
@@ -1080,127 +868,17 @@ class NotificationSerializer(serializers.ModelSerializer):
 # ──────────────────────────────────────────────────────────────
 
 def run_agent_discovery_async(product_id):
-    """Wrapper to run agent discovery in a background thread."""
-    try:
-        product = Product.objects.get(id=product_id)
-        run_agent_discovery(product)
-    except Exception as e:
-        logger.error(f"[AgentDiscovery] Async error: {e}")
-    finally:
-        connection.close()
+    """Agent discovery for non-auction products is DISABLED.
+    The agent now only works for auctions."""
+    logger.info(f"[AgentDiscovery] DISABLED — agent only works for auctions. Skipping product #{product_id}.")
+    return
 
 
 def run_agent_discovery(product):
-    """
-    Check if any active UserAgents match a newly created direct-sale product.
-    If so, evaluate using the LLM and send a notification to the agent owner.
-
-    This is the non-auction counterpart of run_auto_bidding.
-    Instead of placing bids, it sends discovery notifications.
-    """
-    detected_item = product.detected_item
-    if not detected_item:
-        return
-
-    # Only process non-auction, active products
-    if product.is_auction or product.status != 'active':
-        return
-
-    seller = product.owner
-
-    # Find matching active agents (exclude seller's own agents)
-    potential_agents = list(
-        UserAgent.objects.filter(
-            target_item=detected_item,
-            is_active=True,
-        ).exclude(user=seller)
-         .select_related('user')
-    )
-
-    if not potential_agents:
-        return
-
-    # Filter out agents already notified about this product
-    already_notified_user_ids = set(
-        Notification.objects.filter(
-            related_product=product,
-            user__in=[a.user for a in potential_agents]
-        ).values_list('user_id', flat=True)
-    )
-    potential_agents = [a for a in potential_agents if a.user_id not in already_notified_user_ids]
-
-    if not potential_agents:
-        return
-
-    logger.info(f"[AgentDiscovery] Found {len(potential_agents)} potential agent(s) for '{detected_item}' on product #{product.id}")
-
-    # LLM Evaluation
-    from ai.agent_graph import smart_agent_evaluator
-
-    for agent in potential_agents:
-        try:
-            if agent.requirements_prompt.strip():
-                eval_result = smart_agent_evaluator.invoke({
-                    "product_title": product.title,
-                    "product_desc": product.description,
-                    "product_condition": product.condition,
-                    "product_price": str(product.price),
-                    "agent_max_budget": str(agent.max_budget),
-                    "agent_requirements": agent.requirements_prompt,
-                })
-
-                reason = eval_result.get("reason", "") if isinstance(eval_result, dict) else getattr(eval_result, 'reason', '')
-                is_match = eval_result.get("is_match", False) if isinstance(eval_result, dict) else getattr(eval_result, 'is_match', False)
-                decision_type = eval_result.get("decision_type", "") if isinstance(eval_result, dict) else getattr(eval_result, 'decision_type', '')
-
-                if not is_match:
-                    logger.info(f"[AgentDiscovery] REJECT ({decision_type}) for {agent.user.username}: {reason}")
-                    _notify_agent_rejection(agent, product, reason, decision_type)
-                    continue
-            else:
-                reason = f"المنتج طابق الفئة المطلوبة — السعر {product.price} جنيه في حدود ميزانيتك {agent.max_budget} جنيه ✅"
-
-            # Match found — send discovery notification
-            from ai.classifier import YOLO_CLASS_LABELS
-            item_label = YOLO_CLASS_LABELS.get(detected_item, detected_item)
-
-            title = f"🤖 الوكيل الذكي وجد منتج جديد يناسبك!"
-            message = (
-                f"الوكيل الذكي بتاعك لقى \"{product.title}\" ({item_label}) "
-                f"بسعر {product.price} جنيه في {product.location}. "
-                f"روح شوفه وتواصل مع البائع! ✅"
-            )
-
-            if reason:
-                message += f"\n\nسبب التوصية: {reason}"
-
-            Notification.objects.create(
-                user=agent.user,
-                title=title,
-                message=message,
-                related_product=product,
-                reasoning=reason,
-            )
-
-            # Also send a chat message
-            try:
-                conversation, _ = Conversation.objects.get_or_create(
-                    product=product,
-                    buyer=agent.user,
-                    defaults={'seller': product.owner}
-                )
-                Message.objects.create(
-                    conversation=conversation,
-                    sender=product.owner,
-                    content=f"🤖 {message}"
-                )
-            except Exception as e:
-                logger.error(f"[AgentDiscovery] Failed to send chat notification: {e}")
-
-            logger.info(f"[AgentDiscovery] ✅ Notified {agent.user.username} about product #{product.id}")
-
-        except Exception as e:
-            logger.error(f"[AgentDiscovery] Error evaluating agent {agent.user.username}: {e}")
+    """DISABLED — The agent now only works for auctions.
+    Non-auction products are ignored completely."""
+    logger.info(f"[AgentDiscovery] DISABLED — agent only works for auctions. Skipping product #{product.id}.")
+    return
 
 
 class OrderSerializer(serializers.ModelSerializer):

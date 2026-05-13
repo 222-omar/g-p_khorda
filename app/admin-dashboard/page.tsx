@@ -94,7 +94,7 @@ export default function AdminOverviewPage() {
 
             {/* Pending Products Alert */}
             {!loading && stats.pending_products > 0 && (
-                <Link href="/admin-dashboard/products">
+                <Link href="/admin-dashboard/products" className="mt-6 block">
                     <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-2xl p-5 flex items-center justify-between cursor-pointer hover:border-amber-500/60 transition-all group">
                         <div className="flex items-center gap-4">
                             <div className="p-3 rounded-xl bg-amber-500/20 text-amber-400 group-hover:scale-110 transition-transform">
@@ -102,9 +102,9 @@ export default function AdminOverviewPage() {
                             </div>
                             <div>
                                 <p className="text-amber-200 font-bold text-lg">
-                                    {stats.pending_products} {stats.pending_products === 1 ? '\u0645\u0646\u062a\u062c \u064a\u0646\u062a\u0638\u0631' : '\u0645\u0646\u062a\u062c\u0627\u062a \u062a\u0646\u062a\u0638\u0631'} \u0627\u0644\u0645\u0631\u0627\u062c\u0639\u0629
+                                    {stats.pending_products} {stats.pending_products === 1 ? 'منتج ينتظر' : 'منتجات تنتظر'} المراجعة
                                 </p>
-                                <p className="text-amber-400/60 text-sm">\u0627\u0636\u063a\u0637 \u0647\u0646\u0627 \u0644\u0645\u0631\u0627\u062c\u0639\u0629 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0627\u0644\u0645\u0639\u0644\u0642\u0629</p>
+                                <p className="text-amber-400/60 text-sm">اضغط هنا لمراجعة المنتجات المعلقة</p>
                             </div>
                         </div>
                         <div className="text-amber-400 group-hover:translate-x-1 transition-transform text-2xl">&#8592;</div>

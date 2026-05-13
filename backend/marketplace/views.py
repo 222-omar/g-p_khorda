@@ -235,7 +235,11 @@ class ProductViewSet(viewsets.ModelViewSet):
             except Exception:
                 pass
             if not is_admin:
-                queryset = queryset.filter(models.Q(status='active') | models.Q(owner=user))
+                if self.action == 'retrieve':
+                    # Allow seeing sold products on detail view
+                    queryset = queryset.filter(models.Q(status__in=['active', 'sold']) | models.Q(owner=user))
+                else:
+                    queryset = queryset.filter(models.Q(status='active') | models.Q(owner=user))
 
         # Filter by price range
         min_price = self.request.query_params.get('min_price')
@@ -417,6 +421,19 @@ class AuctionViewSet(viewsets.ReadOnlyModelViewSet):
         close_expired_auctions()
         
         queryset = super().get_queryset()
+        
+        # Only show auctions for approved (active or sold) products to normal users
+        user = self.request.user
+        if not user.is_authenticated:
+            queryset = queryset.filter(product__status__in=['active', 'sold'])
+        else:
+            is_admin = False
+            try:
+                is_admin = user.is_staff or getattr(user.profile, 'role', '') == 'admin'
+            except Exception:
+                pass
+            if not is_admin:
+                queryset = queryset.filter(models.Q(product__status__in=['active', 'sold']) | models.Q(product__owner=user))
         
         # Only filter active auctions if explicitly requested
         active_only = self.request.query_params.get('active_only', 'false')
@@ -992,6 +1009,180 @@ def notifications_unread_count(request):
     """Get unread notification count"""
     count = Notification.objects.filter(user=request.user, is_read=False).count()
     return Response({'unread_count': count})
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def notifications_delete_all(request):
+    """Delete all notifications for the current user"""
+    Notification.objects.filter(user=request.user).delete()
+    return Response({'status': 'ok'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def notification_respond(request, notification_id):
+    """
+    User approves or rejects a bid suggestion from their agent.
+    POST /api/notifications/<id>/respond/
+    Body: { "action": "approve" | "reject" }
+    """
+    from django.db import transaction as db_transaction
+
+    notif = get_object_or_404(Notification, id=notification_id, user=request.user)
+
+    # Validate notification type
+    if notif.notification_type != 'bid_approval':
+        return Response({'error': 'هذا الإشعار مش من نوع طلب موافقة'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Already responded
+    if notif.is_approved is not None:
+        action_label = 'وافقت' if notif.is_approved else 'رفضت'
+        return Response({'error': f'أنت {action_label} على الإشعار ده قبل كده'}, status=status.HTTP_400_BAD_REQUEST)
+
+    action = request.data.get('action')
+    if action not in ('approve', 'reject'):
+        return Response({'error': 'الإجراء لازم يكون approve أو reject'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if action == 'reject':
+        notif.is_approved = False
+        notif.is_read = True
+        notif.save(update_fields=['is_approved', 'is_read'])
+        return Response({'status': 'rejected', 'message': 'تم رفض المزايدة'})
+
+    # ── APPROVE: Place the bid ──
+    auction = notif.related_auction
+    product = notif.related_product
+
+    if not auction:
+        return Response({'error': 'المزاد مش موجود'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not auction.is_active:
+        notif.is_approved = False
+        notif.save(update_fields=['is_approved'])
+        return Response({'error': 'المزاد انتهى خلاص'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if auction.end_time < timezone.now():
+        auction.is_active = False
+        auction.save(update_fields=['is_active'])
+        notif.is_approved = False
+        notif.save(update_fields=['is_approved'])
+        return Response({'error': 'المزاد انتهى خلاص'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Determine bid amount: use suggested_bid, but ensure it's > current_bid
+    bid_amount = notif.suggested_bid
+    if bid_amount is None or bid_amount <= auction.current_bid:
+        from .serializers import _calc_bid_increment
+        bid_amount = auction.current_bid + _calc_bid_increment(auction.current_bid)
+
+    # Can't bid on your own product
+    if product and product.owner == request.user:
+        return Response({'error': 'لا يمكنك المزايدة على مزادك الخاص'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        with db_transaction.atomic():
+            # Re-lock auction
+            auction = (
+                Auction.objects
+                .select_for_update()
+                .get(id=auction.id)
+            )
+
+            if not auction.is_active or auction.end_time < timezone.now():
+                notif.is_approved = False
+                notif.save(update_fields=['is_approved'])
+                return Response({'error': 'المزاد انتهى خلاص'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Ensure bid > current
+            if bid_amount <= auction.current_bid:
+                from .serializers import _calc_bid_increment
+                bid_amount = auction.current_bid + _calc_bid_increment(auction.current_bid)
+
+            # Lock user profile
+            profile = (
+                UserProfile.objects
+                .select_for_update()
+                .get(user=request.user)
+            )
+
+            # Refund previous bid on this auction if any
+            previous_bid = (
+                Bid.objects
+                .filter(auction=auction, bidder=request.user)
+                .order_by('-amount')
+                .first()
+            )
+            needed = bid_amount - previous_bid.amount if previous_bid else bid_amount
+
+            if profile.wallet_balance < needed:
+                return Response({
+                    'error': f'رصيدك غير كافي للمزايدة. رصيدك: {profile.wallet_balance} جنيه، والمطلوب: {needed} جنيه.',
+                    'insufficient_balance': True,
+                    'current_balance': float(profile.wallet_balance),
+                    'required': float(needed),
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Refund previous bid
+            if previous_bid:
+                profile.wallet_balance += previous_bid.amount
+                WalletTransaction.objects.create(
+                    user=request.user,
+                    transaction_type='bid_refund',
+                    amount=previous_bid.amount,
+                    balance_after=profile.wallet_balance,
+                    description=f'استرداد مزايدة سابقة: "{auction.product.title}"',
+                    related_auction=auction,
+                )
+
+            # Hold new bid
+            profile.wallet_balance -= bid_amount
+            profile.save(update_fields=['wallet_balance'])
+            WalletTransaction.objects.create(
+                user=request.user,
+                transaction_type='bid_hold',
+                amount=bid_amount,
+                balance_after=profile.wallet_balance,
+                description=f'حجز مزايدة (موافقة وكيل ذكي): "{auction.product.title}"',
+                related_auction=auction,
+            )
+
+            # Create bid
+            bid = Bid.objects.create(
+                auction=auction,
+                bidder=request.user,
+                amount=bid_amount,
+            )
+
+            # Update auction
+            auction.current_bid = bid_amount
+            auction.highest_bidder = request.user
+            auction.save(update_fields=['current_bid', 'highest_bidder'])
+
+            # Mark notification as approved
+            notif.is_approved = True
+            notif.is_read = True
+            notif.save(update_fields=['is_approved', 'is_read'])
+
+    except Auction.DoesNotExist:
+        return Response({'error': 'المزاد غير موجود'}, status=status.HTTP_404_NOT_FOUND)
+    except UserProfile.DoesNotExist:
+        return Response({'error': 'الملف الشخصي غير موجود'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Create a success notification
+    Notification.objects.create(
+        user=request.user,
+        title=f'✅ تم المزايدة بنجاح على: {auction.product.title}',
+        message=f'وافقت على مزايدة الوكيل الذكي بمبلغ {bid_amount} جنيه على "{auction.product.title}".',
+        related_product=auction.product,
+        related_auction=auction,
+        notification_type='info',
+    )
+
+    return Response({
+        'status': 'approved',
+        'bid_amount': float(bid_amount),
+        'message': f'تم المزايدة بنجاح بمبلغ {bid_amount} جنيه',
+    })
 
 
 # ──────────────────────────────────────────────────────────────

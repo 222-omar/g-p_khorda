@@ -121,23 +121,26 @@ export function Navbar() {
   }, [pathname]);
 
   const navLinks = [
-    { name: 'الرئيسية',       href: '#home' },
-    { name: 'الفئات',         href: '#categories' },
-    { name: 'كيف يعمل؟',     href: '#how-it-works' },
-    { name: 'لماذا 4Sale؟',  href: '#why-us' },
-    { name: 'الأسئلة الشائعة', href: '#faq' },
+    { name: dict.nav.home,       href: '#home' },
+    { name: dict.nav.categories, href: '#categories' },
+    { name: dict.nav.howItWorks, href: '#how-it-works' },
+    { name: dict.nav.whyUs,      href: '#why-us' },
+    { name: dict.nav.faqLink,    href: '#faq' },
   ];
+
+  const unreadCount = notifications.filter((n: any) => !n.is_read).length;
+  const pendingAgentApprovals = notifications.filter((n: any) => n.notification_type === 'bid_approval' && n.is_approved === null).length;
 
   const appLinks = [
     { name: dict.nav.shop,       href: '/dashboard', icon: <LayoutDashboard size={16} /> },
     { name: dict.nav.auctions,   href: '/auctions',  icon: <Gavel size={16} /> },
-    { name: 'البحث بالصورة',     href: '/visual-search', icon: <Search size={16} /> },
+    { name: dict.nav.visualSearch, href: '/visual-search', icon: <Search size={16} /> },
     ...(user ? [
-      { name: 'الوكيل الذكي', href: '/agent',  icon: <Bot size={16} /> },
-      { name: 'الرسائل',      href: '/messages', icon: <MessageCircle size={16} />, badge: unreadMessages }
+      { name: dict.nav.smartAgent, href: '/agent',  icon: <Bot size={16} />, badge: pendingAgentApprovals },
+      { name: dict.nav.messagesLink, href: '/messages', icon: <MessageCircle size={16} />, badge: unreadMessages }
     ] : []),
     ...(isAdmin ? [
-      { name: 'لوحة الإدارة', href: '/admin-dashboard', icon: <Shield size={16} />, color: 'text-amber-600' }
+      { name: dict.nav.adminPanel, href: '/admin-dashboard', icon: <Shield size={16} />, color: 'text-amber-600' }
     ] : []),
   ];
 
@@ -150,8 +153,6 @@ export function Navbar() {
   const fullUserName = user?.user?.first_name
     ? `${user.user.first_name} ${user.user.last_name || ''}`.trim()
     : user?.user?.username?.split('@')[0] || '';
-    
-  const unreadCount = notifications.filter((n: any) => !n.is_read).length;
 
   return (
     <>
@@ -285,13 +286,13 @@ export function Navbar() {
                               className="absolute top-full mt-2 left-0 w-80 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden z-[110]"
                             >
                               <div className="p-4 border-b border-slate-100 dark:border-slate-700 font-tajawal font-bold text-slate-800 dark:text-white flex items-center justify-between">
-                                الإشعارات
+                                {dict.nav.notifications}
                                 {unreadCount > 0 && (
                                   <button
                                     onClick={handleMarkNotificationsRead}
                                     className="text-[10px] bg-primary/10 text-primary px-2.5 py-1 rounded-full hover:bg-primary/20 transition-colors cursor-pointer"
                                   >
-                                    تعليم الكل كمقروء ({unreadCount})
+                                    {dict.nav.markAllRead} ({unreadCount})
                                   </button>
                                 )}
                               </div>
@@ -307,12 +308,12 @@ export function Navbar() {
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="p-6 text-center text-sm text-slate-500">لا توجد إشعارات حالياً</div>
+                                    <div className="p-6 text-center text-sm text-slate-500">{dict.nav.noNotifications}</div>
                                 )}
                               </div>
                               <Link href="/agent" onClick={() => setNotificationsOpen(false)}>
                                 <div className="p-3 text-center text-[12px] font-bold text-primary hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors">
-                                  عرض كل الإشعارات →
+                                  {dict.nav.viewAll} →
                                 </div>
                               </Link>
                             </motion.div>
@@ -334,7 +335,7 @@ export function Navbar() {
                           )}
                         </div>
                         <div className="hidden xl:flex flex-col text-right">
-                          <span className="font-tajawal text-[10px] text-slate-400 leading-none mb-0.5">أهلاً بك</span>
+                          <span className="font-tajawal text-[10px] text-slate-400 leading-none mb-0.5">{dict.nav.greeting}</span>
                           <span className="font-tajawal text-[14px] font-bold text-slate-800 dark:text-white leading-none">
                             {fullUserName}
                           </span>
@@ -458,7 +459,7 @@ export function Navbar() {
                           className="w-10 h-10 rounded-full border-2 border-primary/25 object-cover"
                         />
                         <div className="flex flex-col">
-                          <span className="font-tajawal text-[11px] text-slate-400 leading-none">أهلاً بك</span>
+                          <span className="font-tajawal text-[11px] text-slate-400 leading-none">{dict.nav.greeting}</span>
                           <span className="font-tajawal text-[14px] font-bold text-slate-800 dark:text-white leading-none">{fullUserName}</span>
                         </div>
                       </Link>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
@@ -10,8 +10,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Bot, Plus, Trash2, Power, PowerOff, Loader2, Bell,
     Target, Wallet, ChevronDown, CheckCircle2, XCircle, Sparkles,
-    BarChart3
+    BarChart3, X, CheckCheck, Trash, ThumbsUp, ThumbsDown, ExternalLink
 } from 'lucide-react';
+import { useLanguage } from '@/components/providers/language-provider';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface AgentTarget {
@@ -38,6 +39,11 @@ interface Notification {
     reasoning?: string;
     is_read: boolean;
     product_title: string | null;
+    related_product: number | null;
+    related_auction: number | null;
+    notification_type: 'info' | 'bid_approval';
+    is_approved: boolean | null;
+    suggested_bid: string | null;
     created_at: string;
 }
 
@@ -45,6 +51,7 @@ interface Notification {
 export default function AgentPage() {
     const { user, loading: authLoading } = useAuth();
     const router = useRouter();
+    const { dict, isRtl, locale } = useLanguage();
 
     // State
     const [agents, setAgents] = useState<UserAgent[]>([]);
@@ -53,12 +60,26 @@ export default function AgentPage() {
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
     const [showForm, setShowForm] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const notifRef = useRef<HTMLDivElement>(null);
 
     // Form state
     const [selectedTarget, setSelectedTarget] = useState('');
     const [maxBudget, setMaxBudget] = useState('');
     const [requirementsPrompt, setRequirementsPrompt] = useState('');
     const [formError, setFormError] = useState('');
+    const [respondingId, setRespondingId] = useState<number | null>(null);
+
+    // Close notifications dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+                setShowNotifications(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Load data
     useEffect(() => {
@@ -114,7 +135,7 @@ export default function AgentPage() {
             setShowForm(false);
             await loadData();
         } catch (err: any) {
-            setFormError(err.message || 'حصل خطأ');
+            setFormError(err.message || 'Error');
         } finally {
             setCreating(false);
         }
@@ -152,7 +173,41 @@ export default function AgentPage() {
         }
     };
 
+    // Delete all notifications
+    const handleDeleteAll = async () => {
+        try {
+            await notificationsAPI.deleteAll();
+            setNotifications([]);
+        } catch (err) {
+            console.error('Delete all failed:', err);
+        }
+    };
+
     const unreadCount = notifications.filter(n => !n.is_read).length;
+    const pendingApprovals = notifications.filter(n => n.notification_type === 'bid_approval' && n.is_approved === null).length;
+
+    // Handle approve/reject notification
+    const handleRespond = async (notifId: number, action: 'approve' | 'reject') => {
+        try {
+            setRespondingId(notifId);
+            const result = await notificationsAPI.respond(notifId, action);
+            // Update local state
+            setNotifications(prev =>
+                prev.map(n =>
+                    n.id === notifId
+                        ? { ...n, is_approved: action === 'approve', is_read: true }
+                        : n
+                )
+            );
+            // Reload to get any new success notification
+            await loadData();
+        } catch (err: any) {
+            console.error('Respond failed:', err);
+            alert(err.message || 'حصل خطأ');
+        } finally {
+            setRespondingId(null);
+        }
+    };
 
     if (authLoading || !user) {
         return (
@@ -172,20 +227,184 @@ export default function AgentPage() {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-center mb-10"
+                        className="mb-10"
                     >
-                        <div className="inline-flex items-center gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-6 py-3 rounded-2xl mb-4 shadow-sm">
-                            <Bot size={28} className="text-primary" />
-                            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-3">
-                                الوكيل الذكي
-                                <span className="relative flex h-3 w-3">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-                                </span>
-                            </h1>
+                        <div className="flex items-center justify-between">
+                            <div className="flex-1" />
+                            <div className="inline-flex items-center gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-6 py-3 rounded-2xl shadow-sm">
+                                <Bot size={28} className="text-primary" />
+                                <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">{dict.agent.title}</h1>
+                            </div>
+                            {/* Bell Icon with dropdown */}
+                            <div className="flex-1 flex justify-end">
+                                <div className="relative" ref={notifRef}>
+                                    <button
+                                        onClick={() => setShowNotifications(!showNotifications)}
+                                        className={`relative p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm ${pendingApprovals > 0 ? 'ring-2 ring-violet-400 dark:ring-violet-500' : ''}`}
+                                    >
+                                        <Bell size={22} className={`${pendingApprovals > 0 ? 'text-violet-500' : 'text-slate-600 dark:text-slate-300'}`} />
+                                        {pendingApprovals > 0 ? (
+                                            <span className="absolute -top-1 -right-1 bg-violet-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-pulse">
+                                                {pendingApprovals}
+                                            </span>
+                                        ) : unreadCount > 0 ? (
+                                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-pulse">
+                                                {unreadCount}
+                                            </span>
+                                        ) : null}
+                                    </button>
+
+                                    {/* Notifications Dropdown */}
+                                    <AnimatePresence>
+                                        {showNotifications && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                                                transition={{ duration: 0.15 }}
+                                                className="absolute left-0 sm:right-0 sm:left-auto top-full mt-2 w-[340px] sm:w-96 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                                            >
+                                                {/* Dropdown Header */}
+                                                <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                                                    <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                                                        <Bell size={16} className="text-primary" />
+                                                        الإشعارات
+                                                        {unreadCount > 0 && (
+                                                            <span className="bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{unreadCount}</span>
+                                                        )}
+                                                    </h3>
+                                                    <div className="flex items-center gap-1">
+                                                        {unreadCount > 0 && (
+                                                            <button onClick={handleMarkAllRead} title="تعليم الكل مقروء" className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-emerald-600 transition-colors">
+                                                                <CheckCheck size={16} />
+                                                            </button>
+                                                        )}
+                                                        {notifications.length > 0 && (
+                                                            <button onClick={handleDeleteAll} title="حذف الكل" className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 hover:text-red-500 transition-colors">
+                                                                <Trash size={16} />
+                                                            </button>
+                                                        )}
+                                                        <button onClick={() => setShowNotifications(false)} className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 transition-colors">
+                                                            <X size={16} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Dropdown Body */}
+                                                <div className="max-h-80 overflow-y-auto">
+                                                    {notifications.length === 0 ? (
+                                                        <div className="py-10 text-center text-slate-400 text-sm">
+                                                            <Bell size={28} className="mx-auto mb-2 opacity-30" />
+                                                            مفيش إشعارات
+                                                        </div>
+                                                    ) : (
+                                                        notifications.map((notif) => {
+                                                            const isSuccess = notif.title.includes('✅') || notif.title.includes('بنجاح');
+                                                            const isRejection = notif.title.includes('تخطى');
+                                                            const isBudget = notif.title.includes('⛔') || notif.title.includes('رصيد');
+                                                            const isBidApproval = notif.notification_type === 'bid_approval' && notif.is_approved === null;
+                                                            const wasApproved = notif.notification_type === 'bid_approval' && notif.is_approved === true;
+                                                            const wasRejected = notif.notification_type === 'bid_approval' && notif.is_approved === false;
+
+                                                            let icon = '🤖';
+                                                            let accent = 'border-transparent';
+                                                            if (isBidApproval) { icon = '🔔'; accent = 'border-violet-400 dark:border-violet-600'; }
+                                                            else if (wasApproved) { icon = '✅'; accent = 'border-emerald-300 dark:border-emerald-700'; }
+                                                            else if (wasRejected) { icon = '❌'; accent = 'border-slate-300 dark:border-slate-600'; }
+                                                            else if (isSuccess) { icon = '✅'; accent = 'border-emerald-300 dark:border-emerald-700'; }
+                                                            else if (isRejection) { icon = '⚠️'; accent = 'border-amber-300 dark:border-amber-700'; }
+                                                            else if (isBudget) { icon = '⛔'; accent = 'border-red-300 dark:border-red-700'; }
+
+                                                            return (
+                                                                <div key={notif.id} className={`p-3.5 border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors border-r-[3px] ${accent} ${!notif.is_read ? 'bg-primary/[0.03]' : ''}`}>
+                                                                    <div className="flex items-start gap-2.5">
+                                                                        <span className="text-base mt-0.5">{icon}</span>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <p className={`text-sm font-bold text-slate-800 dark:text-slate-200 ${!notif.is_read ? '' : 'opacity-70'}`}>
+                                                                                {notif.title}
+                                                                            </p>
+                                                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed whitespace-pre-wrap">{notif.message}</p>
+                                                                            
+                                                                            {/* Product link for bid_approval notifications */}
+                                                                            {notif.related_product && notif.notification_type === 'bid_approval' && (
+                                                                                <a
+                                                                                    href={`/product/${notif.related_product}`}
+                                                                                    className="inline-flex items-center gap-1 mt-2 text-xs font-bold text-primary hover:text-primary-700 transition-colors"
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                >
+                                                                                    <ExternalLink size={12} />
+                                                                                    شوف صفحة المنتج
+                                                                                </a>
+                                                                            )}
+
+                                                                            {/* Suggested bid amount */}
+                                                                            {isBidApproval && notif.suggested_bid && (
+                                                                                <div className="mt-2 px-3 py-1.5 bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 rounded-lg">
+                                                                                    <span className="text-xs font-bold text-violet-700 dark:text-violet-300">
+                                                                                        💰 المبلغ المقترح: {Number(notif.suggested_bid).toLocaleString()} جنيه
+                                                                                    </span>
+                                                                                </div>
+                                                                            )}
+
+                                                                            {/* Approve / Reject buttons */}
+                                                                            {isBidApproval && (
+                                                                                <div className="flex items-center gap-2 mt-3">
+                                                                                    <button
+                                                                                        onClick={(e) => { e.stopPropagation(); handleRespond(notif.id, 'approve'); }}
+                                                                                        disabled={respondingId === notif.id}
+                                                                                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
+                                                                                    >
+                                                                                        {respondingId === notif.id ? (
+                                                                                            <Loader2 size={14} className="animate-spin" />
+                                                                                        ) : (
+                                                                                            <ThumbsUp size={14} />
+                                                                                        )}
+                                                                                        موافق أزايد
+                                                                                    </button>
+                                                                                    <button
+                                                                                        onClick={(e) => { e.stopPropagation(); handleRespond(notif.id, 'reject'); }}
+                                                                                        disabled={respondingId === notif.id}
+                                                                                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
+                                                                                    >
+                                                                                        <ThumbsDown size={14} />
+                                                                                        لا شكراً
+                                                                                    </button>
+                                                                                </div>
+                                                                            )}
+
+                                                                            {/* Show approval status for already responded */}
+                                                                            {wasApproved && (
+                                                                                <div className="mt-2 flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                                                                    <CheckCircle2 size={14} />
+                                                                                    تمت الموافقة والمزايدة
+                                                                                </div>
+                                                                            )}
+                                                                            {wasRejected && (
+                                                                                <div className="mt-2 flex items-center gap-1 text-xs font-bold text-slate-400">
+                                                                                    <XCircle size={14} />
+                                                                                    تم الرفض
+                                                                                </div>
+                                                                            )}
+
+                                                                            <p className="text-[10px] text-slate-400 mt-1.5">
+                                                                                {new Date(notif.created_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                                            </p>
+                                                                        </div>
+                                                                        {!notif.is_read && <span className="w-2 h-2 bg-primary rounded-full mt-1.5 shrink-0" />}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            </div>
                         </div>
-                        <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                            خلي الذكاء الاصطناعي يزايد نيابة عنك! اختار الحاجة اللي بتدور عليها وحدد ميزانيتك وسيبه عليه 🤖
+                        <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto text-center mt-4">
+                            {dict.agent.desc} 🤖
                         </p>
                     </motion.div>
 
@@ -223,7 +442,7 @@ export default function AgentPage() {
                                 className="w-full mb-6 bg-primary hover:bg-primary-700 text-white shadow-md shadow-primary/20 py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
                             >
                                 <Plus size={22} className="text-white" />
-                                إضافة وكيل جديد
+                                {dict.agent.add}
                             </motion.button>
 
                             {/* Create Form */}
@@ -238,14 +457,14 @@ export default function AgentPage() {
                                         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-lg">
                                             <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-slate-800 dark:text-slate-200">
                                                 <Sparkles size={20} className="text-primary" />
-                                                وكيل جديد
+                                                {dict.agent.newAgent}
                                             </h3>
 
                                             {/* Target Selection */}
                                             <div className="mb-4">
                                                 <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-2">
                                                     <Target size={14} className="inline ml-1" />
-                                                    الحاجة المستهدفة
+                                                    {dict.agent.target}
                                                 </label>
                                                 <div className="relative">
                                                     <select
@@ -253,10 +472,10 @@ export default function AgentPage() {
                                                         onChange={(e) => setSelectedTarget(e.target.value)}
                                                         className="w-full border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm bg-white dark:bg-slate-700 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 appearance-none cursor-pointer transition-all"
                                                     >
-                                                        <option value="">اختر الحاجة اللي بتدور عليها...</option>
+                                                        <option value="">{dict.agent.selectTarget}</option>
                                                         {targets.map((t) => (
                                                             <option key={t.id} value={t.id}>
-                                                                {t.label}
+                                                                {isRtl ? t.label_ar : t.label}
                                                             </option>
                                                         ))}
                                                     </select>
@@ -268,13 +487,13 @@ export default function AgentPage() {
                                             <div className="mb-5">
                                                 <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-2">
                                                     <Wallet size={14} className="inline ml-1" />
-                                                    أقصى ميزانية (جنيه)
+                                                    {dict.agent.maxBudget}
                                                 </label>
                                                 <input
                                                     type="number"
                                                     value={maxBudget}
                                                     onChange={(e) => setMaxBudget(e.target.value)}
-                                                    placeholder="مثلاً: 5000"
+                                                    placeholder="5000"
                                                     min="1"
                                                     className="w-full border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm bg-white dark:bg-slate-700 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
                                                 />
@@ -283,12 +502,12 @@ export default function AgentPage() {
                                             {/* Requirements Prompt */}
                                             <div className="mb-5">
                                                 <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-2">
-                                                    مواصفات إضافية (اختياري)
+                                                    {dict.agent.requirements}
                                                 </label>
                                                 <textarea
                                                     value={requirementsPrompt}
                                                     onChange={(e) => setRequirementsPrompt(e.target.value)}
-                                                    placeholder="مثال: غسالة توشيبا فوق اوتوماتيك بحالة ممتازة ومفيهاش خدوش"
+                                                    placeholder={dict.agent.requirementsPlaceholder}
                                                     rows={3}
                                                     className="w-full border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm bg-white dark:bg-slate-700 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all resize-none"
                                                 />
@@ -315,13 +534,13 @@ export default function AgentPage() {
                                                     ) : (
                                                         <CheckCircle2 size={18} className="text-white" />
                                                     )}
-                                                    {creating ? 'جاري الإنشاء...' : 'إنشاء الوكيل'}
+                                                    {creating ? dict.agent.creating : dict.agent.create}
                                                 </motion.button>
                                                 <button
                                                     onClick={() => { setShowForm(false); setFormError(''); }}
                                                     className="px-5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
                                                 >
-                                                    إلغاء
+                                                    {dict.agent.cancel}
                                                 </button>
                                             </div>
                                         </div>
@@ -339,8 +558,8 @@ export default function AgentPage() {
                                     <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 2.5, repeat: Infinity }}>
                                         <Bot size={56} className="mx-auto text-slate-300 dark:text-slate-600" />
                                     </motion.div>
-                                    <p className="text-slate-600 dark:text-slate-400 text-lg font-bold mt-4">لسه مفيش وكلاء</p>
-                                    <p className="text-slate-500 dark:text-slate-500 text-sm mt-2 font-medium">اعمل وكيل جديد وخليه يشتغل بدالك!</p>
+                                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mt-4">{dict.agent.noAgents}</h3>
+                                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">{dict.agent.noAgentsDesc}</p>
                                 </motion.div>
                             ) : (
                                 <motion.div className="space-y-4">
@@ -368,11 +587,7 @@ export default function AgentPage() {
                                                         <div className="flex flex-wrap items-center gap-2 mt-3">
                                                             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-xl">
                                                                 <Wallet size={14} className="text-slate-400" />
-                                                                <span className="text-sm text-slate-700 dark:text-slate-300 font-bold pb-px">الميزانية: {Number(agent.max_budget).toLocaleString()} ج.م</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-xl">
-                                                                <Bot size={14} className="text-slate-400" />
-                                                                <span className="text-sm text-slate-700 dark:text-slate-300 font-bold pb-px">عدد السلع: ٣</span>
+                                                                <span className="text-sm text-slate-700 dark:text-slate-300 font-bold pb-px">{dict.agent.budget}: {Number(agent.max_budget).toLocaleString()}</span>
                                                             </div>
                                                             <span className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl ${agent.is_active
                                                                     ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20'
@@ -384,14 +599,14 @@ export default function AgentPage() {
                                                                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
                                                                           <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                                                         </span>
-                                                                        نشط حالياً
+                                                                        {dict.agent.active}
                                                                     </>
-                                                                ) : '⏸ موقف'}
+                                                                ) : dict.agent.paused}
                                                             </span>
                                                         </div>
                                                         {agent.requirements_prompt && (
                                                             <p className="text-sm text-slate-600 dark:text-slate-400 mt-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 p-4 rounded-xl break-words leading-relaxed shadow-inner">
-                                                                <span className="font-bold text-slate-900 dark:text-slate-300 text-xs block mb-1.5">مواصفات مطلوب مطابقتها:</span>
+                                                                <span className="font-bold text-slate-900 dark:text-slate-300 text-xs block mb-1.5">{dict.agent.requirementsLabel}:</span>
                                                                 {agent.requirements_prompt}
                                                             </p>
                                                         )}
@@ -403,13 +618,13 @@ export default function AgentPage() {
                                             <div className="flex items-center gap-2 w-full mt-6 pt-5 border-t border-slate-100 dark:border-slate-700">
                                                 <button className="flex-1 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold py-3 rounded-xl border border-slate-200 dark:border-slate-600 transition-all text-sm flex items-center justify-center gap-2">
                                                     <BarChart3 size={16} />
-                                                    إحصائيات كاملة
+                                                    {dict.agent.stats}
                                                 </button>
                                                 <motion.button
                                                     onClick={() => handleToggle(agent)}
                                                     whileHover={{ scale: 1.05 }}
                                                     whileTap={{ scale: 0.95 }}
-                                                    title={agent.is_active ? 'وقف الوكيل' : 'شغل الوكيل'}
+                                                    title={agent.is_active ? dict.agent.stop : dict.agent.start}
                                                     className={`p-3 rounded-xl border transition-colors ${agent.is_active
                                                             ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20'
                                                             : 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20'
@@ -421,7 +636,7 @@ export default function AgentPage() {
                                                     onClick={() => handleDelete(agent.id)}
                                                     whileHover={{ scale: 1.05 }}
                                                     whileTap={{ scale: 0.95 }}
-                                                    title="حذف الوكيل"
+                                                    title={dict.agent.delete}
                                                     className="p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
                                                 >
                                                     <Trash2 size={18} />
@@ -434,117 +649,6 @@ export default function AgentPage() {
                         </motion.div>
                     )}
 
-                    {/* ── NOTIFICATIONS SECTION ── */}
-                    {!loading && notifications.length > 0 && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
-                            className="mt-10"
-                        >
-                            <div className="flex items-center justify-between mb-5">
-                                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                                    <Bell size={22} className="text-primary" />
-                                    نشاط الوكيل
-                                    {unreadCount > 0 && (
-                                        <span className="bg-primary text-white text-xs font-bold px-2.5 py-1 rounded-full">
-                                            {unreadCount}
-                                        </span>
-                                    )}
-                                </h2>
-                                {unreadCount > 0 && (
-                                    <button
-                                        onClick={handleMarkAllRead}
-                                        className="text-sm text-primary hover:text-primary-700 font-bold transition-colors"
-                                    >
-                                        تعليم الكل كمقروء
-                                    </button>
-                                )}
-                            </div>
-
-                            <div className="space-y-3">
-                                {notifications.map((notif, idx) => {
-                                    // Detect notification type from title
-                                    const isSuccess = notif.title.includes('✅') || notif.title.includes('بنجاح');
-                                    const isRejection = notif.title.includes('تخطى');
-                                    const isBudgetIssue = notif.title.includes('⛔') || notif.title.includes('رصيد');
-                                    const isOutbid = notif.title.includes('خسر');
-                                    const isDiscovery = notif.title.includes('وجد منتج');
-
-                                    let borderColor = 'border-slate-200 dark:border-slate-700';
-                                    let bgColor = 'bg-white dark:bg-slate-800';
-                                    let iconBg = 'bg-slate-100 dark:bg-slate-700 text-slate-500';
-                                    let icon = '🤖';
-
-                                    if (isSuccess) {
-                                        borderColor = 'border-emerald-200 dark:border-emerald-500/20';
-                                        bgColor = 'bg-emerald-50/50 dark:bg-emerald-500/5';
-                                        iconBg = 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600';
-                                        icon = '✅';
-                                    } else if (isRejection) {
-                                        borderColor = 'border-amber-200 dark:border-amber-500/20';
-                                        bgColor = 'bg-amber-50/50 dark:bg-amber-500/5';
-                                        iconBg = 'bg-amber-100 dark:bg-amber-500/20 text-amber-600';
-                                        icon = notif.title.charAt(0) === '💰' ? '💰' : notif.title.charAt(0) === '📦' ? '📦' : notif.title.charAt(0) === '🏷' ? '🏷️' : '⚠️';
-                                    } else if (isBudgetIssue) {
-                                        borderColor = 'border-red-200 dark:border-red-500/20';
-                                        bgColor = 'bg-red-50/50 dark:bg-red-500/5';
-                                        iconBg = 'bg-red-100 dark:bg-red-500/20 text-red-600';
-                                        icon = '⛔';
-                                    } else if (isOutbid) {
-                                        borderColor = 'border-orange-200 dark:border-orange-500/20';
-                                        bgColor = 'bg-orange-50/50 dark:bg-orange-500/5';
-                                        iconBg = 'bg-orange-100 dark:bg-orange-500/20 text-orange-600';
-                                        icon = '🔔';
-                                    } else if (isDiscovery) {
-                                        borderColor = 'border-blue-200 dark:border-blue-500/20';
-                                        bgColor = 'bg-blue-50/50 dark:bg-blue-500/5';
-                                        iconBg = 'bg-blue-100 dark:bg-blue-500/20 text-blue-600';
-                                        icon = '🔍';
-                                    }
-
-                                    return (
-                                        <motion.div
-                                            key={notif.id}
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: idx * 0.04 }}
-                                            className={`${bgColor} rounded-xl border ${borderColor} p-4 shadow-sm transition-all ${!notif.is_read ? 'ring-2 ring-primary/20' : 'opacity-80'}`}
-                                        >
-                                            <div className="flex items-start gap-3">
-                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-lg ${iconBg}`}>
-                                                    {icon}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center justify-between gap-2">
-                                                        <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">
-                                                            {notif.title}
-                                                        </h4>
-                                                        <span className="text-xs text-slate-400 shrink-0">
-                                                            {new Date(notif.created_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed whitespace-pre-line">
-                                                        {notif.message}
-                                                    </p>
-                                                    {notif.product_title && !notif.message.includes(notif.product_title) && (
-                                                        <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-                                                            📦 {notif.product_title}
-                                                        </p>
-                                                    )}
-                                                    {!notif.is_read && (
-                                                        <span className="inline-block mt-2 text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                                                            جديد
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </motion.div>
-                                    );
-                                })}
-                            </div>
-                        </motion.div>
-                    )}
 
                 </div>
             </main>
