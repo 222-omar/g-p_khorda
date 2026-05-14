@@ -1356,7 +1356,9 @@ def wallet_topup_view(request):
         return Response({'error': 'الملف الشخصي غير موجود'}, status=status.HTTP_404_NOT_FOUND)
 
     return Response({
+        'status': 'success',
         'new_balance': float(profile.wallet_balance),
+        'amount_added': float(amount),
     })
 
 

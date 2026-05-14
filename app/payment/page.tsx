@@ -23,6 +23,8 @@ const TX_STYLES: Record<string, { icon: any; color: string; bg: string; sign: st
     bid_hold: { icon: TrendingDown, color: 'text-orange-500', bg: 'bg-orange-100 dark:bg-orange-900/30', sign: '-' },
     bid_refund: { icon: RefreshCcw, color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30', sign: '+' },
     bid_deduct: { icon: TrendingDown, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/30', sign: '-' },
+    purchase: { icon: TrendingDown, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/30', sign: '-' },
+    sale: { icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-900/30', sign: '+' },
 };
 
 export default function PaymentPage() {

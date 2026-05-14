@@ -137,9 +137,15 @@ export default function ProductPage() {
         try {
             await productsAPI.purchase(product.id);
             setPurchaseSuccess(true);
-            // Refresh product data
-            const updatedProduct = await productsAPI.get(params.id as string);
-            setProduct(updatedProduct);
+            // Refresh product data (non-critical — don't let this override success)
+            try {
+                const updatedProduct = await productsAPI.get(params.id as string);
+                setProduct(updatedProduct);
+            } catch {
+                // Product is now sold, the re-fetch may fail — that's OK
+                // Just update the local product state to reflect the sale
+                setProduct((prev: any) => prev ? { ...prev, status: 'sold' } : prev);
+            }
         } catch (err: any) {
             console.error('Error purchasing product:', err);
             if (err?.response?.data?.insufficient_balance) {
