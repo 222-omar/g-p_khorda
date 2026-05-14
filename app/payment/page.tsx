@@ -221,7 +221,7 @@ export default function PaymentPage() {
                                         <div>
                                             <p className="font-bold text-emerald-700 dark:text-emerald-300 text-sm">{dict.payment.success}</p>
                                             <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                                                +{success.amount.toLocaleString()} {dict.currency} → {isRtl ? 'الرصيد الجديد' : 'New balance'}: {success.newBalance.toLocaleString()} {dict.currency}
+                                                +{(success.amount || 0).toLocaleString()} {dict.currency} → {isRtl ? 'الرصيد الجديد' : 'New balance'}: {(success.newBalance || 0).toLocaleString()} {dict.currency}
                                             </p>
                                         </div>
                                     </motion.div>

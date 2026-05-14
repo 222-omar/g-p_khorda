@@ -235,11 +235,8 @@ class ProductViewSet(viewsets.ModelViewSet):
             except Exception:
                 pass
             if not is_admin:
-                if self.action == 'retrieve':
-                    # Allow seeing sold products on detail view
-                    queryset = queryset.filter(models.Q(status__in=['active', 'sold']) | models.Q(owner=user))
-                else:
-                    queryset = queryset.filter(models.Q(status='active') | models.Q(owner=user))
+                # Allow seeing active and sold products in both list and detail views
+                queryset = queryset.filter(models.Q(status__in=['active', 'sold']) | models.Q(owner=user))
 
         # Filter by price range
         min_price = self.request.query_params.get('min_price')
