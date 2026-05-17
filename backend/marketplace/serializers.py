@@ -60,12 +60,22 @@ class ProductImageSerializer(serializers.ModelSerializer):
 class BidSerializer(serializers.ModelSerializer):
     """Bid serializer with bidder info"""
     bidder_name = serializers.CharField(source='bidder.username', read_only=True)
-    bidder_avatar = serializers.ImageField(source='bidder.profile.avatar', read_only=True)
+    bidder_avatar = serializers.SerializerMethodField()
     
     class Meta:
         model = Bid
         fields = ['id', 'auction', 'bidder', 'bidder_name', 'bidder_avatar', 'amount', 'created_at']
         read_only_fields = ['id', 'created_at']
+
+    def get_bidder_avatar(self, obj):
+        """Safely return avatar URL — returns None if avatar is missing or broken."""
+        try:
+            avatar = obj.bidder.profile.avatar
+            if avatar and hasattr(avatar, 'url'):
+                return avatar.url
+        except Exception:
+            pass
+        return None
 
     def validate_amount(self, value):
         """Ensure bid amount is strictly greater than the auction's current bid."""

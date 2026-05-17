@@ -558,16 +558,39 @@ class AuctionViewSet(viewsets.ReadOnlyModelViewSet):
 
         except Auction.DoesNotExist:
             return Response({'error': 'المزاد غير موجود'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            import logging, traceback
+            logging.getLogger(__name__).error(
+                f"[place_bid] Atomic block crashed for auction {pk}: {e}\n{traceback.format_exc()}"
+            )
+            return Response(
+                {'error': 'حدث خطأ أثناء تنفيذ المزايدة. الرجاء المحاولة مرة أخرى.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         # ── Agent Counter-Bid (outside atomic — non-critical) ──
-        from .serializers import agent_counter_bid
         try:
+            from .serializers import agent_counter_bid
             agent_counter_bid(auction, request.user)
         except Exception as e:
             import logging
             logging.getLogger(__name__).error(f"[Agent] Counter-bid error: {e}")
 
-        return Response(BidSerializer(bid).data, status=status.HTTP_201_CREATED)
+        # ── Return bid data (safe serialization) ──
+        try:
+            return Response(BidSerializer(bid).data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"[place_bid] BidSerializer crashed: {e}")
+            # Fallback: return minimal bid data so the UI still sees success
+            return Response({
+                'id': bid.id,
+                'auction': bid.auction_id,
+                'bidder': bid.bidder_id,
+                'bidder_name': bid.bidder.username,
+                'amount': str(bid.amount),
+                'created_at': bid.created_at.isoformat() if bid.created_at else None,
+            }, status=status.HTTP_201_CREATED)
 
 
 class UserProfileViewSet(viewsets.ModelViewSet):
