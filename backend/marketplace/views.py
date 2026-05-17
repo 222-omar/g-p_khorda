@@ -467,7 +467,7 @@ class AuctionViewSet(viewsets.ReadOnlyModelViewSet):
                 auction = (
                     Auction.objects
                     .select_for_update()
-                    .select_related('product', 'product__owner', 'highest_bidder')
+                    .select_related('product', 'product__owner')
                     .get(id=auction_id)
                 )
 
@@ -560,12 +560,11 @@ class AuctionViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({'error': 'المزاد غير موجود'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             import logging, traceback
-            tb = traceback.format_exc()
             logging.getLogger(__name__).error(
-                f"[place_bid] Atomic block crashed for auction {pk}: {e}\n{tb}"
+                f"[place_bid] Atomic block crashed for auction {pk}: {e}\n{traceback.format_exc()}"
             )
             return Response(
-                {'error': f'خطأ في المزايدة: {type(e).__name__}: {str(e)}', 'debug_traceback': tb},
+                {'error': 'حدث خطأ أثناء تنفيذ المزايدة. الرجاء المحاولة مرة أخرى.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
