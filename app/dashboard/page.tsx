@@ -410,7 +410,7 @@ export default function DashboardPage() {
                                                 viewport={{ once: true }}
                                                 className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5"
                                             >
-                                                {nonAuctionProducts.slice(0, INITIAL_FEATURED).map((p) => (
+                                                {nonAuctionProducts.filter(p => !isOwnerOf(p)).slice(0, INITIAL_FEATURED).map((p) => (
                                                     <motion.div key={p.id} variants={staggerItem}>
                                                         <FeaturedCard
                                                             product={toCard(p)}
