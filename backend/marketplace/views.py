@@ -235,8 +235,12 @@ class ProductViewSet(viewsets.ModelViewSet):
             except Exception:
                 pass
             if not is_admin:
-                # Allow seeing active and sold products in both list and detail views
-                queryset = queryset.filter(models.Q(status__in=['active', 'sold']) | models.Q(owner=user))
+                if self.action == 'list':
+                    # List view: only active products, exclude user's own products
+                    queryset = queryset.filter(status='active').exclude(owner=user)
+                else:
+                    # Detail/retrieve: allow active + sold + user's own (pending)
+                    queryset = queryset.filter(models.Q(status__in=['active', 'sold']) | models.Q(owner=user))
 
         # Filter by price range
         min_price = self.request.query_params.get('min_price')
@@ -419,18 +423,25 @@ class AuctionViewSet(viewsets.ReadOnlyModelViewSet):
         
         queryset = super().get_queryset()
         
-        # Only show auctions for approved (active or sold) products to normal users
         user = self.request.user
         if not user.is_authenticated:
-            queryset = queryset.filter(product__status__in=['active', 'sold'])
+            if self.action == 'list':
+                queryset = queryset.filter(product__status='active')
+            else:
+                queryset = queryset.filter(product__status__in=['active', 'sold'])
         else:
             is_admin = False
             try:
                 is_admin = user.is_staff or getattr(user.profile, 'role', '') == 'admin'
             except Exception:
                 pass
+            
             if not is_admin:
-                queryset = queryset.filter(models.Q(product__status__in=['active', 'sold']) | models.Q(product__owner=user))
+                if self.action == 'list':
+                    # Hide sold auctions and own auctions from listings
+                    queryset = queryset.filter(product__status='active').exclude(product__owner=user)
+                else:
+                    queryset = queryset.filter(models.Q(product__status__in=['active', 'sold']) | models.Q(product__owner=user))
         
         # Only filter active auctions if explicitly requested
         active_only = self.request.query_params.get('active_only', 'false')
