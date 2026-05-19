@@ -52,3 +52,4 @@ media/
 venv/
 env/
 ENV/
+.venv/

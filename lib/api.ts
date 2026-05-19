@@ -6,17 +6,17 @@ const getApiBase = (): string => {
     if (process.env.NEXT_PUBLIC_API_URL) {
         return process.env.NEXT_PUBLIC_API_URL;
     }
-    // On Vercel production, use the Render backend service route directly
-    if (typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app')) {
-        return 'https://four-sale-backend.onrender.com/api';
+
+    // Use the Next.js proxy in the browser during development to avoid CORS.
+    if (typeof window !== 'undefined') {
+        return '/api';
     }
-    // Fallback for SSR on Vercel
-    if (process.env.VERCEL === '1') {
-        return 'https://four-sale-backend.onrender.com/api';
-    }
+
+    // Server-side in development can still call the backend directly.
     if (process.env.NODE_ENV === 'development') {
-        return 'http://localhost:8000/api';
+        return 'http://127.0.0.1:8000/api';
     }
+
     return '/api';
 };
 export const API_BASE = getApiBase();

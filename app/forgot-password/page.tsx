@@ -28,7 +28,7 @@ export default function ForgotPasswordPage() {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
 
-    const API_BASE_URL = 'http://localhost:8000/api';
+    const API_BASE_URL = '/api';
 
     const handleVerifyEmail = async (e: React.FormEvent) => {
         e.preventDefault();
