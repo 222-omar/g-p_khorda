@@ -51,7 +51,7 @@ export default function AdminProductsPage() {
         if (!window.confirm(`هل أنت متأكد من حذف المنتج "${title}"؟ لا يمكن التراجع.`)) return;
         
         try {
-            await productsAPI.delete(id.toString());
+            await adminAPI.deleteProduct(id);
             setProducts(products.filter(p => p.id !== id));
             alert('تم الحذف بنجاح');
         } catch (error: any) {

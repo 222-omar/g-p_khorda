@@ -25,6 +25,7 @@ from .views import (
     notifications_delete_all,
     notification_respond,
     admin_products_list,
+    admin_delete_product,
     admin_review_product,
     admin_users_list,
     admin_delete_user,
@@ -78,6 +79,7 @@ urlpatterns = [
     
     # Admin Dashboard API (IsAdminRole protected)
     path('admin-api/products/', admin_products_list, name='admin-products'),
+    path('admin-api/products/<int:product_id>/', admin_delete_product, name='admin-delete-product'),
     path('admin-api/products/<int:product_id>/review/', admin_review_product, name='admin-review-product'),
     path('admin-api/users/', admin_users_list, name='admin-users'),
     path('admin-api/users/<int:user_id>/', admin_delete_user, name='admin-delete-user'),

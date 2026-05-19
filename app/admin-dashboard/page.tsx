@@ -127,7 +127,12 @@ export default function AdminOverviewPage() {
                     </div>
                     
                     <div className="space-y-8">
-                        {stats.category_distribution && stats.category_distribution.length > 0 ? (
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center h-48 text-slate-500 gap-4">
+                                <div className="w-12 h-12 rounded-full border-2 border-slate-700 border-t-indigo-500 animate-spin" />
+                                <p className="italic">جاري تحليل بيانات الفئات...</p>
+                            </div>
+                        ) : stats.category_distribution && stats.category_distribution.length > 0 ? (
                             stats.category_distribution.map((cat, i) => {
                                 const maxCount = Math.max(...stats.category_distribution.map(c => c.count), 1);
                                 const percentage = (cat.count / maxCount) * 100;
@@ -164,9 +169,9 @@ export default function AdminOverviewPage() {
                                 );
                             })
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-48 text-slate-500 gap-4">
-                                <div className="w-12 h-12 rounded-full border-2 border-slate-700 border-t-indigo-500 animate-spin" />
-                                <p className="italic">جاري تحليل بيانات الفئات...</p>
+                            <div className="flex flex-col items-center justify-center h-48 text-slate-500 gap-2">
+                                <p className="text-slate-400 font-bold">لا توجد بيانات مبيعات فئات متوفرة حالياً</p>
+                                <p className="text-slate-500 text-sm">سيتم عرض الإحصائيات عند بيع أول منتج في المتجر</p>
                             </div>
                         )}
                     </div>

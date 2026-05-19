@@ -69,15 +69,13 @@ function StatusBadge({ status }: { status: string }) {
 // ADMIN DASHBOARD PAGE
 // ═════════════════════════════════════════════════════════════════════════════
 export default function AdminDashboardPage() {
-    const { user, loading: authLoading } = useAuth();
+    const { user, loading: authLoading, isAdmin } = useAuth();
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('overview');
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [refreshing, setRefreshing] = useState(false);
-
-    const isAdmin = user?.user?.role === 'ADMIN';
 
     const fetchStats = useCallback(async () => {
         try {

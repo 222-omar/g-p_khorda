@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authAPI } from '@/lib/api';
+import { authAPI, setAdminCookie } from '@/lib/api';
 
 interface User {
     id: number;
@@ -27,7 +27,7 @@ interface AuthContextType {
     user: User | null;
     loading: boolean;
     isAdmin: boolean;
-    login: (username: string, password: string) => Promise<void>;
+    login: (username: string, password: string) => Promise<User | null>;
     logout: () => void;
     refreshUser: () => Promise<void>;
 }
@@ -44,8 +44,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             const currentUser = await authAPI.getCurrentUser();
             setUser(currentUser);
+            if (currentUser) {
+                setAdminCookie(!!currentUser.is_admin);
+            } else {
+                setAdminCookie(false);
+            }
         } catch (error) {
             setUser(null);
+            setAdminCookie(false);
         } finally {
             setLoading(false);
         }
@@ -62,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Fetch user profile after login
             const currentUser = await authAPI.getCurrentUser();
             setUser(currentUser);
+            return currentUser;
         } catch (error) {
             setUser(null);
             throw error; // Re-throw to allow the login page to handle UI error

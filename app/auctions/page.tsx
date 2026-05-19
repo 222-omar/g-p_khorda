@@ -75,7 +75,22 @@ export default function AuctionsPage() {
             const response = await auctionsAPI.list(false);
             // Handle both paginated and non-paginated responses
             const results = Array.isArray(response) ? response : (response as any).results || [];
-            setAuctions(results);
+            // Sort inactive/ended auctions to the bottom automatically
+            const sorted = results.sort((a: any, b: any) => {
+                const isEnded = (auc: any) => {
+                    if (!auc.is_active) return true;
+                    if (auc.end_time) {
+                        return new Date(auc.end_time).getTime() <= Date.now();
+                    }
+                    return false;
+                };
+                const aEnded = isEnded(a);
+                const bEnded = isEnded(b);
+                if (aEnded && !bEnded) return 1;
+                if (!aEnded && bEnded) return -1;
+                return 0;
+            });
+            setAuctions(sorted);
         } catch (err: any) {
             console.error('Error fetching auctions:', err);
             setError(err.message || 'فشل في تحميل المزادات');

@@ -144,7 +144,22 @@ export default function DashboardPage() {
             if (filters.condition) params.condition = filters.condition;
 
             const response = await productsAPI.list(params);
-            setAllProducts(response.results || []);
+            // Sort sold products and ended auctions to the bottom automatically
+            const sortedProducts = (response.results || []).sort((a: any, b: any) => {
+                const isEndedOrSold = (p: any) => {
+                    if (p.status === 'sold') return true;
+                    if (p.is_auction && p.auction_end_time) {
+                        return new Date(p.auction_end_time).getTime() <= Date.now();
+                    }
+                    return false;
+                };
+                const aEnded = isEndedOrSold(a);
+                const bEnded = isEndedOrSold(b);
+                if (aEnded && !bEnded) return 1;
+                if (!aEnded && bEnded) return -1;
+                return 0;
+            });
+            setAllProducts(sortedProducts);
         } catch (err: any) {
             setError(err.message || 'Failed to load products');
         } finally {

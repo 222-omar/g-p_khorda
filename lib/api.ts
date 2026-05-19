@@ -458,32 +458,244 @@ export const classifyAPI = {
         category_label: string;
         confidence: number;
         detected_class: string | null;
+        detected_class_ar?: string;
     }> {
-        const formData = new FormData();
-        formData.append('image', file);
-
-        const token = getAuthToken();
-        const headers: Record<string, string> = {};
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        const url = `${API_BASE}/classify-image/`;
-        console.log(`[Frontend API Request] POST ${url}`);
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers,
-            body: formData,
-        });
+        const hfSpaceUrl = "https://omarh353111-khorda-yolo.hf.space";
         
-        console.log(`[Frontend API Response] ${url} Status: ${response.status}`);
-
-        if (!response.ok) {
-            throw new Error('Classification failed');
+        try {
+            console.log(`[HF Space API] Uploading image directly...`);
+            const uploadFormData = new FormData();
+            uploadFormData.append('files', file);
+            
+            const uploadRes = await fetch(`${hfSpaceUrl}/gradio_api/upload`, {
+                method: 'POST',
+                body: uploadFormData,
+            });
+            
+            if (!uploadRes.ok) {
+                throw new Error(`Upload to HF Space failed with status ${uploadRes.status}`);
+            }
+            
+            const uploadedFiles = await uploadRes.json();
+            if (!uploadedFiles || uploadedFiles.length === 0) {
+                throw new Error('HF Space upload returned empty response');
+            }
+            
+            const uploadedPath = uploadedFiles[0];
+            console.log(`[HF Space API] Upload successful: ${uploadedPath}`);
+            
+            // Step 2: Submit prediction
+            const predictRes = await fetch(`${hfSpaceUrl}/gradio_api/call/predict`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    data: [{
+                        path: uploadedPath,
+                        url: `${hfSpaceUrl}/file=${uploadedPath}`,
+                        orig_name: file.name,
+                        mime_type: file.type,
+                        meta: { _type: "gradio.FileData" }
+                    }]
+                }),
+            });
+            
+            if (!predictRes.ok) {
+                throw new Error(`Prediction call failed with status ${predictRes.status}`);
+            }
+            
+            const { event_id } = await predictRes.json();
+            if (!event_id) {
+                throw new Error('Gradio call failed to return event_id');
+            }
+            
+            console.log(`[HF Space API] Event ID received: ${event_id}. Polling for result...`);
+            
+            // Step 3: Poll using EventSource or stream reader
+            const resultUrl = `${hfSpaceUrl}/gradio_api/call/predict/${event_id}`;
+            const eventSourceRes = await fetch(resultUrl);
+            if (!eventSourceRes.ok) {
+                throw new Error(`EventSource fetch failed with status ${eventSourceRes.status}`);
+            }
+            
+            const reader = eventSourceRes.body?.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let buffer = '';
+            let resultData: any = null;
+            
+            if (reader) {
+                let done = false;
+                while (!done) {
+                    const { value, done: doneReading } = await reader.read();
+                    done = doneReading;
+                    if (value) {
+                        buffer += decoder.decode(value, { stream: !done });
+                        const lines = buffer.split('\n');
+                        // Save last incomplete line back to buffer
+                        buffer = lines.pop() || '';
+                        
+                        let currentEvent = '';
+                        for (const line of lines) {
+                            if (line.startsWith('event:')) {
+                                currentEvent = line.substring(6).trim();
+                            } else if (line.startsWith('data:')) {
+                                const dataStr = line.substring(5).trim();
+                                if (currentEvent === 'complete') {
+                                    resultData = JSON.parse(dataStr);
+                                    done = true;
+                                    break;
+                                } else if (currentEvent === 'error') {
+                                    throw new Error(`HF Space error event: ${dataStr}`);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (!resultData) {
+                throw new Error('No prediction data received from SSE stream');
+            }
+            
+            console.log(`[HF Space API] Prediction success!`, resultData);
+            
+            // Step 4: Parse outputs
+            const rawOutput = Array.isArray(resultData) ? resultData : (resultData.data || [resultData]);
+            let rawClass = 'other';
+            if (rawOutput.length >= 2) {
+                rawClass = typeof rawOutput[1] === 'string' ? rawOutput[1].trim() : 'other';
+            } else if (rawOutput.length === 1) {
+                rawClass = typeof rawOutput[0] === 'string' ? rawOutput[0].trim() : 'other';
+            }
+            
+            // Normalize & map category client-side
+            const canonical = rawClass.toLowerCase().replace(/[\s_-]+/g, '_').trim();
+            
+            // Categories mapping
+            const CATEGORY_MAP: Record<string, string> = {
+                'scrap_metals': 'خردة ومعادن',
+                'scrap_metal': 'خردة ومعادن',
+                'copper': 'خردة ومعادن',
+                'iron': 'خردة ومعادن',
+                'aluminum': 'خردة ومعادن',
+                'metal': 'خردة ومعادن',
+                'can': 'خردة ومعادن',
+                
+                'electronics': 'إلكترونيات وأجهزة',
+                'electronic': 'إلكترونيات وأجهزة',
+                'tv': 'إلكترونيات وأجهزة',
+                'television': 'إلكترونيات وأجهزة',
+                'computer': 'إلكترونيات وأجهزة',
+                'laptop': 'إلكترونيات وأجهزة',
+                'phone': 'إلكترونيات وأجهزة',
+                'mobile': 'إلكترونيات وأجهزة',
+                'keyboard': 'إلكترونيات وأجهزة',
+                'mouse': 'إلكترونيات وأجهزة',
+                
+                'appliances': 'أجهزة منزلية',
+                'appliance': 'أجهزة منزلية',
+                'washing_machine': 'أجهزة منزلية',
+                'refrigerator': 'أجهزة منزلية',
+                'fridge': 'أجهزة منزلية',
+                'microwave': 'أجهزة منزلية',
+                'stove': 'أجهزة منزلية',
+                'oven': 'أجهزة منزلية',
+                
+                'furniture': 'أثاث وديكور',
+                'chair': 'أثاث وديكور',
+                'table': 'أثاث وديكور',
+                'sofa': 'أثاث وديكور',
+                'bed': 'أثاث وديكور',
+                'cabinet': 'أثاث وديكور',
+                
+                'cars': 'سيارات للبيع',
+                'car': 'سيارات للبيع',
+                'vehicle': 'سيارات للبيع',
+                
+                'real_estate': 'عقارات',
+                'apartment': 'عقارات',
+                'building': 'عقارات',
+                'house': 'عقارات',
+                
+                'books': 'كتب',
+                'book': 'كتب',
+                'magazine': 'كتب',
+            };
+            
+            const ARABIC_TO_CATEGORY_ID: Record<string, string> = {
+                'خردة ومعادن': 'scrap_metals',
+                'إلكترونيات وأجهزة': 'electronics',
+                'أجهزة منزلية': 'appliances',
+                'أثاث وديكور': 'furniture',
+                'سيارات للبيع': 'cars',
+                'عقارات': 'real_estate',
+                'كتب': 'books',
+                'أخرى': 'other'
+            };
+            
+            const YOLO_CLASS_LABELS: Record<string, string> = {
+                'washing_machine': 'غسالة',
+                'refrigerator': 'ثلاجة',
+                'scrap_metals': 'خردة ومعادن',
+                'electronics': 'إلكترونيات وأجهزة',
+                'furniture': 'أثاث وديكور',
+                'cars': 'سيارات',
+                'books': 'كتب',
+                'copper': 'نحاس',
+                'iron': 'حديد',
+                'aluminum': 'ألومنيوم',
+                'can': 'علب كنز',
+                'other': 'أخرى'
+            };
+            
+            // Substring or exact match
+            let arabicLabel = 'أخرى';
+            let matchedKey = 'other';
+            
+            for (const [k, v] of Object.entries(CATEGORY_MAP)) {
+                if (canonical === k || canonical.includes(k) || k.includes(canonical)) {
+                    arabicLabel = v;
+                    matchedKey = k;
+                    break;
+                }
+            }
+            
+            const categoryId = ARABIC_TO_CATEGORY_ID[arabicLabel] || 'other';
+            
+            return {
+                category: categoryId,
+                category_label: arabicLabel,
+                confidence: 0.95,
+                detected_class: matchedKey !== 'other' ? matchedKey : canonical,
+                detected_class_ar: YOLO_CLASS_LABELS[matchedKey] || YOLO_CLASS_LABELS[canonical] || arabicLabel
+            };
+            
+        } catch (error) {
+            console.error('[HF Space API] direct inference error:', error);
+            // Robust fallback if direct HF Space call completely fails (e.g. CORS or network blocking)
+            console.log('[HF Space API] Falling back to backend server endpoint...');
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            const token = getAuthToken();
+            const headers: Record<string, string> = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            
+            const response = await fetch(`${API_BASE}/classify-image/`, {
+                method: 'POST',
+                headers,
+                body: formData,
+            });
+            
+            if (!response.ok) {
+                throw new Error('Classification failed completely');
+            }
+            
+            return response.json();
         }
-
-        return response.json();
     },
 };
 
@@ -557,6 +769,7 @@ export const notificationsAPI = {
 export const ragAPI = {
     async query(queryText: string, history?: { role: string; content: string }[]) {
         return apiFetch<{
+            products_data: boolean;
             answer: {
                 summary: string;
                 items: (number | string)[];
@@ -600,8 +813,11 @@ export const adminAPI = {
         });
     },
 
-    // Product edit/delete reuse existing productsAPI endpoints
-    // productsAPI.update(id, data) and productsAPI.delete(id)
+    async deleteProduct(productId: number) {
+        return apiFetch<void>(`/admin-api/products/${productId}/`, {
+            method: 'DELETE',
+        });
+    },
 };
 
 // Wallet / Payment API

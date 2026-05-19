@@ -26,9 +26,15 @@ export default function LoginPage() {
         setError(null);
 
         try {
-            await login(username, password);
+            const loggedInUser = await login(username, password);
             const urlParams = new URLSearchParams(window.location.search);
-            const redirectUrl = urlParams.get('redirect') || '/dashboard';
+            
+            // If there's an explicit redirect parameter, use it, otherwise decide based on admin status
+            let redirectUrl = urlParams.get('redirect');
+            if (!redirectUrl) {
+                redirectUrl = loggedInUser?.is_admin ? '/admin-dashboard' : '/dashboard';
+            }
+            
             // Use full page navigation to ensure auth cookie is properly read
             window.location.href = redirectUrl;
         } catch (err: any) {
