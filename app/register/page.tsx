@@ -58,10 +58,7 @@ export default function RegisterPage() {
             await refreshUser();
             
             setLoading(false); // Clear loading state immediately upon success
-            setSuccessMessage('تم إنشاء الحساب بنجاح! جاري تحويلك...');
-            setTimeout(() => {
-                router.push('/login');
-            }, 2000);
+            window.location.href = '/dashboard';
         } catch (err: any) {
             console.error('Detailed Registration Error:', err);
             let errorList: string[] = [];

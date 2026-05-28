@@ -19,4 +19,6 @@ gradio-client==0.15.0
 langchain-groq>=0.1.0
 drf-spectacular
 gunicorn==21.2.0
-whitenoise==6.6.0
+whitenoise==6.6.0
+ultralytics>=8.0.0
+

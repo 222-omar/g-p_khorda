@@ -769,7 +769,7 @@ export const notificationsAPI = {
 export const ragAPI = {
     async query(queryText: string, history?: { role: string; content: string }[]) {
         return apiFetch<{
-            products_data: boolean;
+            products_data?: any[];
             answer: {
                 summary: string;
                 items: (number | string)[];
@@ -817,6 +817,10 @@ export const adminAPI = {
         return apiFetch<void>(`/admin-api/products/${productId}/`, {
             method: 'DELETE',
         });
+    },
+
+    async getDashboardStats() {
+        return apiFetch<any>('/admin-api/stats/');
     },
 };
 

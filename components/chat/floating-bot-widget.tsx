@@ -12,6 +12,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface RAGResult {
+    products_data?: any[];
     answer: {
         summary: string;
         items: (number | string)[];

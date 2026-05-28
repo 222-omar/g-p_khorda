@@ -162,9 +162,9 @@ class ProductViewSet(viewsets.ModelViewSet):
         return Response(self.get_serializer(instance).data)
 
     def perform_create(self, serializer):
-        product = serializer.save()
+        product = serializer.save(owner=self.request.user)
         ProductService.set_listing_defaults(product, self.request.user)
-        product.save(update_fields=['owner', 'status'])
+        product.save(update_fields=['status'])
 
     def perform_update(self, serializer):
         if self.request.user.is_staff or serializer.instance.owner == self.request.user:
@@ -600,3 +600,61 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
         ctx = super().get_serializer_context()
         ctx['request'] = self.request
         return ctx
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminRole])
+def admin_dashboard_stats_view(request):
+    from datetime import timedelta
+    from django.contrib.auth.models import User
+    from django.utils import timezone
+    
+    now = timezone.now()
+    one_week_ago = now - timedelta(days=7)
+    
+    total_users = User.objects.count()
+    new_users_week = User.objects.filter(date_joined__gte=one_week_ago).count()
+    
+    active_products = Product.objects.filter(status='active').count()
+    total_products = Product.objects.count()
+    pending_products = Product.objects.filter(status='pending').count()
+    sold_products = Product.objects.filter(status='sold').count()
+    
+    total_auctions = Auction.objects.count()
+    active_auctions = Auction.objects.filter(is_active=True).count()
+    
+    recent_products_list = []
+    for p in Product.objects.select_related('owner').order_by('-created_at')[:5]:
+        recent_products_list.append({
+            'id': p.id,
+            'title': p.title,
+            'price': float(p.price) if p.price else 0.0,
+            'status': p.status,
+            'owner_name': p.owner.username,
+            'created_at': p.created_at.isoformat(),
+        })
+        
+    recent_users_list = []
+    for u in User.objects.order_by('-date_joined')[:5]:
+        recent_users_list.append({
+            'id': u.id,
+            'username': u.username,
+            'email': u.email,
+            'date_joined': u.date_joined.isoformat(),
+            'is_staff': u.is_staff,
+            'is_active': u.is_active,
+        })
+        
+    return Response({
+        'total_users': total_users,
+        'new_users_week': new_users_week,
+        'active_products': active_products,
+        'total_products': total_products,
+        'pending_products': pending_products,
+        'sold_products': sold_products,
+        'total_auctions': total_auctions,
+        'active_auctions': active_auctions,
+        'recent_products': recent_products_list,
+        'recent_users': recent_users_list,
+    })
+

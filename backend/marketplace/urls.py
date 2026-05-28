@@ -29,6 +29,7 @@ from .views import (
     admin_review_product,
     admin_users_list,
     admin_delete_user,
+    admin_dashboard_stats_view,
     wallet_topup_view,
     wallet_transactions_view,
     verify_phone_request_view,
@@ -78,6 +79,7 @@ urlpatterns = [
     path('notifications/<int:notification_id>/respond/', notification_respond, name='notification-respond'),
     
     # Admin Dashboard API (IsAdminRole protected)
+    path('admin-api/stats/', admin_dashboard_stats_view, name='admin-stats'),
     path('admin-api/products/', admin_products_list, name='admin-products'),
     path('admin-api/products/<int:product_id>/', admin_delete_product, name='admin-delete-product'),
     path('admin-api/products/<int:product_id>/review/', admin_review_product, name='admin-review-product'),

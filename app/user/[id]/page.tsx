@@ -68,9 +68,13 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
             router.push('/login?redirect=/user/' + resolvedParams.id);
             return;
         }
+        if (products.length === 0) {
+            alert('لا توجد منتجات معروضة لهذا البائع لبدء المحادثة حولها.');
+            return;
+        }
         try {
             setIsContacting(true);
-            const conversation = await chatAPI.getOrCreateConversation(null, resolvedParams.id);
+            const conversation = await chatAPI.startConversation(parseInt(products[0].id));
             router.push(`/messages?conversation=${conversation.id}`);
         } catch (err) {
             console.error('Error starting conversation:', err);
@@ -89,7 +93,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
             setIsRating(true);
             const res = await profilesAPI.rateUser(resolvedParams.id, rating);
             // Update UI with new rating locally
-            setProfile(p => ({
+            setProfile((p: any) => ({
                 ...p,
                 seller_rating: res.new_rating,
                 rating_count: res.rating_count
@@ -304,9 +308,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                                     <ProductCard
                                         key={product.id}
                                         product={product}
-                                        onDelete={() => {}}
                                         isOwner={false}
-                                        isAdmin={false}
                                     />
                                 ))}
                             </div>
