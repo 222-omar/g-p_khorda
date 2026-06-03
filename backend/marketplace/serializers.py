@@ -586,53 +586,59 @@ class ProductCreateSerializer(serializers.ModelSerializer):
                 )
             
             # ── AI Agent Trigger ──────────────────────────────
-            # Run YOLO on the first image for ALL products (auctions + direct-sale)
-            # so detected_item gets set and agents can discover matches.
+            # Run YOLO classification and agent logic in a background thread
+            # to prevent UI lag and gateway timeouts (especially when HF Space wakes from sleep).
             if uploaded_images:
-                try:
-                    first_image = product.images.filter(is_primary=True).first()
-                    if first_image and first_image.image:
-                        try:
-                            # Local storage uses path
-                            image_path = first_image.image.path
-                        except NotImplementedError:
-                            # Cloud storage (Cloudinary) uses url
-                            image_path = first_image.image.url
-                            
+                def run_ai_pipeline_bg(prod_id, auc_id):
+                    try:
+                        from marketplace.models import Product, Auction
                         from ai.classifier import classify_image, guess_item_from_text
-                        result = classify_image(image_path)
-                        detected_item = result.get('detected_class')
                         
-                        # Fallback: if YOLO returns 'other' or fails, try to guess from title
-                        if not detected_item or detected_item == 'other':
-                            guessed = guess_item_from_text(product.title)
-                            if guessed:
-                                detected_item = guessed
-                                logger.info(f"[Agent] 💡 YOLO returned other/None. Guessed '{detected_item}' from title.")
-
-                        if detected_item and detected_item != 'other':
-                            # Store on Product for counter-bid lookup & agent discovery
-                            product.detected_item = detected_item
-                            product.save(update_fields=['detected_item'])
-                            logger.info(f"[Agent] 🔍 Detected '{detected_item}' — checking agents...")
+                        prod = Product.objects.get(id=prod_id)
+                        auc = Auction.objects.get(id=auc_id) if auc_id else None
+                        
+                        first_image = prod.images.filter(is_primary=True).first()
+                        if first_image and first_image.image:
+                            try:
+                                # Local storage uses path
+                                image_path = first_image.image.path
+                            except NotImplementedError:
+                                # Cloud storage (Cloudinary) uses url
+                                image_path = first_image.image.url
+                                
+                            result = classify_image(image_path)
+                            detected_item = result.get('detected_class')
                             
-                            if auction:
-                                # Auction: Run auto-bidding SYNCHRONOUSLY for Vercel compatibility
-                                # (Background threads are killed on Vercel after response is sent)
-                                try:
+                            # Fallback: if YOLO returns 'other' or fails, try to guess from title
+                            if not detected_item or detected_item == 'other':
+                                guessed = guess_item_from_text(prod.title)
+                                if guessed:
+                                    detected_item = guessed
+                                    logger.info(f"[Agent] 💡 YOLO returned other/None. Guessed '{detected_item}' from title.")
+
+                            if detected_item and detected_item != 'other':
+                                # Store on Product for counter-bid lookup & agent discovery
+                                prod.detected_item = detected_item
+                                prod.save(update_fields=['detected_item'])
+                                logger.info(f"[Agent] 🔍 Detected '{detected_item}' — checking agents...")
+                                
+                                if auc:
                                     logger.info(f"[Agent] 🚀 Running auto-bidding for '{detected_item}'...")
-                                    from .serializers import run_auto_bidding
-                                    run_auto_bidding(auction, detected_item)
-                                except Exception as e:
-                                    logger.error(f"[Agent] Auto-bidding error: {e}")
-                            # Non-auction products: agent discovery is triggered by
-                            # the post_save signal (trigger_agent_discovery). 
-                            # We'll also make it synchronous in signals.py.
-                except Exception as e:
-                    # Agent failure should NOT block product creation
-                    logger.error(f"[Agent] Classification/bidding error (non-blocking): {e}")
-                    import traceback
-                    traceback.print_exc()
+                                    from marketplace.serializers import run_auto_bidding
+                                    run_auto_bidding(auc, detected_item)
+                    except Exception as bg_err:
+                        logger.error(f"[Agent/BG] AI pipeline background error: {bg_err}")
+                        import traceback
+                        traceback.print_exc()
+                    finally:
+                        from django.db import connection
+                        connection.close()
+
+                threading.Thread(
+                    target=run_ai_pipeline_bg,
+                    args=(product.id, auction.id if auction else None),
+                    daemon=True
+                ).start()
             # ──────────────────────────────────────────────────
             
             return product

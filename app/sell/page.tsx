@@ -320,14 +320,14 @@ export default function SellPage() {
                                         {classifying && (
                                             <div className="flex items-center justify-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
                                                 <Loader2 className="animate-spin text-blue-500" size={18} />
-                                                <span className="text-blue-600 dark:text-blue-400 text-sm font-bold">🤖 جاري تحليل الصورة بالذكاء الاصطناعي...</span>
+                                                <span className="text-blue-600 dark:text-blue-400 text-sm font-bold">جاري تحليل الصورة بالذكاء الاصطناعي...</span>
                                             </div>
                                         )}
                                         {aiCategory && !classifying && (
                                             <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
                                                 <Bot className="text-green-500" size={18} />
                                                 <span className="text-green-700 dark:text-green-400 text-sm font-bold">
-                                                    🤖 تم التصنيف: {aiCategory.category_label} ({Math.round(aiCategory.confidence * 100)}%)
+                                                    تم التصنيف: {aiCategory.category_label} ({Math.round(aiCategory.confidence * 100)}%)
                                                 </span>
                                             </div>
                                         )}

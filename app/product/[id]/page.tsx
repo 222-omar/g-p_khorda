@@ -331,8 +331,16 @@ export default function ProductPage() {
                                         </div>
                                     )}
 
-                                    {/* Bid Form (Only show if NOT owner AND auction is active) */}
-                                    {!isOwner && product.auction.is_active && (
+                                    {/* Pending approval message for auction products */}
+                                    {!isOwner && product.status === 'pending' && (
+                                        <div className="flex-1 bg-amber-50 dark:bg-amber-900/10 text-amber-600 py-4 rounded-xl font-bold flex items-center justify-center gap-2 cursor-not-allowed border border-amber-200 dark:border-amber-800 text-center px-4">
+                                            <Clock size={20} />
+                                            المنتج قيد المراجعة ولن يظهر للمشترين في المتجر حتى تتم الموافقة عليه
+                                        </div>
+                                    )}
+
+                                    {/* Bid Form (Only show if NOT owner AND auction is active AND product is approved) */}
+                                    {!isOwner && product.auction.is_active && product.status === 'active' && (
                                         <div className="space-y-3">
                                             {bidSuccess && (
                                                 <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">

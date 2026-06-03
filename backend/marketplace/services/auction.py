@@ -179,6 +179,12 @@ class AuctionService:
                 if not auction.is_active:
                     raise AuctionBidError({'error': 'المزاد غير نشط'}, status_code=400)
 
+                if auction.product.status != 'active':
+                    raise AuctionBidError(
+                        {'error': 'المنتج لم تتم الموافقة عليه بعد من قبل الإدارة'},
+                        status_code=400,
+                    )
+
                 now = timezone.now()
                 if auction.end_time < now:
                     AuctionService.close_auction_on_expiry(auction)

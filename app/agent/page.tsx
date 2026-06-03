@@ -155,6 +155,7 @@ export default function AgentPage() {
 
     // Delete agent
     const handleDelete = async (id: number) => {
+        if (!confirm('هل أنت متأكد من حذف هذا الوكيل؟')) return;
         try {
             await agentAPI.delete(id);
             setAgents(prev => prev.filter(a => a.id !== id));
@@ -404,7 +405,7 @@ export default function AgentPage() {
                             </div>
                         </div>
                         <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto text-center mt-4">
-                            {dict.agent.desc} 🤖
+                            {dict.agent.desc}
                         </p>
                     </motion.div>
 

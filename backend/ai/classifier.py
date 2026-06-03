@@ -1,14 +1,22 @@
 """
-YOLO-based image classifier for product categorization.
-Uses a custom YOLOv11 model (best.pt) to detect objects in product images
-and map them to marketplace categories.
+HF Space-based image classifier for product categorization.
+Calls the Omarh353111/khorda_yolo HuggingFace Space remotely
+instead of loading YOLO/ultralytics locally, avoiding ~300 MB
+RAM overhead on Render.
 """
 
 import os
+import json
 import logging
-from pathlib import Path
+import requests as http_requests
 
 logger = logging.getLogger(__name__)
+
+# ─── HF Space configuration ─────────────────────────────────
+HF_SPACE_URL = os.getenv(
+    "HF_SPACE_URL", "https://omarh353111-khorda-yolo.hf.space"
+)
+HF_API_TOKEN = os.getenv("HF_API_TOKEN", "")
 
 
 
@@ -167,30 +175,6 @@ def get_available_targets():
     return targets
 
 
-# ─── Path to the YOLO model file ───
-MODEL_PATH = Path(__file__).resolve().parent / 'best.pt'
-
-# Lazy-loaded model instance
-_model = None
-
-
-def _load_model():
-    """Load the YOLO model once and cache it."""
-    global _model
-    if _model is None:
-        try:
-            from ultralytics import YOLO
-            if not MODEL_PATH.exists():
-                raise FileNotFoundError(f"YOLO model not found at: {MODEL_PATH}")
-            logger.info(f"[AI] Loading YOLO model from: {MODEL_PATH}")
-            _model = YOLO(str(MODEL_PATH))
-            logger.info("[AI] YOLO model loaded successfully.")
-        except Exception as e:
-            logger.error(f"[AI] Failed to load YOLO model: {e}")
-            raise
-    return _model
-
-
 def guess_item_from_text(text: str) -> str:
     """
     Fallback: If YOLO fails or HF space is down, try to guess the class from the product title.
@@ -221,13 +205,110 @@ def _lookup_category(class_name: str):
     return CATEGORY_MAP.get(class_name)
 
 
+# ─────────────────────────────────────────────────────────────
+# HF Space API helpers
+# ─────────────────────────────────────────────────────────────
+
+def _hf_headers(content_type=None):
+    """Build HTTP headers for HF Space requests."""
+    headers = {}
+    if HF_API_TOKEN:
+        headers["Authorization"] = f"Bearer {HF_API_TOKEN}"
+    if content_type:
+        headers["Content-Type"] = content_type
+    return headers
+
+
+def _upload_to_space(image_bytes: bytes, filename: str = "image.jpg") -> str:
+    """
+    Upload image bytes to the HF Space and return the server-side path.
+    Uses the Gradio /gradio_api/upload endpoint.
+    """
+    upload_url = f"{HF_SPACE_URL}/gradio_api/upload"
+    resp = http_requests.post(
+        upload_url,
+        files={"files": (filename, image_bytes, "image/jpeg")},
+        headers=_hf_headers(),
+        timeout=30,
+    )
+    resp.raise_for_status()
+    paths = resp.json()
+    if paths and isinstance(paths, list):
+        return paths[0]
+    raise ValueError(f"Unexpected upload response: {paths}")
+
+
+def _predict_on_space(uploaded_path: str) -> str | None:
+    """
+    Call /gradio_api/call/predict with the uploaded file path,
+    then read the SSE stream for the result.
+
+    Returns the detected class string (e.g. "bed", "laptop", "other")
+    or None on failure.
+    """
+    predict_url = f"{HF_SPACE_URL}/gradio_api/call/predict"
+    input_data = {
+        "path": uploaded_path,
+        "meta": {"_type": "gradio.FileData"},
+    }
+
+    # Step 1 — Start the prediction
+    resp = http_requests.post(
+        predict_url,
+        json={"data": [input_data]},
+        headers=_hf_headers("application/json"),
+        timeout=60,
+    )
+    resp.raise_for_status()
+    event_id = resp.json().get("event_id")
+    if not event_id:
+        logger.error(f"[AI] HF Space returned no event_id: {resp.text}")
+        return None
+
+    # Step 2 — Read the SSE result stream
+    result_url = f"{predict_url}/{event_id}"
+    sse_resp = http_requests.get(
+        result_url,
+        stream=True,
+        headers=_hf_headers(),
+        timeout=120,
+    )
+
+    event_type = None
+    for line in sse_resp.iter_lines(decode_unicode=True):
+        line = line.strip()
+        if line.startswith("event:"):
+            event_type = line[len("event:"):].strip()
+        elif line.startswith("data:") and event_type == "complete":
+            data_str = line[len("data:"):].strip()
+            if not data_str or data_str == "null":
+                return None
+            data = json.loads(data_str)
+            # The Space returns: [<annotated_image_dict>, "<class_name>"]
+            if isinstance(data, list) and len(data) >= 2:
+                detected = data[-1]  # last element is the class string
+                if isinstance(detected, str):
+                    return detected
+            return None
+        elif event_type == "error":
+            logger.error(f"[AI] HF Space prediction error (SSE): {line}")
+            return None
+
+    return None
+
+
+# ─────────────────────────────────────────────────────────────
+# Public API  (same signature as the old local-YOLO version)
+# ─────────────────────────────────────────────────────────────
+
 def classify_image(image_path: str) -> dict:
     """
-    Run local YOLO inference on an image using best.pt.
+    Classify a product image via the remote HF Space YOLO model.
     Supports both local file paths and remote URLs (Cloudinary, etc.).
+
+    Returns a dict with keys:
+        category, category_label, confidence, detected_class
     """
-    import requests
-    import tempfile
 
     fallback = {
         'category': 'other',
@@ -236,88 +317,68 @@ def classify_image(image_path: str) -> dict:
         'detected_class': None,
     }
 
-    tmp_path = None
-    is_url = image_path.startswith("http://") or image_path.startswith("https://")
-
     try:
-        # ── Step 1: Download image if it's a URL (e.g. Cloudinary) ──
+        is_url = image_path.startswith("http://") or image_path.startswith("https://")
+
+        # ── Step 1: Get image bytes ──────────────────────────
         if is_url:
             print(f"[AI] [OUT] Downloading image from URL: {image_path[:80]}...")
-            resp = requests.get(image_path, timeout=30)
-            resp.raise_for_status()
-            suffix = '.jpg'
-            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix, mode='wb') as tmp:
-                tmp.write(resp.content)
-                tmp_path = tmp.name
-            local_path = tmp_path
+            dl = http_requests.get(image_path, timeout=15)
+            dl.raise_for_status()
+            image_bytes = dl.content
+            filename = "image.jpg"
         else:
-            local_path = image_path
+            with open(image_path, "rb") as f:
+                image_bytes = f.read()
+            filename = os.path.basename(image_path)
 
-        # ── Step 2: Load model and run inference ──
-        model = _load_model()
-        print(f"[AI] [RUN] Running YOLO inference on: {local_path}")
-        results = model(local_path, verbose=False)
+        # ── Step 2: Upload to HF Space ───────────────────────
+        print(f"[AI] [UP] Uploading to HF Space ({HF_SPACE_URL})...")
+        uploaded_path = _upload_to_space(image_bytes, filename)
+        print(f"[AI] [UP] Uploaded -> {uploaded_path}")
 
-        # ── Step 3: Extract best detection ──
-        best_class = None
-        best_conf = 0.0
+        # ── Step 3: Run prediction ───────────────────────────
+        print("[AI] [RUN] Running YOLO inference on HF Space...")
+        detected_class = _predict_on_space(uploaded_path)
 
-        for result in results:
-            if result.boxes is None or len(result.boxes) == 0:
-                continue
-            for box in result.boxes:
-                conf = float(box.conf[0])
-                cls_idx = int(box.cls[0])
-                cls_name = model.names[cls_idx]
-                if conf > best_conf:
-                    best_conf = conf
-                    best_class = cls_name
-
-        if not best_class or best_conf < 0.15:
-            logger.warning(f"[AI] No reliable detection (best_conf={best_conf:.2f}). Falling back.")
+        if not detected_class or detected_class == "other":
+            logger.warning(
+                f"[AI] HF Space returned '{detected_class}'. Falling back."
+            )
             return fallback
 
-        normalized_class = normalize_class(best_class)
-        print(f"[AI] [SEARCH] YOLO detected: '{best_class}' -> Normalized: '{normalized_class}' (conf={best_conf:.2f})")
+        # ── Step 4: Normalize & map to category ──────────────
+        normalized = normalize_class(detected_class)
+        print(
+            f"[AI] [SEARCH] HF Space detected: '{detected_class}' "
+            f"-> Normalized: '{normalized}'"
+        )
 
-        # ── Step 4: Map to Arabic category ──
-        arabic_label = _lookup_category(normalized_class)
-
+        arabic_label = _lookup_category(normalized)
         if not arabic_label:
-            logger.warning(f"[AI] Unknown class: '{normalized_class}', trying fuzzy match...")
-            for k in CATEGORY_MAP.keys():
-                if k in normalized_class:
+            logger.warning(
+                f"[AI] Unknown class: '{normalized}', trying fuzzy match..."
+            )
+            for k in CATEGORY_MAP:
+                if k in normalized:
                     arabic_label = CATEGORY_MAP[k]
-                    normalized_class = k
+                    normalized = k
                     break
             if not arabic_label:
                 return fallback
 
-        category_id = ARABIC_TO_CATEGORY_ID.get(arabic_label, 'other')
-        print(f"[AI] [OK] Result: '{normalized_class}' -> category='{category_id}' conf={best_conf:.2f}")
+        category_id = ARABIC_TO_CATEGORY_ID.get(arabic_label, "other")
+        print(f"[AI] [OK] Result: '{normalized}' -> category='{category_id}'")
 
         return {
             'category': category_id,
             'category_label': arabic_label,
-            'confidence': round(best_conf, 4),
-            'detected_class': normalized_class,
+            'confidence': 1.0,          # HF Space doesn't return a score
+            'detected_class': normalized,
         }
 
-    except FileNotFoundError as e:
-        logger.error(f"[AI] Model file not found: {e}")
-        return fallback
     except Exception as e:
-        logger.error(f"[AI] Local YOLO inference error: {e}")
+        logger.error(f"[AI] HF Space inference error: {e}")
         import traceback
         traceback.print_exc()
         return fallback
-    finally:
-        # Clean up temp file if we downloaded a URL
-        if tmp_path:
-            try:
-                os.unlink(tmp_path)
-            except Exception:
-                pass
-
-
-
