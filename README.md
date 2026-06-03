@@ -201,11 +201,4 @@ Create `backend/.env` for the Django backend containing:
 Dictionary-based i18n with full Arabic (RTL) and English (LTR) support.
 Add new strings in `lib/i18n/dictionaries.ts` for both `ar` and `en` objects.
 
----
 
-## License & Contributors
-
-Graduation Project - Egypt University, 2024
-Contributors: Abdelrhman Samir & Team
-
-Built for a sustainable future in Egypt.
