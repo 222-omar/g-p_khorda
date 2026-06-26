@@ -164,7 +164,7 @@ export function ProductCard({
 
             {/* Content Section */}
             <div className="flex-1 flex flex-col p-4 pointer-events-none z-10">
-                <h3 className="font-bold text-[15px] mb-2 line-clamp-1 leading-relaxed group-hover:text-primary transition-colors duration-200" title={product.title}>
+                <h3 className="font-bold text-[15px] mb-2 line-clamp-1 leading-relaxed group-hover:text-accent transition-colors duration-200" title={product.title}>
                     {product.title}
                 </h3>
 
@@ -172,7 +172,7 @@ export function ProductCard({
                     {/* Price */}
                     <div className="flex flex-col">
                         <div className="flex items-baseline gap-1">
-                            <span className="text-primary font-black text-xl leading-none">
+                            <span className="text-accent font-black text-xl leading-none">
                                 {Number(product.price).toLocaleString()}
                             </span>
                             <span className="text-slate-400 text-xs font-semibold">{dict.currency}</span>
@@ -203,12 +203,12 @@ export function ProductCard({
                             {product.seller.avatar_url ? (
                                 <img src={product.seller.avatar_url} alt={product.seller.name} className="w-8 h-8 rounded-full object-cover group-hover/seller:ring-2 ring-primary transition-all" />
                             ) : (
-                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400 flex-shrink-0 group-hover/seller:text-primary transition-colors">
+                                <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400 flex-shrink-0 group-hover/seller:text-accent transition-colors">
                                     <User size={14} />
                                 </div>
                             )}
                             <div className="flex items-center gap-1 truncate">
-                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate group-hover/seller:text-primary transition-colors">
+                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate group-hover/seller:text-accent transition-colors">
                                     {product.seller.name || 'مستخدم'}
                                 </span>
                                 {product.seller.is_verified && (
@@ -264,7 +264,7 @@ export function ProductCard({
                             </button>
                         </div>
                     ) : (
-                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors" title="تواصل مع البائع">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 text-accent flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors" title="تواصل مع البائع">
                             <MessageCircle size={14} />
                         </div>
                     )}

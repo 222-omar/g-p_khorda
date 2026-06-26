@@ -81,7 +81,7 @@ export default function ProfilePage() {
                 <Navbar />
                 <div className="min-h-screen pt-32 flex justify-center items-start">
                     <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
-                        <Loader2 className="animate-spin text-primary" size={40} />
+                        <Loader2 className="animate-spin text-accent" size={40} />
                     </motion.div>
                 </div>
                 <Footer />
@@ -152,7 +152,7 @@ export default function ProfilePage() {
                                     whileHover={{ rotate: 90 }}
                                     transition={{ type: 'spring', stiffness: 200, damping: 10 }}
                                     onClick={() => setIsSettingsOpen(true)}
-                                    className="absolute top-4 left-4 p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-full transition-colors z-10"
+                                    className="absolute top-4 left-4 p-2 text-slate-400 hover:text-accent hover:bg-primary/10 rounded-full transition-colors z-10"
                                 >
                                     <Settings size={22} />
                                 </motion.button>
@@ -208,7 +208,7 @@ export default function ProfilePage() {
                                                 initial={{ opacity: 0 }}
                                                 animate={{ opacity: 1 }}
                                                 transition={{ delay: 0.7 }}
-                                                className="text-sm font-black text-primary"
+                                                className="text-sm font-black text-accent"
                                             >
                                                 {trustScore}%
                                             </motion.span>
@@ -434,7 +434,7 @@ export default function ProfilePage() {
                                                     onClick={() => router.push(`/product/edit/${item.id}`)}
                                                     whileHover={{ scale: 1.15, color: 'var(--color-primary, #16a34a)' }}
                                                     whileTap={{ scale: 0.9 }}
-                                                    className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                                    className="p-2 text-slate-400 hover:text-accent hover:bg-primary/10 rounded-lg transition-colors"
                                                     title="تعديل الإعلان"
                                                 >
                                                     <Pencil size={16} />

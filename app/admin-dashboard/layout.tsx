@@ -35,7 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <aside className="w-64 border-l border-slate-800 bg-slate-900 flex flex-col h-full z-10 hidden md:flex">
                 <div className="p-6 border-b border-slate-800 flex items-center justify-center">
                     <h1 className="text-2xl font-black text-indigo-400 tracking-tight">
-                        4Sale <span className="text-slate-500 font-medium">Admin</span>
+                        Tadwera <span className="text-slate-500 font-medium">Admin</span>
                     </h1>
                 </div>
 
@@ -77,7 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <header className="h-16 border-b border-slate-800 bg-slate-900 flex items-center justify-between px-6 z-10">
                     <div className="md:hidden">
                         <h1 className="text-xl font-black text-indigo-400 tracking-tight">
-                            4Sale <span className="text-slate-500 font-medium">Admin</span>
+                            Tadwera <span className="text-slate-500 font-medium">Admin</span>
                         </h1>
                     </div>
                     <div className="hidden md:block">

@@ -8,7 +8,7 @@ export function WhyFourSale() {
     const { dict, isRtl } = useLanguage();
 
     const supportingFeatures = [
-        { icon: Bot, title: dict.whyFourSale.feat1Title, desc: dict.whyFourSale.feat1Desc, color: 'text-primary', bg: 'bg-primary/10' },
+        { icon: Bot, title: dict.whyFourSale.feat1Title, desc: dict.whyFourSale.feat1Desc, color: 'text-accent', bg: 'bg-primary/10' },
         { icon: Camera, title: dict.whyFourSale.feat2Title, desc: dict.whyFourSale.feat2Desc, color: 'text-purple-500', bg: 'bg-purple-50/50' },
         { icon: BrainCircuit, title: dict.whyFourSale.feat3Title, desc: dict.whyFourSale.feat3Desc, color: 'text-blue-500', bg: 'bg-blue-50/50' },
         { icon: ScanSearch, title: dict.whyFourSale.feat4Title, desc: dict.whyFourSale.feat4Desc, color: 'text-amber-500', bg: 'bg-amber-50/50' },
@@ -25,7 +25,7 @@ export function WhyFourSale() {
                     <motion.span 
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
-                        className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[11px] font-bold tracking-widest uppercase mb-6 font-tajawal shadow-sm"
+                        className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-accent text-[11px] font-bold tracking-widest uppercase mb-6 font-tajawal shadow-sm"
                     >
                         {dict.whyFourSale.badge}
                     </motion.span>
@@ -34,7 +34,7 @@ export function WhyFourSale() {
                         whileInView={{ opacity: 1, y: 0 }}
                         className="text-3xl md:text-5xl font-black font-noto-kufi text-slate-900 dark:text-white leading-[1.2] mb-6"
                     >
-                        {dict.whyFourSale.title} <span className="text-primary">{dict.whyFourSale.titleHighlight}</span>
+                        {dict.whyFourSale.title} <span className="text-accent">{dict.whyFourSale.titleHighlight}</span>
                     </motion.h2>
                     <motion.p 
                         initial={{ opacity: 0, y: 10 }}
@@ -96,7 +96,7 @@ export function WhyFourSale() {
                                 <div className={`w-14 h-14 rounded-2xl ${feature.bg} flex items-center justify-center mb-6 ring-4 ring-white dark:ring-slate-900 transition-all group-hover:scale-110 group-hover:rotate-3`}>
                                     <feature.icon className={`w-7 h-7 ${feature.color}`} />
                                 </div>
-                                <h4 className="text-xl font-bold font-noto-kufi text-slate-900 dark:text-white mb-3 group-hover:text-primary transition-colors">
+                                <h4 className="text-xl font-bold font-noto-kufi text-slate-900 dark:text-white mb-3 group-hover:text-accent transition-colors">
                                     {feature.title}
                                 </h4>
                                 <p className="text-slate-500 dark:text-slate-400 font-tajawal text-[14px] leading-relaxed">

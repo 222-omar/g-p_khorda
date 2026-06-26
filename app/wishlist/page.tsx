@@ -53,7 +53,7 @@ export default function WishlistPage() {
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
-                    <Loader2 className="animate-spin text-primary" size={40} />
+                    <Loader2 className="animate-spin text-accent" size={40} />
                 </motion.div>
             </div>
         );
@@ -97,7 +97,7 @@ export default function WishlistPage() {
                                 exit={{ opacity: 0 }}
                                 className="flex flex-col items-center justify-center py-20 gap-4"
                             >
-                                <Loader2 className="animate-spin text-primary" size={40} />
+                                <Loader2 className="animate-spin text-accent" size={40} />
                                 <p className="text-slate-500 text-sm font-medium animate-pulse">جاري تحميل المفضلة...</p>
                             </motion.div>
                         )}

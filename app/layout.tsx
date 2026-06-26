@@ -21,13 +21,13 @@ const notoKufi = NotoKufiFont({
 });
 
 export const metadata: Metadata = {
-  title: "4Sale - سوقك الذكي للمستعمل والخردة",
+  title: "Tadwera - سوقك الذكي للمستعمل والخردة",
   description: "وفر فلوسك وساهم في حماية البيئة. منصة ذكية لبيع المستعمل والخردة في مصر مدعومة بالذكاء الاصطناعي",
   keywords: "بيع مستعمل، خردة، مصر، ذكاء اصطناعي، سوق، marketplace, refurb, sustainable",
-  authors: [{ name: "4Sale Team" }],
+  authors: [{ name: "Tadwera Team" }],
 
   openGraph: {
-    title: "4Sale - سوقك الذكي للمستعمل والخردة",
+    title: "Tadwera - سوقك الذكي للمستعمل والخردة",
     description: "منصة ذكية لبيع المستعمل والخردة في مصر",
     type: "website",
   },

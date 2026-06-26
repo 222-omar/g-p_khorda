@@ -181,7 +181,7 @@ export default function SellPage() {
             <>
                 <Navbar />
                 <div className="min-h-screen pt-32 flex justify-center items-start">
-                    <Loader2 className="animate-spin text-primary" size={40} />
+                    <Loader2 className="animate-spin text-accent" size={40} />
                 </div>
             </>
         );
@@ -288,7 +288,7 @@ export default function SellPage() {
                                             />
                                             <div className="flex flex-col items-center gap-3">
                                                 <div className="bg-slate-100 dark:bg-slate-700 p-4 rounded-full">
-                                                    {isDragging ? <Upload className="text-primary" size={32} /> : <Camera className="text-slate-400" size={32} />}
+                                                    {isDragging ? <Upload className="text-accent" size={32} /> : <Camera className="text-slate-400" size={32} />}
                                                 </div>
                                                 <div>
                                                     <p className="font-bold mb-1">{dict.addItem.uploadImages}</p>

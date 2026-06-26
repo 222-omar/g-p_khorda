@@ -334,7 +334,7 @@ export default function RegisterPage() {
                     {/* Login Link */}
                     <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-6 font-semibold">
                         لديك حساب بالفعل؟{' '}
-                        <Link href="/login" className="text-primary hover:text-primary-700 font-bold">
+                        <Link href="/login" className="text-accent hover:text-accent-700 font-bold">
                             {dict.login?.submit || 'تسجيل الدخول'}
                         </Link>
                     </p>

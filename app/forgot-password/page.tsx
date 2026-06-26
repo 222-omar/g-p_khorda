@@ -135,7 +135,7 @@ export default function ForgotPasswordPage() {
                         <div className="bg-primary p-2.5 rounded-xl text-white">
                             <Leaf size={24} />
                         </div>
-                        <span className="text-2xl font-bold"><span className="text-primary">4</span>Sale</span>
+                        <span className="text-2xl font-bold"><span className="text-accent">4</span>Sale</span>
                     </Link>
                 </motion.div>
 
@@ -242,7 +242,7 @@ export default function ForgotPasswordPage() {
                                             onClick={() => setSelectedMask(mask)}
                                             className={`p-3 rounded-xl border-2 font-black tracking-widest text-center transition-all ${
                                                 selectedMask === mask
-                                                    ? 'border-primary bg-primary/5 text-primary'
+                                                    ? 'border-primary bg-primary/5 text-accent'
                                                     : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:border-slate-300 dark:hover:border-slate-600'
                                             }`}
                                             dir="ltr"

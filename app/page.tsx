@@ -29,7 +29,7 @@ export default function Home() {
           <HowItWorks />
         </div>
 
-        {/* 6. Why 4Sale - Convince the visitor */}
+        {/* 6. Why Tadwera - Convince the visitor */}
         <div id="why-us">
           <WhyFourSale />
         </div>

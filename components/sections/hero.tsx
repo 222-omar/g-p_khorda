@@ -128,7 +128,7 @@ export function Hero() {
                             {/* Badge */}
                             <motion.div
                                 variants={staggerItem}
-                                className="inline-flex items-center gap-2 bg-primary/5 text-primary px-3.5 py-1.5 rounded-full text-[12px] font-tajawal font-bold mb-4 border border-primary/10"
+                                className="inline-flex items-center gap-2 bg-primary/5 text-accent px-3.5 py-1.5 rounded-full text-[12px] font-tajawal font-bold mb-4 border border-primary/10"
                             >
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                                 {dict.hero.welcomeBadge}
@@ -139,7 +139,7 @@ export function Hero() {
                                 variants={staggerItem}
                                 className="text-4xl md:text-5xl lg:text-[clamp(2rem,3.8vw,3.2rem)] font-noto-kufi font-[800] mb-3 leading-[1.4] text-slate-900 dark:text-white w-full max-w-[700px] min-h-[100px] md:min-h-[120px]"
                             >
-                                <span className="inline-block text-primary">
+                                <span className="inline-block text-accent">
                                     {animatedText}
                                 </span>
                             </motion.h1>
@@ -161,7 +161,7 @@ export function Hero() {
                                     <motion.button
                                         whileHover={{ scale: 1.02, y: -1 }}
                                         whileTap={{ scale: 0.98 }}
-                                        className="w-full sm:w-auto bg-primary text-white px-8 py-3 rounded-xl font-bold text-[15px] shadow-[0_6px_20px_rgba(1,105,111,0.28)] transition-all flex items-center justify-center gap-2"
+                                        className="w-full sm:w-auto bg-primary text-white px-8 py-3 rounded-xl font-bold text-[15px] shadow-[0_6px_20px_rgba(46,125,50,0.28)] transition-all flex items-center justify-center gap-2"
                                     >
                                         <span>{dict.hero.browseProducts}</span>
                                         <ArrowRight size={18} className={`${isRtl ? 'rotate-180' : ''}`} />
@@ -188,13 +188,11 @@ export function Hero() {
                         animate="visible"
                         className="relative h-full flex items-center justify-center lg:justify-end"
                     >
-                        <div
-                            className="relative rounded-[24px] overflow-hidden aspect-[4/3] w-full shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] border border-black/[0.04] dark:border-white/[0.04]"
-                        >
+                        <div className="relative flex justify-center items-center">
                             <img
                                 src="/hero-bg.jpg"
-                                alt="4Sale marketplace"
-                                className="w-full h-full object-cover"
+                                alt="Tadwera marketplace"
+                                className="max-h-[65vh] w-auto max-w-full object-contain rounded-[24px] shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] border border-black/[0.04] dark:border-white/[0.04]"
                             />
                         </div>
                     </motion.div>
@@ -215,7 +213,7 @@ export function Hero() {
                                 className={`text-center flex flex-col items-center justify-center ${idx !== 3 ? 'lg:border-e lg:border-slate-200 dark:lg:border-white/10 lg:pe-6 lg:me-6' : ''
                                     }`}
                             >
-                                <p className="font-noto-kufi text-[1.4rem] font-black text-primary leading-none tracking-tight">
+                                <p className="font-noto-kufi text-[1.4rem] font-black text-accent leading-none tracking-tight">
                                     {stat.value}
                                 </p>
                                 <p className="font-tajawal text-[11px] text-slate-400 mt-1 font-medium">

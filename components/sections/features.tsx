@@ -27,7 +27,7 @@ export function Features() {
             icon: Brain,
             title: dict.features.aiPricing.title,
             desc: dict.features.aiPricing.desc,
-            color: 'text-primary',
+            color: 'text-accent',
             bg: 'bg-primary-50 dark:bg-primary-900/10',
             glow: 'group-hover:shadow-primary/20',
         },
@@ -108,11 +108,11 @@ export function Features() {
                     whileInView="visible"
                     viewport={{ once: true, amount: 0.3 }}
                 >
-                    <span className="text-primary font-bold uppercase tracking-widest text-[11px] mb-4 bg-primary/10 px-4 py-2 rounded-full inline-block font-tajawal">
+                    <span className="text-accent font-bold uppercase tracking-widest text-[11px] mb-4 bg-primary/10 px-4 py-2 rounded-full inline-block font-tajawal">
                         {dict.features.title}
                     </span>
                     <h2 className="text-4xl md:text-5xl font-black mb-6 font-noto-kufi text-slate-900 dark:text-white leading-tight">
-                        مميزات ذكية <br /> <span className="text-primary">بتغير طريقة البيع والشراء</span>
+                        مميزات ذكية <br /> <span className="text-accent">بتغير طريقة البيع والشراء</span>
                     </h2>
                     <p className="text-slate-500 dark:text-slate-400 font-tajawal max-w-xl mx-auto text-lg">
                         {dict.features.subtitle}
@@ -133,7 +133,7 @@ export function Features() {
                         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-[100px] -mr-32 -mt-32" />
                         <div className="relative z-10">
                             <div className="w-16 h-16 bg-primary/20 rounded-[1.5rem] flex items-center justify-center mb-8 border border-white/10 group-hover:scale-110 transition-transform duration-300">
-                                <Brain className="w-8 h-8 text-primary" />
+                                <Brain className="w-8 h-8 text-accent" />
                             </div>
                             <h3 className="text-2xl font-bold font-noto-kufi mb-4 leading-tight">
                                 {features[0].title}
@@ -141,7 +141,7 @@ export function Features() {
                             <p className="text-slate-400 font-tajawal text-lg leading-relaxed mb-8">
                                 {features[0].desc}
                             </p>
-                            <span className="inline-flex items-center gap-2 text-primary font-bold font-tajawal">
+                            <span className="inline-flex items-center gap-2 text-accent font-bold font-tajawal">
                                 اكتشف المزيد <Sparkles size={16} />
                             </span>
                         </div>
@@ -162,7 +162,7 @@ export function Features() {
                                 <div className={`w-14 h-14 ${feature.bg} rounded-2xl flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}>
                                     <feature.icon className={`w-7 h-7 ${feature.color}`} strokeWidth={2.2} />
                                 </div>
-                                <h3 className="text-xl font-bold font-noto-kufi text-slate-900 dark:text-white mb-3 group-hover:text-primary transition-colors duration-200">
+                                <h3 className="text-xl font-bold font-noto-kufi text-slate-900 dark:text-white mb-3 group-hover:text-accent transition-colors duration-200">
                                     {feature.title}
                                 </h3>
                                 <p className="text-slate-500 dark:text-slate-400 font-tajawal leading-relaxed">

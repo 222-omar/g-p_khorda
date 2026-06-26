@@ -38,7 +38,7 @@ export function Footer() {
             title: isRtl ? 'قد تهمك' : 'Useful Info',
             links: [
                 { label: isRtl ? 'الدعم الفني' : 'Support', href: '#', icon: Headphones },
-                { label: isRtl ? 'عن 4Sale' : 'About 4Sale', href: '#', icon: Newspaper },
+                { label: isRtl ? 'عن Tadwera' : 'About Tadwera', href: '#', icon: Newspaper },
                 { label: isRtl ? 'الشروط والأحكام' : 'Terms & Conditions', href: '#', icon: ShieldCheck },
                 { label: isRtl ? 'سياسة الخصوصية' : 'Privacy Policy', href: '#', icon: ShieldCheck },
             ],
@@ -67,8 +67,8 @@ export function Footer() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
                     <motion.p variants={staggerItem} className="text-center text-sm md:text-base leading-relaxed text-indigo-100">
                         {isRtl
-                            ? '4Sale - سوقك الذكي لبيع المستعمل والخردة في مصر. اشتري وبيع بسهولة وأمان مع مزادات مباشرة وبوت ذكي وكيل ذكي.'
-                            : '4Sale - Your smart marketplace for used items and scrap in Egypt. Buy and sell with ease, featuring live auctions, smart bot, and AI price analysis.'}
+                            ? 'Tadwera - سوقك الذكي لبيع المستعمل والخردة في مصر. اشتري وبيع بسهولة وأمان مع مزادات مباشرة وبوت ذكي وكيل ذكي.'
+                            : 'Tadwera - Your smart marketplace for used items and scrap in Egypt. Buy and sell with ease, featuring live auctions, smart bot, and AI price analysis.'}
                     </motion.p>
                 </div>
             </div>
@@ -105,7 +105,7 @@ export function Footer() {
                         <ul className="space-y-3 mb-6">
                             <li className="flex items-center gap-2 text-sm text-slate-400">
                                 <Mail size={14} className="text-slate-500 shrink-0" />
-                                support@4sale-eg.com
+                                support@Tadwera-eg.com
                             </li>
                             <li className="flex items-center gap-2 text-sm text-slate-400">
                                 <Phone size={14} className="text-slate-500 shrink-0" />
@@ -149,8 +149,8 @@ export function Footer() {
                             <span className="text-slate-500 text-[10px]">|</span>
                             <p className="text-slate-500 text-xs">
                                 {isRtl
-                                    ? 'جميع الحقوق محفوظة © ٢٠٢٤ — 4Sale'
-                                    : '© 2024 — 4Sale. All rights reserved.'}
+                                    ? 'جميع الحقوق محفوظة © ٢٠٢٤ — Tadwera'
+                                    : '© 2024 — Tadwera. All rights reserved.'}
                             </p>
                         </motion.div>
 

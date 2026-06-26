@@ -41,7 +41,7 @@ function StatCard({ icon: Icon, label, value, index }: any) {
             className="flex flex-col items-center py-4 lg:py-0"
         >
             <div className="flex items-center gap-4">
-                <div className="text-primary/70 mb-0">
+                <div className="text-accent/70 mb-0">
                     <Icon size={22} strokeWidth={2} />
                 </div>
                 <div className="flex flex-col">

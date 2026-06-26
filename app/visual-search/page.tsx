@@ -123,7 +123,7 @@ export default function VisualSearchPage() {
                         className="text-center mb-10"
                     >
                         <div className="inline-flex items-center gap-3 mb-3">
-                            <div className="bg-primary/10 text-primary p-3 rounded-2xl">
+                            <div className="bg-primary/10 text-accent p-3 rounded-2xl">
                                 <Camera size={28} />
                             </div>
                             <h1 className="text-3xl md:text-4xl font-black">
@@ -230,7 +230,7 @@ export default function VisualSearchPage() {
                                         transition={{ duration: 2.5, repeat: Infinity }}
                                         className="inline-block"
                                     >
-                                        <div className="bg-primary/10 text-primary p-5 rounded-2xl inline-block mb-4">
+                                        <div className="bg-primary/10 text-accent p-5 rounded-2xl inline-block mb-4">
                                             <ImageIcon size={40} />
                                         </div>
                                     </motion.div>
@@ -327,14 +327,14 @@ export default function VisualSearchPage() {
 
                                                     {/* Content */}
                                                     <div className="p-4">
-                                                        <h4 className="font-bold text-sm line-clamp-1 mb-2.5 group-hover:text-primary transition-colors">
+                                                        <h4 className="font-bold text-sm line-clamp-1 mb-2.5 group-hover:text-accent transition-colors">
                                                             {product.title}
                                                         </h4>
                                                         <div className="flex items-center justify-between">
-                                                            <span className="text-primary font-black text-lg">
+                                                            <span className="text-accent font-black text-lg">
                                                                 {Number(product.price).toLocaleString()} <span className="text-xs text-slate-400">{dict.currency}</span>
                                                             </span>
-                                                            <span className="text-[11px] bg-primary/10 text-primary font-bold px-2.5 py-1 rounded-lg group-hover:bg-primary group-hover:text-white transition-all">
+                                                            <span className="text-[11px] bg-primary/10 text-accent font-bold px-2.5 py-1 rounded-lg group-hover:bg-primary group-hover:text-white transition-all">
                                                                 {conditionLabels[product.condition] || product.condition}
                                                             </span>
                                                         </div>

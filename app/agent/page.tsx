@@ -213,7 +213,7 @@ export default function AgentPage() {
     if (authLoading || !user) {
         return (
             <div className="flex min-h-screen items-center justify-center">
-                <Loader2 className="animate-spin text-primary" size={40} />
+                <Loader2 className="animate-spin text-accent" size={40} />
             </div>
         );
     }
@@ -233,7 +233,7 @@ export default function AgentPage() {
                         <div className="flex items-center justify-between">
                             <div className="flex-1" />
                             <div className="inline-flex items-center gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-6 py-3 rounded-2xl shadow-sm">
-                                <Bot size={28} className="text-primary" />
+                                <Bot size={28} className="text-accent" />
                                 <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">{dict.agent.title}</h1>
                             </div>
                             {/* Bell Icon with dropdown */}
@@ -268,7 +268,7 @@ export default function AgentPage() {
                                                 {/* Dropdown Header */}
                                                 <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
                                                     <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                                                        <Bell size={16} className="text-primary" />
+                                                        <Bell size={16} className="text-accent" />
                                                         الإشعارات
                                                         {unreadCount > 0 && (
                                                             <span className="bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{unreadCount}</span>
@@ -330,7 +330,7 @@ export default function AgentPage() {
                                                                             {notif.related_product && notif.notification_type === 'bid_approval' && (
                                                                                 <a
                                                                                     href={`/product/${notif.related_product}`}
-                                                                                    className="inline-flex items-center gap-1 mt-2 text-xs font-bold text-primary hover:text-primary-700 transition-colors"
+                                                                                    className="inline-flex items-center gap-1 mt-2 text-xs font-bold text-accent hover:text-accent-700 transition-colors"
                                                                                     onClick={(e) => e.stopPropagation()}
                                                                                 >
                                                                                     <ExternalLink size={12} />
@@ -457,7 +457,7 @@ export default function AgentPage() {
                                     >
                                         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-lg">
                                             <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-slate-800 dark:text-slate-200">
-                                                <Sparkles size={20} className="text-primary" />
+                                                <Sparkles size={20} className="text-accent" />
                                                 {dict.agent.newAgent}
                                             </h3>
 
@@ -578,7 +578,7 @@ export default function AgentPage() {
                                             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                                                 <div className="flex items-start gap-4 flex-1">
                                                     {/* Status icon */}
-                                                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 text-primary shadow-inner">
+                                                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 text-accent shadow-inner">
                                                         <Bot size={26} />
                                                     </div>
 

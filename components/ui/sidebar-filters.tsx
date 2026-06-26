@@ -88,7 +88,7 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
             {/* Header */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-2">
-                    <Filter size={20} className="text-primary" />
+                    <Filter size={20} className="text-accent" />
                     <h3 className="font-bold text-lg">تصفية النتائج</h3>
                 </div>
                 {hasActiveFilters && (
@@ -110,7 +110,7 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.8 }}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full"
+                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-accent text-xs font-bold rounded-full"
                             >
                                 {categories.find((c) => c.id === selectedCategory)?.label}
                                 <button onClick={() => toggleCategory(selectedCategory)} className="hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full p-0.5 transition-colors">
@@ -123,7 +123,7 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.8 }}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full"
+                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-accent text-xs font-bold rounded-full"
                             >
                                 {priceRanges.find((p) => p.id === selectedPriceRangeId)?.label}
                                 <button onClick={() => togglePriceRange(null)} className="hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full p-0.5 transition-colors">
@@ -136,7 +136,7 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.8 }}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full"
+                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-accent text-xs font-bold rounded-full"
                             >
                                 {conditions.find((c) => c.id === selectedCondition)?.label}
                                 <button onClick={() => toggleCondition(selectedCondition)} className="hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full p-0.5 transition-colors">
@@ -165,9 +165,9 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
                                     type="checkbox"
                                     checked={selectedCategory === category.id}
                                     onChange={() => toggleCategory(category.id)}
-                                    className="w-4 h-4 text-primary rounded focus:ring-primary"
+                                    className="w-4 h-4 text-accent rounded focus:ring-primary"
                                 />
-                                <span className={`text-sm font-medium transition-colors ${selectedCategory === category.id ? 'text-primary font-bold' : 'group-hover:text-primary'
+                                <span className={`text-sm font-medium transition-colors ${selectedCategory === category.id ? 'text-accent font-bold' : 'group-hover:text-accent'
                                     }`}>
                                     {category.label}
                                 </span>
@@ -198,9 +198,9 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
                                 name="price-range"
                                 checked={selectedPriceRangeId === range.id}
                                 readOnly
-                                className="w-4 h-4 text-primary focus:ring-primary"
+                                className="w-4 h-4 text-accent focus:ring-primary"
                             />
-                            <span className={`text-sm font-medium transition-colors ${selectedPriceRangeId === range.id ? 'text-primary font-bold' : 'group-hover:text-primary'
+                            <span className={`text-sm font-medium transition-colors ${selectedPriceRangeId === range.id ? 'text-accent font-bold' : 'group-hover:text-accent'
                                 }`}>
                                 {range.label}
                             </span>
@@ -225,9 +225,9 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
                                 type="checkbox"
                                 checked={selectedCondition === condition.id}
                                 onChange={() => toggleCondition(condition.id)}
-                                className="w-4 h-4 text-primary rounded focus:ring-primary"
+                                className="w-4 h-4 text-accent rounded focus:ring-primary"
                             />
-                            <span className={`text-sm font-medium transition-colors ${selectedCondition === condition.id ? 'text-primary font-bold' : 'group-hover:text-primary'
+                            <span className={`text-sm font-medium transition-colors ${selectedCondition === condition.id ? 'text-accent font-bold' : 'group-hover:text-accent'
                                 }`}>
                                 {condition.label}
                             </span>

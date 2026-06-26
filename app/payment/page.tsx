@@ -143,7 +143,7 @@ export default function PaymentPage() {
             <>
                 <Navbar />
                 <div className="min-h-screen pt-32 flex justify-center items-start">
-                    <Loader2 className="animate-spin text-primary" size={40} />
+                    <Loader2 className="animate-spin text-accent" size={40} />
                 </div>
                 <Footer />
             </>
@@ -163,7 +163,7 @@ export default function PaymentPage() {
                         className="mb-8"
                     >
                         <Link href="/profile">
-                            <button className="mb-4 flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition-colors">
+                            <button className="mb-4 flex items-center gap-2 text-sm font-bold text-accent hover:text-accent/80 transition-colors">
                                 <ArrowRight size={16} className={isRtl ? '' : 'rotate-180'} />
                                 {isRtl ? 'العودة للبروفايل' : 'Back to Profile'}
                             </button>
@@ -242,7 +242,7 @@ export default function PaymentPage() {
                             {/* Quick Add */}
                             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                                 <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                                    <Sparkles size={18} className="text-primary" />
+                                    <Sparkles size={18} className="text-accent" />
                                     {dict.payment.quickAdd}
                                 </h3>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -257,7 +257,7 @@ export default function PaymentPage() {
                                                 setError(null);
                                             }}
                                             className={`relative p-4 rounded-xl border-2 font-black text-lg transition-all ${selectedAmount === amount
-                                                ? 'border-primary bg-primary/5 dark:bg-primary/10 text-primary shadow-md shadow-primary/10'
+                                                ? 'border-primary bg-primary/5 dark:bg-primary/10 text-accent shadow-md shadow-primary/10'
                                                 : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-primary/50'
                                                 }`}
                                         >
@@ -323,7 +323,7 @@ export default function PaymentPage() {
                             {/* Card Form (Required — Simulated) */}
                             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                                 <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
-                                    <CreditCard size={16} className="text-primary" />
+                                    <CreditCard size={16} className="text-accent" />
                                     {isRtl ? 'بيانات البطاقة' : 'Card Details'}
                                     <span className="text-red-500 text-xs">*</span>
                                 </h3>

@@ -25,12 +25,12 @@ export function Testimonials() {
             <div className="max-w-7xl mx-auto relative">
                 <motion.div className="text-center mb-24 px-4" variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}>
                     <motion.div variants={staggerItem} className="inline-block">
-                        <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[11px] font-bold tracking-widest uppercase mb-6 font-tajawal shadow-sm">
+                        <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-accent text-[11px] font-bold tracking-widest uppercase mb-6 font-tajawal shadow-sm">
                             {dict.testimonials.badge}
                         </span>
                     </motion.div>
                     <motion.h2 variants={staggerItem} className="font-noto-kufi text-3xl md:text-5xl font-black text-slate-900 dark:text-white leading-[1.2] mb-6">
-                        {dict.testimonials.title} <span className="text-primary">{dict.testimonials.titleHighlight}</span>
+                        {dict.testimonials.title} <span className="text-accent">{dict.testimonials.titleHighlight}</span>
                     </motion.h2>
                     <motion.p variants={staggerItem} className="font-tajawal text-base md:text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
                         {dict.testimonials.subtitle}
@@ -41,7 +41,7 @@ export function Testimonials() {
                     {testimonials.map((testimonial, index) => (
                         <motion.div key={index} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: index * 0.1 }} whileHover={{ y: -8 }} className="relative group h-full">
                             <div className="h-full bg-white dark:bg-slate-900/40 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-[0_10px_30px_rgba(0,0,0,0.02)] group-hover:shadow-[0_20px_50px_rgba(0,105,111,0.08)] transition-all duration-500 relative overflow-hidden flex flex-col">
-                                <Quote className={`absolute -top-4 ${isRtl ? '-right-4' : '-left-4'} w-24 h-24 text-primary/5 rotate-180 group-hover:rotate-[192deg] transition-transform duration-700`} />
+                                <Quote className={`absolute -top-4 ${isRtl ? '-right-4' : '-left-4'} w-24 h-24 text-accent/5 rotate-180 group-hover:rotate-[192deg] transition-transform duration-700`} />
                                 <div className={`relative z-10 flex flex-col h-full ${isRtl ? 'text-right' : 'text-left'}`}>
                                     <div className="flex gap-1 mb-6 justify-start">
                                         {[...Array(5)].map((_, i) => (

@@ -208,11 +208,11 @@ export function FloatingBotWidget() {
                         <div className="flex-shrink-0 bg-primary/5 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shadow-sm">
-                                    <Bot className="w-5 h-5 text-primary" />
+                                    <Bot className="w-5 h-5 text-accent" />
                                 </div>
                                 <div className="leading-tight">
                                     <h3 className="text-slate-900 dark:text-white font-black text-base">مساعدك الذكي</h3>
-                                    <p className="text-[10px] text-primary font-bold flex items-center gap-1.5 mt-0.5">
+                                    <p className="text-[10px] text-accent font-bold flex items-center gap-1.5 mt-0.5">
                                         <span className="relative flex h-1.5 w-1.5">
                                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                                             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary"></span>
@@ -241,7 +241,7 @@ export function FloatingBotWidget() {
                                         أهلاً {userName} 👋
                                     </h4>
                                     <p className="text-slate-500 dark:text-slate-400 text-xs mb-6 text-center px-4">
-                                        أنا بوت 4Sale الذكي، اسألني عن أي حاجة عايز تشتريها
+                                        أنا بوت Tadwera الذكي، اسألني عن أي حاجة عايز تشتريها
                                     </p>
 
                                     <div className="grid grid-cols-1 gap-2 w-full max-w-[280px]">
@@ -280,7 +280,7 @@ export function FloatingBotWidget() {
                                         ) : (
                                             <div className="flex items-start gap-2 justify-start mb-5 w-full">
                                                 <div className="w-8 h-8 mt-1 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 border border-primary/20">
-                                                    <Bot className="w-4 h-4 text-primary" />
+                                                    <Bot className="w-4 h-4 text-accent" />
                                                 </div>
                                                 <div className="flex flex-col items-start max-w-[88%] w-full">
                                                     {/* Main text bubble */}
@@ -296,7 +296,7 @@ export function FloatingBotWidget() {
                                                                         const Icon = ACTION_ICONS[action] || ShoppingBag;
                                                                         const label = ACTION_LABELS[action] || action;
                                                                         return (
-                                                                            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20">
+                                                                            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-accent bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20">
                                                                                 <Icon className="w-3 h-3" />
                                                                                 {label}
                                                                             </span>
@@ -322,7 +322,7 @@ export function FloatingBotWidget() {
                                                                         </div>
                                                                         <div className="flex-1 min-w-0 flex flex-col justify-center">
                                                                             <p className="text-xs font-bold text-slate-900 dark:text-slate-200 truncate">{product.title}</p>
-                                                                            <span className="text-xs font-black text-primary mt-0.5">{Number(product.price).toLocaleString('ar-EG')} ج.م</span>
+                                                                            <span className="text-xs font-black text-accent mt-0.5">{Number(product.price).toLocaleString('ar-EG')} ج.م</span>
                                                                         </div>
                                                                     </div>
                                                                 </Link>
@@ -345,7 +345,7 @@ export function FloatingBotWidget() {
                             {loading && (
                                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex items-start gap-2 justify-start mb-5">
                                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 border border-primary/20">
-                                        <Bot className="w-4 h-4 text-primary" />
+                                        <Bot className="w-4 h-4 text-accent" />
                                     </div>
                                     <div className="bg-white dark:bg-slate-800 px-4 py-3 rounded-2xl rounded-tl-sm shadow-sm border border-slate-200 dark:border-slate-700">
                                         <div className="flex items-baseline gap-0.5 text-slate-400 font-black tracking-[0.2em]">

@@ -164,7 +164,7 @@ export default function LoginPage() {
 
                         {/* Forgot Password */}
                         <motion.div variants={staggerItem} className="text-left">
-                            <Link prefetch={false} href="/forgot-password" className="text-sm text-primary hover:text-teal-700 font-semibold transition-colors cursor-pointer inline-block">
+                            <Link prefetch={false} href="/forgot-password" className="text-sm text-accent hover:text-teal-700 font-semibold transition-colors cursor-pointer inline-block">
                                 نسيت كلمة المرور؟
                             </Link>
                         </motion.div>
@@ -193,7 +193,7 @@ export default function LoginPage() {
                         className="text-center text-sm text-slate-500 dark:text-slate-400 mt-6 font-semibold"
                     >
                         {dict.login.noAccount}{' '}
-                        <Link prefetch={false} href="/register" className="text-primary hover:text-primary-700 font-bold transition-colors">
+                        <Link prefetch={false} href="/register" className="text-accent hover:text-accent-700 font-bold transition-colors">
                             {dict.login.createAccount || 'سجل حساب جديد'}
                         </Link>
                     </motion.p>
@@ -206,7 +206,7 @@ export default function LoginPage() {
                     transition={{ delay: 0.7 }}
                     className="text-center mt-6"
                 >
-                    <Link href="/" className="text-sm text-slate-600 dark:text-slate-400 hover:text-primary font-semibold transition-colors">
+                    <Link href="/" className="text-sm text-slate-600 dark:text-slate-400 hover:text-accent font-semibold transition-colors">
                         ← العودة للرئيسية
                     </Link>
                 </motion.div>

@@ -105,7 +105,7 @@ export default function EditProductPage() {
             <>
                 <Navbar />
                 <div className="min-h-screen pt-32 flex justify-center items-start">
-                    <Loader2 className="animate-spin text-primary" size={40} />
+                    <Loader2 className="animate-spin text-accent" size={40} />
                 </div>
             </>
         );

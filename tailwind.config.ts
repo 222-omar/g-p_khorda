@@ -12,10 +12,15 @@ const config: Config = {
       colors: {
         page: '#f8f7f4',
         primary: {
-          DEFAULT: '#01696f',   // deep teal — main brand
-          light:   '#0c7f85',   // hover state
-          subtle:  '#e0f0f0',   // light bg tints
-          muted:   '#cedcd8',   // borders / highlights
+          DEFAULT: '#2E7D32',   // forest green — main brand (matching logo)
+          light:   '#43A047',   // hover state
+          dark:    '#1B5E20',   // darker shade
+          subtle:  '#E8F5E9',   // light bg tints
+          muted:   '#C8E6C9',   // borders / highlights
+        },
+        accent: {
+          DEFAULT: '#1B2D3A',   // dark charcoal from logo text
+          light:   '#2C3E50',   // lighter charcoal
         },
       },
       fontFamily: {

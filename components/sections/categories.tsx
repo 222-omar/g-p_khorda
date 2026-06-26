@@ -41,8 +41,8 @@ export function Categories() {
         <section className="relative py-24 px-4 sm:px-6 lg:px-8 bg-[#f8f7f4] dark:bg-[#0d0f14] overflow-hidden">
             {/* Structural backdrop */}
             <div className="absolute inset-0 z-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
-                 style={{ backgroundImage: 'radial-gradient(#01696f 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-            <div className="absolute inset-0 z-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 10%, rgba(1, 105, 111, 0.05) 0%, transparent 50%)' }}></div>
+                 style={{ backgroundImage: 'radial-gradient(#2E7D32 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+            <div className="absolute inset-0 z-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 10%, rgba(46, 125, 50, 0.05) 0%, transparent 50%)' }}></div>
             
             <div className="max-w-7xl mx-auto relative z-10">
                 {/* Standardized Header */}
@@ -54,7 +54,7 @@ export function Categories() {
                     viewport={{ once: true, amount: 0.3 }}
                 >
                     <motion.div variants={staggerItem} className="inline-block">
-                        <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[11px] font-bold tracking-widest uppercase mb-6 font-tajawal shadow-sm">
+                        <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-accent text-[11px] font-bold tracking-widest uppercase mb-6 font-tajawal shadow-sm">
                             {dict.categories.badge}
                         </span>
                     </motion.div>
@@ -62,7 +62,7 @@ export function Categories() {
                         variants={staggerItem}
                         className="text-3xl md:text-5xl font-black font-noto-kufi text-slate-900 dark:text-white leading-[1.2] mb-6"
                     >
-                        {dict.categories.title} <span className="text-primary">{dict.categories.titleHighlight}</span>
+                        {dict.categories.title} <span className="text-accent">{dict.categories.titleHighlight}</span>
                     </motion.h2>
                     <motion.p 
                         variants={staggerItem}
@@ -98,7 +98,7 @@ export function Categories() {
                                 >
                                     <category.icon className={`w-8 h-8 ${category.iconColor}`} strokeWidth={2.2} />
                                 </motion.div>
-                                <h3 className="font-tajawal font-bold text-lg text-slate-900 dark:text-white text-center leading-tight transition-colors duration-200 group-hover:text-primary">
+                                <h3 className="font-tajawal font-bold text-lg text-slate-900 dark:text-white text-center leading-tight transition-colors duration-200 group-hover:text-accent">
                                     {category.name}
                                 </h3>
                             </motion.div>

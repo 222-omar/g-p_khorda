@@ -111,7 +111,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
             <div className="flex min-h-screen flex-col">
                 <Navbar />
                 <div className="flex-1 flex items-center justify-center pt-20">
-                    <Loader2 className="animate-spin text-primary" size={40} />
+                    <Loader2 className="animate-spin text-accent" size={40} />
                 </div>
                 <Footer />
             </div>
@@ -288,7 +288,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ id: st
                     {/* Products Grid */}
                     <div className="lg:col-span-3">
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                            <div className="p-2 bg-primary/10 text-accent rounded-lg">
                                 <Package size={20} />
                             </div>
                             <h2 className="text-xl font-bold">منتجات وإعلانات البائع ({products.length})</h2>

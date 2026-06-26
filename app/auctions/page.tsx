@@ -119,7 +119,7 @@ export default function AuctionsPage() {
     if (authLoading || !user) {
         return (
             <div className="flex min-h-screen items-center justify-center">
-                <Loader2 className="animate-spin text-primary" size={40} />
+                <Loader2 className="animate-spin text-accent" size={40} />
             </div>
         );
     }
@@ -179,7 +179,7 @@ export default function AuctionsPage() {
 
                     {loading && (
                         <div className="flex items-center justify-center py-20">
-                            <Loader2 className="animate-spin text-primary" size={40} />
+                            <Loader2 className="animate-spin text-accent" size={40} />
                         </div>
                     )}
 
@@ -233,7 +233,7 @@ export default function AuctionsPage() {
                                             </div>
 
                                             <div className="p-4">
-                                                <h3 className="font-bold text-sm mb-3 line-clamp-2 group-hover:text-primary transition-colors">
+                                                <h3 className="font-bold text-sm mb-3 line-clamp-2 group-hover:text-accent transition-colors">
                                                     {auction.product_title}
                                                 </h3>
 

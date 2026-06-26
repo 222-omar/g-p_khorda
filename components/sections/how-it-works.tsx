@@ -60,7 +60,7 @@ export function HowItWorks() {
                     viewport={{ once: true, amount: 0.3 }}
                 >
                     <motion.div variants={staggerItem} className="inline-block">
-                        <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[11px] font-bold tracking-widest uppercase mb-6 font-tajawal shadow-sm">
+                        <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-accent text-[11px] font-bold tracking-widest uppercase mb-6 font-tajawal shadow-sm">
                             {dict.howItWorks.badge}
                         </span>
                     </motion.div>
@@ -68,7 +68,7 @@ export function HowItWorks() {
                         variants={staggerItem}
                         className="font-noto-kufi text-3xl md:text-5xl font-black text-slate-900 dark:text-white leading-[1.2] mb-6"
                     >
-                        {dict.howItWorks.title} <span className="text-primary">{dict.howItWorks.titleHighlight}</span>
+                        {dict.howItWorks.title} <span className="text-accent">{dict.howItWorks.titleHighlight}</span>
                     </motion.h2>
                     <motion.p 
                         variants={staggerItem}
@@ -105,7 +105,7 @@ export function HowItWorks() {
                                 </div>
 
                                 <div className="px-4 space-y-3">
-                                    <h3 className="text-[20px] font-black font-noto-kufi text-slate-900 dark:text-white group-hover:text-primary transition-colors">
+                                    <h3 className="text-[20px] font-black font-noto-kufi text-slate-900 dark:text-white group-hover:text-accent transition-colors">
                                         {step.title}
                                     </h3>
                                     <p className="text-slate-500 dark:text-slate-400 font-tajawal leading-relaxed text-[14px]">

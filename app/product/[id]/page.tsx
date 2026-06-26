@@ -164,7 +164,7 @@ export default function ProductPage() {
                 <Navbar />
                 <main className="pt-24 pb-12 min-h-screen px-4 sm:px-6 lg:px-8">
                     <div className="max-w-7xl mx-auto flex items-center justify-center py-20">
-                        <Loader2 className="animate-spin text-primary" size={40} />
+                        <Loader2 className="animate-spin text-accent" size={40} />
                     </div>
                 </main>
                 <Footer />
@@ -204,7 +204,7 @@ export default function ProductPage() {
                 <div className="max-w-7xl mx-auto">
                     {/* Back Button */}
                     <Link href="/dashboard">
-                        <button className="mb-6 flex items-center gap-2 text-sm font-bold text-primary hover:text-primary-700 transition-colors">
+                        <button className="mb-6 flex items-center gap-2 text-sm font-bold text-accent hover:text-accent-700 transition-colors">
                             <ArrowRight size={16} className={isRtl ? '' : 'rotate-180'} />
                             {dict.product.backToShop}
                         </button>
@@ -251,7 +251,7 @@ export default function ProductPage() {
                         <div className="space-y-6">
                             {/* Title & Category */}
                             <div>
-                                <span className="inline-block bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 px-3 py-1 rounded-lg text-xs font-bold mb-3">
+                                <span className="inline-block bg-primary-100 dark:bg-primary-900/30 text-accent-700 dark:text-accent-300 px-3 py-1 rounded-lg text-xs font-bold mb-3">
                                     {categoryLabels[product.category] || product.category}
                                 </span>
                                 <div className="flex justify-between items-start gap-4">
@@ -306,7 +306,7 @@ export default function ProductPage() {
                                         <p className="text-slate-500 dark:text-slate-400 text-xs uppercase font-bold mb-2">
                                             {product.auction.is_active ? 'المزايدة الحالية' : 'السعر النهائي'}
                                         </p>
-                                        <p className="text-4xl md:text-5xl font-black text-primary">
+                                        <p className="text-4xl md:text-5xl font-black text-accent">
                                             {parseFloat(product.auction.current_bid || product.price).toLocaleString()}
                                             <span className="text-lg mr-2">{dict.currency}</span>
                                         </p>
@@ -325,7 +325,7 @@ export default function ProductPage() {
                                             <p className="text-red-600 dark:text-red-400 font-bold text-lg mb-1">🔴 المزاد انتهى</p>
                                             {product.auction.highest_bidder_name && (
                                                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                                                    الفائز: <span className="font-bold text-primary">{product.auction.highest_bidder_name}</span>
+                                                    الفائز: <span className="font-bold text-accent">{product.auction.highest_bidder_name}</span>
                                                 </p>
                                             )}
                                         </div>
@@ -430,7 +430,7 @@ export default function ProductPage() {
                                         <p className="text-slate-500 dark:text-slate-400 text-xs uppercase font-bold mb-2">
                                             {dict.product.requestedPrice}
                                         </p>
-                                        <p className="text-4xl md:text-5xl font-black text-primary">
+                                        <p className="text-4xl md:text-5xl font-black text-accent">
                                             {parseFloat(product.price).toLocaleString()}
                                             <span className="text-lg mr-2">{dict.currency}</span>
                                         </p>
@@ -450,7 +450,7 @@ export default function ProductPage() {
                                             className="w-12 h-12 rounded-full border-2 border-primary group-hover:ring-4 ring-primary/20 transition-all object-cover"
                                         />
                                         <div className="flex-1">
-                                            <p className="font-bold group-hover:text-primary transition-colors">{product.owner.first_name || product.owner.username}</p>
+                                            <p className="font-bold group-hover:text-accent transition-colors">{product.owner.first_name || product.owner.username}</p>
                                             <div className="flex items-center gap-2 text-sm">
                                                 {product.owner_profile && (
                                                     <div className="flex items-center gap-1">

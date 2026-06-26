@@ -130,7 +130,7 @@ export function SettingsModal({ isOpen, onClose, userProfile, onSuccess }: Setti
                         <div className="flex px-6 border-b border-slate-100 dark:border-slate-800 pt-2 gap-6 relative">
                             <button
                                 onClick={() => setActiveTab('profile')}
-                                className={`pb-4 px-2 font-bold flex items-center gap-2 transition-colors relative ${activeTab === 'profile' ? 'text-primary' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                                className={`pb-4 px-2 font-bold flex items-center gap-2 transition-colors relative ${activeTab === 'profile' ? 'text-accent' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
                             >
                                 <User size={18} /> البيانات الشخصية
                                 {activeTab === 'profile' && (
@@ -139,7 +139,7 @@ export function SettingsModal({ isOpen, onClose, userProfile, onSuccess }: Setti
                             </button>
                             <button
                                 onClick={() => setActiveTab('security')}
-                                className={`pb-4 px-2 font-bold flex items-center gap-2 transition-colors relative ${activeTab === 'security' ? 'text-primary' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                                className={`pb-4 px-2 font-bold flex items-center gap-2 transition-colors relative ${activeTab === 'security' ? 'text-accent' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
                             >
                                 <Shield size={18} /> الأمان
                                 {activeTab === 'security' && (

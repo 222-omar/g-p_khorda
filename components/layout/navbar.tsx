@@ -30,7 +30,7 @@ function NavLink({
     <a
       href={href}
       className={`relative font-tajawal text-[15px] transition-all duration-300 py-1 group focus-visible:outline-none font-medium ${
-        isActive ? 'text-primary' : 'text-slate-600 dark:text-slate-300 hover:text-primary'
+        isActive ? 'text-accent' : 'text-slate-600 dark:text-slate-300 hover:text-accent'
       }`}
     >
       {children}
@@ -186,9 +186,9 @@ export function Navbar() {
                     href={link.href}
                     className={`font-tajawal text-[15px] font-bold flex items-center gap-2 transition-all duration-300 relative ${
                       isActive 
-                        ? 'text-primary' 
+                        ? 'text-accent' 
                         // @ts-ignore
-                        : (link.color || 'text-slate-600 dark:text-slate-300 hover:text-primary')
+                        : (link.color || 'text-slate-600 dark:text-slate-300 hover:text-accent')
                     }`}
                   >
                      {/* @ts-ignore */}
@@ -245,14 +245,14 @@ export function Navbar() {
                   {!isLoggedIn ? (
                     <div className="hidden md:flex items-center gap-2">
                       <Link href="/login">
-                        <button className="font-tajawal text-[14px] font-bold text-slate-600 dark:text-slate-300 hover:text-primary pe-3 me-1 border-e border-slate-200 dark:border-slate-700 py-2 transition-colors">
+                        <button className="font-tajawal text-[14px] font-bold text-slate-600 dark:text-slate-300 hover:text-accent pe-3 me-1 border-e border-slate-200 dark:border-slate-700 py-2 transition-colors">
                           {dict.nav.login}
                         </button>
                       </Link>
                       <Link href="/register">
                         <button
                           className="bg-primary text-white font-tajawal font-semibold text-[13.5px] px-4 py-[7px] rounded-lg border border-primary/10 transition-all transform hover:-translate-y-0.5 active:scale-[0.98]"
-                          style={{ boxShadow: '0 2px 8px rgba(1,105,111,0.22)' }}
+                          style={{ boxShadow: '0 2px 8px rgba(46,125,50,0.22)' }}
                         >
                           {dict.nav.register}
                         </button>
@@ -264,7 +264,7 @@ export function Navbar() {
                       <div className="relative">
                         <button
                           onClick={() => setNotificationsOpen(!notificationsOpen)}
-                          className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-slate-100 dark:hover:bg-white/[0.08] transition-colors"
+                          className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:text-accent hover:bg-slate-100 dark:hover:bg-white/[0.08] transition-colors"
                         >
                           <Bell size={20} />
                           {unreadCount > 0 && (
@@ -290,7 +290,7 @@ export function Navbar() {
                                 {unreadCount > 0 && (
                                   <button
                                     onClick={handleMarkNotificationsRead}
-                                    className="text-[10px] bg-primary/10 text-primary px-2.5 py-1 rounded-full hover:bg-primary/20 transition-colors cursor-pointer"
+                                    className="text-[10px] bg-primary/10 text-accent px-2.5 py-1 rounded-full hover:bg-primary/20 transition-colors cursor-pointer"
                                   >
                                     {dict.nav.markAllRead} ({unreadCount})
                                   </button>
@@ -312,7 +312,7 @@ export function Navbar() {
                                 )}
                               </div>
                               <Link href="/agent" onClick={() => setNotificationsOpen(false)}>
-                                <div className="p-3 text-center text-[12px] font-bold text-primary hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors">
+                                <div className="p-3 text-center text-[12px] font-bold text-accent hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors">
                                   {dict.nav.viewAll} →
                                 </div>
                               </Link>
@@ -410,11 +410,11 @@ export function Navbar() {
                         onClick={() => setMobileMenuOpen(false)}
                         className={`flex items-center gap-4 w-full px-4 py-3.5 rounded-xl font-tajawal text-[15px] transition-all font-semibold group ${
                           isActive 
-                            ? 'bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20' 
-                            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-primary'
+                            ? 'bg-primary/10 text-accent shadow-sm ring-1 ring-primary/20' 
+                            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-accent'
                         }`}
                       >
-                        <span className={`${isActive ? 'text-primary' : 'text-primary/70 group-hover:text-primary'} transition-colors`}>
+                        <span className={`${isActive ? 'text-accent' : 'text-accent/70 group-hover:text-accent'} transition-colors`}>
                           {/* @ts-ignore */}
                           {link.color && !isActive ? <span className={link.color}>{link.icon}</span> : (link.icon || <Sparkles size={18} />)}
                         </span>

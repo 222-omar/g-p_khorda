@@ -23,8 +23,8 @@ export function CTA() {
                     <div className="relative z-10">
                         <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }}>
                             <motion.div variants={staggerItem} className="flex items-center justify-center gap-2 mb-6">
-                                <Sparkles className="text-primary" size={24} />
-                                <span className="text-primary font-bold text-sm uppercase tracking-wider">{dict.cta.badge}</span>
+                                <Sparkles className="text-accent" size={24} />
+                                <span className="text-accent font-bold text-sm uppercase tracking-wider">{dict.cta.badge}</span>
                             </motion.div>
 
                             <motion.h2 variants={staggerItem} className="text-3xl md:text-5xl font-black text-white mb-6 leading-tight">

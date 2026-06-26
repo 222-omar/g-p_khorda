@@ -261,7 +261,7 @@ export default function AdminDashboardPage() {
                     {/* Version */}
                     <div className="mt-auto pt-6 px-4">
                         <p className="text-[11px] text-slate-600">الإصدار 1.0.0</p>
-                        <p className="text-[10px] text-slate-700 mt-0.5">4Sale Admin Panel</p>
+                        <p className="text-[10px] text-slate-700 mt-0.5">Tadwera Admin Panel</p>
                     </div>
                 </aside>
 

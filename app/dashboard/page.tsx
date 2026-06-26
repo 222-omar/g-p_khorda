@@ -20,7 +20,7 @@ function SectionHeader({
     icon: Icon,
     title,
     subtitle,
-    color = 'text-primary',
+    color = 'text-accent',
     bgColor = 'bg-primary/10',
     action,
 }: {
@@ -97,10 +97,10 @@ function FeaturedCard({ product, isWishlisted, onWishlistChange, isLoggedIn, isO
                     <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <div className="p-4">
-                    <h4 className="font-bold text-sm line-clamp-2 mb-3 group-hover:text-primary transition-colors">{product.title}</h4>
+                    <h4 className="font-bold text-sm line-clamp-2 mb-3 group-hover:text-accent transition-colors">{product.title}</h4>
                     <div className="flex items-center justify-between">
-                        <span className="text-primary font-black text-lg">{Number(product.price).toLocaleString()} <span className="text-xs text-slate-400">{dict.currency}</span></span>
-                        <span className="text-[11px] bg-primary/10 text-primary font-bold px-2.5 py-1 rounded-lg group-hover:bg-primary group-hover:text-white transition-all">عرض</span>
+                        <span className="text-accent font-black text-lg">{Number(product.price).toLocaleString()} <span className="text-xs text-slate-400">{dict.currency}</span></span>
+                        <span className="text-[11px] bg-primary/10 text-accent font-bold px-2.5 py-1 rounded-lg group-hover:bg-primary group-hover:text-white transition-all">عرض</span>
                     </div>
                 </div>
             </Link>
@@ -222,7 +222,7 @@ export default function DashboardPage() {
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
-                    <Loader2 className="animate-spin text-primary" size={40} />
+                    <Loader2 className="animate-spin text-accent" size={40} />
                 </motion.div>
             </div>
         );
