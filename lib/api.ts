@@ -329,8 +329,26 @@ export const productsAPI = {
 
 // Auctions API
 export const auctionsAPI = {
-    async list(activeOnly: boolean = false) {
-        return apiFetch<any[]>(`/auctions/${activeOnly ? '?active_only=true' : ''}`);
+    async list(params?: {
+        category?: string;
+        min_price?: number;
+        max_price?: number;
+        condition?: string;
+        active_only?: boolean;
+        search?: string;
+    }) {
+        const queryParams = new URLSearchParams();
+
+        if (params) {
+            Object.entries(params).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    queryParams.append(key, String(value));
+                }
+            });
+        }
+
+        const query = queryParams.toString();
+        return apiFetch<any[]>(`/auctions/${query ? `?${query}` : ''}`);
     },
 
     async get(id: string) {

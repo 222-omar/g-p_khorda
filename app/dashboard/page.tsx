@@ -168,6 +168,16 @@ export default function DashboardPage() {
     }, [searchQuery, filters.category, filters.min_price, filters.max_price, filters.condition]);
 
     useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            const categoryParam = urlParams.get('category');
+            if (categoryParam) {
+                setFilters(f => ({ ...f, category: categoryParam }));
+            }
+        }
+    }, []);
+
+    useEffect(() => {
         if (!authLoading && !user) {
             router.push('/login?redirect=/dashboard');
         } else if (user) {
@@ -367,47 +377,6 @@ export default function DashboardPage() {
                                     /* ── Sectioned view (default) ── */
                                     <div className="space-y-14">
 
-                                        {/* SECTION 1 — Auctions (if any) */}
-                                        {auctionProducts.length > 0 && (
-                                            <section>
-                                                <SectionHeader
-                                                    icon={Gavel}
-                                                    title="المزادات النشطة"
-                                                    subtitle={`${auctionProducts.length} مزاد`}
-                                                    color="text-orange-600"
-                                                    bgColor="bg-orange-100 dark:bg-orange-900/30"
-                                                    action={
-                                                        auctionProducts.length > INITIAL_AUCTIONS && (
-                                                            <button
-                                                                onClick={() => setShowAllAuctions(!showAllAuctions)}
-                                                                className="text-orange-600 hover:text-orange-700 dark:text-orange-400 font-bold text-sm bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 px-4 py-2 rounded-xl transition-colors whitespace-nowrap"
-                                                            >
-                                                                {showAllAuctions ? 'عرض أقل' : `عرض الكل`}
-                                                            </button>
-                                                        )
-                                                    }
-                                                />
-                                                <motion.div
-                                                    variants={staggerContainer}
-                                                    initial="hidden"
-                                                    whileInView="visible"
-                                                    viewport={{ once: true }}
-                                                    className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5"
-                                                >
-                                                    {(showAllAuctions ? auctionProducts : auctionProducts.slice(0, INITIAL_AUCTIONS)).map((p) => (
-                                                        <motion.div key={p.id} variants={staggerItem}>
-                                                            <FeaturedCard
-                                                                product={toCard(p)}
-                                                                isLoggedIn={!!user}
-                                                                isOwner={isOwnerOf(p)}
-                                                                isWishlisted={wishlistIds.includes(p.id)}
-                                                                onWishlistChange={handleWishlistChange}
-                                                            />
-                                                        </motion.div>
-                                                    ))}
-                                                </motion.div>
-                                            </section>
-                                        )}
 
                                         {/* SECTION 2 — مقترح لك */}
                                         <section>

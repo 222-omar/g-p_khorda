@@ -63,6 +63,27 @@ export default function SellPage() {
         handleFiles(files);
     };
 
+    // Local title-based category guesser (fallback when YOLO returns 'other')
+    const guessCategoryFromTitle = (title: string): string => {
+        if (!title) return '';
+        const t = title.toLowerCase();
+        const mappings: [string[], string][] = [
+            [['سرير', 'كنبة', 'كرسي', 'طاولة', 'ترابيزة', 'دولاب', 'خزانة', 'انتريه', 'سفره', 'نيش', 'مكتب', 'ستارة', 'مرآة', 'تسريحة', 'أثاث', 'sofa', 'bed', 'chair', 'table', 'cabinet'], 'furniture'],
+            [['لابتوب', 'كمبيوتر', 'موبايل', 'تلفزيون', 'كاميرا', 'سماعات', 'طابعه', 'طابعة', 'شاشة', 'بلايستيشن', 'جاك', 'ساعة', 'راوتر', 'laptop', 'computer', 'phone', 'tv', 'camera'], 'electronics'],
+            [['غساله', 'غسالة', 'ثلاجة', 'تلاجه', 'ميكروويف', 'ميكرويف', 'ميكروف', 'بوتاجاز', 'سخان', 'تكييف', 'مروحة', 'خلاط', 'مكواة', 'فلتر', 'ديب فريزر', 'فريزر', 'washing', 'fridge', 'microwave'], 'appliances'],
+            [['سياره', 'سيارة', 'عربيه', 'عربية', 'موتوسيكل', 'car', 'vehicle'], 'cars'],
+            [['شقة', 'شقه', 'فيلا', 'عقار', 'ارض', 'أرض', 'مبنى', 'apartment', 'building', 'house'], 'real_estate'],
+            [['كتاب', 'كتب', 'مجلة', 'رواية', 'book', 'magazine'], 'books'],
+            [['خرده', 'خردة', 'حديد', 'نحاس', 'المونيوم', 'ألومنيوم', 'سلك', 'معدن', 'scrap', 'metal', 'copper', 'iron'], 'scrap_metals'],
+        ];
+        for (const [keywords, category] of mappings) {
+            for (const kw of keywords) {
+                if (t.includes(kw)) return category;
+            }
+        }
+        return '';
+    };
+
     const handleFiles = (files: File[]) => {
         const imageFiles = files.filter(file => file.type.startsWith('image/'));
         setUploadedImages(prev => [...prev, ...imageFiles]);
@@ -355,7 +376,18 @@ export default function SellPage() {
                                             <input
                                                 type="text"
                                                 value={formData.title}
-                                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                                onChange={(e) => {
+                                                    const newTitle = e.target.value;
+                                                    const updates: any = { title: newTitle };
+                                                    // Auto-guess category from title if AI didn't set one
+                                                    if (!formData.category || formData.category === 'other') {
+                                                        const guessed = guessCategoryFromTitle(newTitle);
+                                                        if (guessed) {
+                                                            updates.category = guessed;
+                                                        }
+                                                    }
+                                                    setFormData(prev => ({ ...prev, ...updates }));
+                                                }}
                                                 placeholder={dict.addItem.productNamePlaceholder}
                                                 className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900"
                                             />
@@ -374,8 +406,11 @@ export default function SellPage() {
                                             <div>
                                                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">
                                                     {dict.addItem.category}
-                                                    {aiCategory && (
+                                                    {aiCategory && formData.category === aiCategory.category && aiCategory.category !== 'other' && (
                                                         <span className="mr-2 text-green-600 dark:text-green-400 text-[10px]">🤖 AI</span>
+                                                    )}
+                                                    {(!aiCategory || aiCategory.category === 'other') && formData.category && formData.category !== 'other' && (
+                                                        <span className="mr-2 text-blue-600 dark:text-blue-400 text-[10px]">✨ تم تخمينه من العنوان</span>
                                                     )}
                                                 </label>
                                                 <select

@@ -102,6 +102,30 @@ class AuctionService:
         if active_only == 'true':
             queryset = queryset.filter(is_active=True, end_time__gt=timezone.now())
 
+        category = query_params.get('category')
+        if category:
+            queryset = queryset.filter(product__category=category)
+
+        condition = query_params.get('condition')
+        if condition:
+            queryset = queryset.filter(product__condition=condition)
+
+        min_price = query_params.get('min_price')
+        if min_price:
+            queryset = queryset.filter(current_bid__gte=min_price)
+
+        max_price = query_params.get('max_price')
+        if max_price:
+            queryset = queryset.filter(current_bid__lte=max_price)
+
+        search = query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                models.Q(product__title__icontains=search) |
+                models.Q(product__description__icontains=search) |
+                models.Q(product__location__icontains=search)
+            )
+
         return queryset.order_by('-is_active', '-end_time')
 
     @staticmethod

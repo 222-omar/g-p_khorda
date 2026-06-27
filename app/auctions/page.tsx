@@ -10,6 +10,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { Search, Loader2, Clock, Gavel, Users, TrendingUp, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { auctionsAPI } from '@/lib/api';
+import { SidebarFilters } from '@/components/ui/sidebar-filters';
 
 function CountdownTimer({ endTime }: { endTime: string }) {
     const [timeLeft, setTimeLeft] = useState('');
@@ -66,13 +67,47 @@ export default function AuctionsPage() {
     const [error, setError] = useState<string | null>(null);
     const INITIAL_COUNT = 6;
     const [showAll, setShowAll] = useState(false);
+    const [filters, setFilters] = useState({
+        category: '',
+        min_price: undefined as number | undefined,
+        max_price: undefined as number | undefined,
+        condition: '',
+    });
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            const categoryParam = urlParams.get('category');
+            if (categoryParam) {
+                setFilters(f => ({ ...f, category: categoryParam }));
+            }
+        }
+    }, []);
+
+    const handleFilterChange = useCallback((newFilters: any) => {
+        setFilters({
+            category: newFilters.category || '',
+            min_price: newFilters.min_price,
+            max_price: newFilters.max_price,
+            condition: newFilters.condition || '',
+        });
+    }, []);
 
     const fetchAuctions = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
 
-            const response = await auctionsAPI.list(false);
+            const params: any = {
+                active_only: false,
+            };
+            if (searchQuery) params.search = searchQuery;
+            if (filters.category) params.category = filters.category;
+            if (filters.min_price) params.min_price = filters.min_price;
+            if (filters.max_price) params.max_price = filters.max_price;
+            if (filters.condition) params.condition = filters.condition;
+
+            const response = await auctionsAPI.list(params);
             // Handle both paginated and non-paginated responses
             const results = Array.isArray(response) ? response : (response as any).results || [];
             // Sort inactive/ended auctions to the bottom automatically
@@ -97,7 +132,7 @@ export default function AuctionsPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [searchQuery, filters.category, filters.min_price, filters.max_price, filters.condition]);
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -107,12 +142,8 @@ export default function AuctionsPage() {
         }
     }, [authLoading, user, router, fetchAuctions]);
 
-    // Filter auctions by search query (client side)
-    const filteredAuctions = auctions.filter((auction) => {
-        if (!searchQuery) return true;
-        const q = searchQuery.toLowerCase();
-        return auction.product_title?.toLowerCase().includes(q);
-    });
+    // Since backend handles filtering, filteredAuctions is equal to backend auctions
+    const filteredAuctions = auctions;
 
     const visibleAuctions = showAll ? filteredAuctions : filteredAuctions.slice(0, INITIAL_COUNT);
 
@@ -197,74 +228,89 @@ export default function AuctionsPage() {
 
                     {!loading && !error && (
                         <>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {visibleAuctions.map((auction) => (
-                                    <motion.div
-                                        key={auction.id}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        whileHover={{ y: -5 }}
-                                        transition={{ duration: 0.3 }}
-                                        className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden hover:shadow-xl transition-all"
-                                    >
-                                        <Link href={`/product/${auction.product}`}>
-                                            <div className={`relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-700 ${!auction.is_active ? 'grayscale-[50%]' : ''}`}>
-                                                <img
-                                                    src={auction.product_image || '/placeholder.png'}
-                                                    alt={auction.product_title}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                />
-                                                {auction.is_active ? (
-                                                    <div className="absolute top-3 right-3 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs px-3 py-1 rounded-full font-bold shadow-lg flex items-center gap-1">
-                                                        <Gavel size={12} />
-                                                        مزاد نشط
-                                                    </div>
-                                                ) : (
-                                                    <div className="absolute top-3 right-3 bg-red-600 text-white text-xs px-3 py-1 rounded-full font-bold shadow-lg flex items-center gap-1">
-                                                        🔴 المزاد انتهى
-                                                    </div>
-                                                )}
-                                                {auction.is_active && (
-                                                    <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-full font-bold flex items-center gap-1">
-                                                        <CountdownTimer endTime={auction.end_time} />
-                                                    </div>
-                                                )}
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            </div>
+                            <div className="grid lg:grid-cols-4 gap-6">
+                                {/* Sidebar Filters */}
+                                <motion.div
+                                    className="lg:col-span-1"
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ duration: 0.45 }}
+                                >
+                                    <SidebarFilters currentFilters={filters} onFilterChange={handleFilterChange} />
+                                </motion.div>
 
-                                            <div className="p-4">
-                                                <h3 className="font-bold text-sm mb-3 line-clamp-2 group-hover:text-accent transition-colors">
-                                                    {auction.product_title}
-                                                </h3>
-
-                                                <div className="flex justify-between items-end">
-                                                    <div>
-                                                        <span className="text-xs text-slate-500 block mb-1">السعر الحالي</span>
-                                                        <span className="text-orange-600 font-black text-lg">
-                                                            {parseFloat(auction.current_bid).toLocaleString()}
-                                                        </span>
-                                                        <span className="text-slate-500 text-xs mr-1">{dict.currency}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="flex items-center gap-1 text-xs text-slate-500">
-                                                            <Users size={14} />
-                                                            <span>{auction.total_bids}</span>
-                                                        </div>
+                                {/* Grid */}
+                                <div className="lg:col-span-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                                        {visibleAuctions.map((auction) => (
+                                            <motion.div
+                                                key={auction.id}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                whileHover={{ y: -5 }}
+                                                transition={{ duration: 0.3 }}
+                                                className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden hover:shadow-xl transition-all"
+                                            >
+                                                <Link href={`/product/${auction.product}`}>
+                                                    <div className={`relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-700 ${!auction.is_active ? 'grayscale-[50%]' : ''}`}>
+                                                        <img
+                                                            src={auction.product_image || '/placeholder.png'}
+                                                            alt={auction.product_title}
+                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                        />
                                                         {auction.is_active ? (
-                                                            <div className="bg-orange-100 dark:bg-orange-900/30 p-2 rounded-lg">
-                                                                <TrendingUp size={16} className="text-orange-600" />
+                                                            <div className="absolute top-3 right-3 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs px-3 py-1 rounded-full font-bold shadow-lg flex items-center gap-1">
+                                                                <Gavel size={12} />
+                                                                مزاد نشط
                                                             </div>
                                                         ) : (
-                                                            auction.highest_bidder_name && (
-                                                                <span className="text-xs text-green-600 font-bold">الفائز: {auction.highest_bidder_name}</span>
-                                                            )
+                                                            <div className="absolute top-3 right-3 bg-red-600 text-white text-xs px-3 py-1 rounded-full font-bold shadow-lg flex items-center gap-1">
+                                                                🔴 المزاد انتهى
+                                                            </div>
                                                         )}
+                                                        {auction.is_active && (
+                                                            <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-full font-bold flex items-center gap-1">
+                                                                <CountdownTimer endTime={auction.end_time} />
+                                                            </div>
+                                                        )}
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </Link>
-                                    </motion.div>
-                                ))}
+
+                                                    <div className="p-4">
+                                                        <h3 className="font-bold text-sm mb-3 line-clamp-2 group-hover:text-accent transition-colors">
+                                                            {auction.product_title}
+                                                        </h3>
+
+                                                        <div className="flex justify-between items-end">
+                                                            <div>
+                                                                <span className="text-xs text-slate-500 block mb-1">السعر الحالي</span>
+                                                                <span className="text-orange-600 font-black text-lg">
+                                                                    {parseFloat(auction.current_bid).toLocaleString()}
+                                                                </span>
+                                                                <span className="text-slate-500 text-xs mr-1">{dict.currency}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="flex items-center gap-1 text-xs text-slate-500">
+                                                                    <Users size={14} />
+                                                                    <span>{auction.total_bids}</span>
+                                                                </div>
+                                                                {auction.is_active ? (
+                                                                    <div className="bg-orange-100 dark:bg-orange-900/30 p-2 rounded-lg">
+                                                                        <TrendingUp size={16} className="text-orange-600" />
+                                                                    </div>
+                                                                ) : (
+                                                                    auction.highest_bidder_name && (
+                                                                        <span className="text-xs text-green-600 font-bold">الفائز: {auction.highest_bidder_name}</span>
+                                                                    )
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </Link>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Show All button - below grid */}

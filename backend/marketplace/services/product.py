@@ -62,8 +62,6 @@ class ProductService:
         if action == 'list':
             if query_params.get('auctions_only') == 'true':
                 queryset = queryset.filter(is_auction=True, auction__is_active=True)
-            elif query_params.get('is_auction') is None:
-                queryset = queryset.filter(is_auction=False)
 
         return queryset
 
