@@ -1,1 +1,1 @@
-# RAG (Retrieval-Augmented Generation) module for 4Sale marketplace
+# RAG (Retrieval-Augmented Generation) module for Tadwera marketplace

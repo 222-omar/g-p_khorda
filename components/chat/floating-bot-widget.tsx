@@ -241,7 +241,7 @@ export function FloatingBotWidget() {
                                         أهلاً {userName} 👋
                                     </h4>
                                     <p className="text-slate-500 dark:text-slate-400 text-xs mb-6 text-center px-4">
-                                        أنا بوت Tadwera الذكي، اسألني عن أي حاجة عايز تشتريها
+                                        أنا بوت تدويرة الذكي، اسألني عن أي حاجة عايز تشتريها
                                     </p>
 
                                     <div className="grid grid-cols-1 gap-2 w-full max-w-[280px]">

@@ -21,7 +21,7 @@ def setup_langsmith():
     api_key = os.environ.get("LANGCHAIN_API_KEY", "")
     if api_key:
         os.environ["LANGCHAIN_TRACING_V2"] = "true"
-        os.environ.setdefault("LANGCHAIN_PROJECT", "4Sale-RAG-LangGraph")
+        os.environ.setdefault("LANGCHAIN_PROJECT", "Tadwera-RAG-LangGraph")
         logger.info("[LangGraph] LangSmith tracing ENABLED")
     else:
         os.environ["LANGCHAIN_TRACING_V2"] = "false"

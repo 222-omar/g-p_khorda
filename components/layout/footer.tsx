@@ -142,9 +142,8 @@ export function Footer() {
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                         {/* Logo & Copyright */}
                         <motion.div variants={staggerItem} className="flex items-center gap-3">
-                            <span className="font-bold text-xl">
-                                <span className="text-emerald-500">4</span>
-                                <span className="text-white">Sale</span>
+                            <span className="font-bold text-xl text-emerald-500">
+                                Tadwera
                             </span>
                             <span className="text-slate-500 text-[10px]">|</span>
                             <p className="text-slate-500 text-xs">

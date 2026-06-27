@@ -27,7 +27,7 @@ def followup_node(state: AgentState) -> dict:
                 history_text += f"{role}: {content}\n"
 
     prompt = ChatPromptTemplate.from_messages([
-        ("system", """أنت مساعد ذكي لمنصة "4Sale" - سوق مصري لبيع وشراء المستعمل والخردة.
+        ("system", """أنت مساعد ذكي لمنصة "تدويرة" - سوق مصري لبيع وشراء المستعمل والخردة.
 
 شغلتك: الإجابة على سؤال المستخدم بناءً على سياق المحادثة السابقة.
 

@@ -10,7 +10,7 @@ export const dictionaries = {
             register: 'تسجيل',
             categories: 'الفئات',
             howItWorks: 'كيف يعمل؟',
-            whyUs: 'لماذا Tadwera؟',
+            whyUs: 'لماذا تدويرة؟',
             faqLink: 'الأسئلة الشائعة',
             visualSearch: 'البحث بالصورة',
             smartAgent: 'الوكيل الذكي',
@@ -59,7 +59,7 @@ export const dictionaries = {
             other: 'أخرى',
         },
         features: {
-            title: 'ليه تختار Tadwera؟',
+            title: 'ليه تختار تدويرة؟',
             subtitle: 'مميزات ذكية بتغير طريقة البيع والشراء',
             aiPricing: {
                 title: 'مزادات مباشرة 🔨',
@@ -157,8 +157,8 @@ export const dictionaries = {
             step4Title: 'أتمم الصفقة',
             step4Desc: 'ادفع بأمان واستلم منتجك بكل ثقة واطمئنان.',
         },
-        whyFourSale: {
-            badge: 'لماذا Tadwera؟',
+        whyTadwera: {
+            badge: 'لماذا تدويرة؟',
             title: 'مميزات ذكية',
             titleHighlight: 'تغير تجارتك',
             subtitle: 'أدوات ذكية تمنحك القوة لتبيع وتشتري باحترافية وسهولة',
@@ -195,7 +195,7 @@ export const dictionaries = {
             title: 'الأسئلة',
             titleHighlight: 'الشائعة',
             subtitle: 'كل ما تود معرفته عن منصة Tadwera وكيفية الاستفادة القصوى منها',
-            q1: 'كيف أبدأ البيع على Tadwera؟', a1: 'ببساطة، سجّل حساباً مجانياً، ثم اضغط على "أضف إعلان" وأدخل تفاصيل منتجك مع صور واضحة. يمكنك اختيار البيع المباشر أو عرضه كمزاد.',
+            q1: 'كيف أبدأ البيع على تدويرة؟', a1: 'ببساطة، سجّل حساباً مجانياً، ثم اضغط على "أضف إعلان" وأدخل تفاصيل منتجك مع صور واضحة. يمكنك اختيار البيع المباشر أو عرضه كمزاد.',
             q2: 'هل المحفظة الإلكترونية آمنة؟', a2: 'نعم، المحفظة الإلكترونية مؤمنة بالكامل بأحدث تقنيات التشفير. جميع المعاملات المالية محمية ومسجلة في سجل المعاملات الخاص بك.',
             q3: 'كيف يعمل نظام المزادات؟', a3: 'يمكنك إنشاء مزاد لمنتجك بتحديد سعر البداية ومدة المزاد. المشترون يزايدون على المنتج، والفائز يحصل عليه عند انتهاء المزاد.',
             q4: 'هل يمكنني إرجاع المنتج بعد الشراء؟', a4: 'سياسة الإرجاع تعتمد على الاتفاق بين البائع والمشتري. ننصح دائماً بالتواصل مع البائع قبل الشراء ومراجعة تفاصيل المنتج جيداً.',
@@ -497,7 +497,7 @@ export const dictionaries = {
             step4Title: 'Complete the Deal',
             step4Desc: 'Pay securely and receive your product with full confidence.',
         },
-        whyFourSale: {
+        whyTadwera: {
             badge: 'Why Tadwera?',
             title: 'Smart Features',
             titleHighlight: 'That Transform Your Trade',

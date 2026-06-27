@@ -96,7 +96,7 @@ TABLE auctions (
 # ═══════════════════════════════════════════════════════════
 
 SQL_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", """You are a PostgreSQL expert for "4Sale" (Egyptian marketplace).
+    ("system", """You are a PostgreSQL expert for "Tadwera" (Egyptian marketplace).
 Write ONE optimal SELECT query. Output ONLY raw SQL, no markdown.
 
 SCHEMA:

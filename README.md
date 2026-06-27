@@ -1,4 +1,4 @@
-# 4Sale - Marketplace for Used Items & Scrap in Egypt
+# Tadwera - Marketplace for Used Items & Scrap in Egypt
 
 A full-stack marketplace platform built as a graduation project, enabling users to buy, sell, and auction used items and scrap across Egypt. The platform features a Django REST Framework backend, a Next.js 14 frontend, and an advanced AI layer for automatic image classification, smart bidding agents, and true multimodal visual search.
 

@@ -4,7 +4,7 @@ import { Hero } from "@/components/sections/hero";
 import { Categories } from "@/components/sections/categories";
 import { Features } from "@/components/sections/features";
 import { HowItWorks } from "@/components/sections/how-it-works";
-import { WhyFourSale } from "@/components/sections/why-four-sale";
+import { WhyTadwera } from "@/components/sections/why-tadwera";
 import { Testimonials } from "@/components/sections/testimonials";
 import { FAQ } from "@/components/sections/faq";
 import { CTA } from "@/components/sections/cta";
@@ -31,7 +31,7 @@ export default function Home() {
 
         {/* 6. Why Tadwera - Convince the visitor */}
         <div id="why-us">
-          <WhyFourSale />
+          <WhyTadwera />
         </div>
 
         {/* 7. Testimonials - Social proof with reviews */}

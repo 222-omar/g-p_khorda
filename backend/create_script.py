@@ -31,7 +31,7 @@ def create_default_admin():
     from marketplace.models import UserProfile
     
     username = 'admin1'
-    email = 'admin1@4sale.com'
+    email = 'admin1@tadwera.com'
     password = 'admin123'
     
     if User.objects.filter(username=username).exists():

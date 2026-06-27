@@ -4,16 +4,16 @@ import { motion } from 'framer-motion';
 import { ShieldCheck, MessageCircle, Gavel, Bot, Camera, BrainCircuit, ScanSearch, ArrowLeft } from 'lucide-react';
 import { useLanguage } from '@/components/providers/language-provider';
 
-export function WhyFourSale() {
+export function WhyTadwera() {
     const { dict, isRtl } = useLanguage();
 
     const supportingFeatures = [
-        { icon: Bot, title: dict.whyFourSale.feat1Title, desc: dict.whyFourSale.feat1Desc, color: 'text-accent', bg: 'bg-primary/10' },
-        { icon: Camera, title: dict.whyFourSale.feat2Title, desc: dict.whyFourSale.feat2Desc, color: 'text-purple-500', bg: 'bg-purple-50/50' },
-        { icon: BrainCircuit, title: dict.whyFourSale.feat3Title, desc: dict.whyFourSale.feat3Desc, color: 'text-blue-500', bg: 'bg-blue-50/50' },
-        { icon: ScanSearch, title: dict.whyFourSale.feat4Title, desc: dict.whyFourSale.feat4Desc, color: 'text-amber-500', bg: 'bg-amber-50/50' },
-        { icon: ShieldCheck, title: dict.whyFourSale.feat5Title, desc: dict.whyFourSale.feat5Desc, color: 'text-emerald-500', bg: 'bg-emerald-50/50' },
-        { icon: MessageCircle, title: dict.whyFourSale.feat6Title, desc: dict.whyFourSale.feat6Desc, color: 'text-rose-500', bg: 'bg-rose-50/50' },
+        { icon: Bot, title: dict.whyTadwera.feat1Title, desc: dict.whyTadwera.feat1Desc, color: 'text-accent', bg: 'bg-primary/10' },
+        { icon: Camera, title: dict.whyTadwera.feat2Title, desc: dict.whyTadwera.feat2Desc, color: 'text-purple-500', bg: 'bg-purple-50/50' },
+        { icon: BrainCircuit, title: dict.whyTadwera.feat3Title, desc: dict.whyTadwera.feat3Desc, color: 'text-blue-500', bg: 'bg-blue-50/50' },
+        { icon: ScanSearch, title: dict.whyTadwera.feat4Title, desc: dict.whyTadwera.feat4Desc, color: 'text-amber-500', bg: 'bg-amber-50/50' },
+        { icon: ShieldCheck, title: dict.whyTadwera.feat5Title, desc: dict.whyTadwera.feat5Desc, color: 'text-emerald-500', bg: 'bg-emerald-50/50' },
+        { icon: MessageCircle, title: dict.whyTadwera.feat6Title, desc: dict.whyTadwera.feat6Desc, color: 'text-rose-500', bg: 'bg-rose-50/50' },
     ];
 
     return (
@@ -27,14 +27,14 @@ export function WhyFourSale() {
                         whileInView={{ opacity: 1 }}
                         className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-accent text-[11px] font-bold tracking-widest uppercase mb-6 font-tajawal shadow-sm"
                     >
-                        {dict.whyFourSale.badge}
+                        {dict.whyTadwera.badge}
                     </motion.span>
                     <motion.h2 
                         initial={{ opacity: 0, y: 10 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         className="text-3xl md:text-5xl font-black font-noto-kufi text-slate-900 dark:text-white leading-[1.2] mb-6"
                     >
-                        {dict.whyFourSale.title} <span className="text-accent">{dict.whyFourSale.titleHighlight}</span>
+                        {dict.whyTadwera.title} <span className="text-accent">{dict.whyTadwera.titleHighlight}</span>
                     </motion.h2>
                     <motion.p 
                         initial={{ opacity: 0, y: 10 }}
@@ -42,7 +42,7 @@ export function WhyFourSale() {
                         transition={{ delay: 0.1 }}
                         className="text-slate-500 dark:text-slate-400 font-tajawal text-base md:text-lg max-w-2xl mx-auto leading-relaxed"
                     >
-                        {dict.whyFourSale.subtitle}
+                        {dict.whyTadwera.subtitle}
                     </motion.p>
                 </div>
 
@@ -65,10 +65,10 @@ export function WhyFourSale() {
                                     <Gavel className="w-8 h-8 text-[#4fcfd6]" />
                                 </div>
                                 <h3 className="text-3xl font-black font-noto-kufi text-white mb-6 leading-tight">
-                                    {dict.whyFourSale.heroTitle} <br /> <span className="opacity-60 text-2xl">🔨</span>
+                                    {dict.whyTadwera.heroTitle} <br /> <span className="opacity-60 text-2xl">🔨</span>
                                 </h3>
                                 <p className="text-slate-400 font-tajawal text-[16px] leading-relaxed max-w-[260px]">
-                                    {dict.whyFourSale.heroDesc}
+                                    {dict.whyTadwera.heroDesc}
                                 </p>
                             </div>
 
@@ -76,7 +76,7 @@ export function WhyFourSale() {
                                 whileHover={{ x: isRtl ? -10 : 10 }}
                                 className="relative z-10 flex items-center gap-2 text-[#4fcfd6] font-bold font-tajawal text-lg group/btn"
                             >
-                                {dict.whyFourSale.discoverMore}
+                                {dict.whyTadwera.discoverMore}
                                 <ArrowLeft className={`w-5 h-5 group-hover/btn:translate-x-[-4px] transition-transform ${!isRtl ? 'rotate-180' : ''}`} />
                             </motion.button>
                         </div>

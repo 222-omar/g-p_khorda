@@ -130,20 +130,20 @@ SQL_TRIGGER_KEYWORDS = [
 # ═══════════════════════════════════════════════════════════
 
 GREETING_PATTERNS = [
-    r'^(ازيك|إزيك|ازاي|إزاي|عامل ايه|عامل إيه|عامل اى|عامل اي)[\s\.\!\؟]*$',
-    r'^(اهلا|أهلا|هلا|يا هلا|اهلاً|أهلاً)[\s\.\!\؟]*$',
-    r'^(سلام|سلام عليكم|السلام عليكم)[\s\.\!\؟]*$',
-    r'^(هاي|هاى|مرحبا|مرحباً)[\s\.\!\؟]*$',
-    r'^(hi|hello|hey|good morning|good evening|yo|sup)[\s\.\!\?]*$',
-    r'^(صباح الخير|مساء الخير|صباح النور|مساء النور)[\s\.\!\؟]*$',
-    r'^(كيف حالك|كيف الحال|شو اخبارك)[\s\.\!\؟]*$',
+    r'\b(ازيك|ازاي|عامل ايه|عامل اى|عامل اي|ازيكم|عاملين ايه)\b',
+    r'\b(اهلا|هلا|يا هلا)\b',
+    r'\b(سلام|سلام عليكم|السلام عليكم|سلامات)\b',
+    r'\b(هاي|هاى|مرحبا|مرحبتين|هلو)\b',
+    r'\b(hi|hello|hey|good morning|good evening|yo|sup)\b',
+    r'\b(صباح الخير|مساء الخير|صباح النور|مساء النور)\b',
+    r'\b(كيف حالك|كيف الحال|شو اخبارك|ازاي الصحه|ازاى الصحه)\b',
 ]
 
 GREETING_RESPONSES = [
-    "أهلاً بيك! 👋 أنا بوت 4Sale الذكي. قولي بتدور على ايه وأنا هساعدك تلاقيه!",
+    "أهلاً بيك! 👋 أنا بوت ������ الذكي. قولي بتدور على ايه وأنا هساعدك تلاقيه!",
     "يا هلا! 😊 أنا هنا عشان أساعدك تلاقي أي حاجة بتدور عليها. اسأل براحتك!",
-    "أهلاً وسهلاً! 🤖 أنا مساعدك في 4Sale. قولي عايز ايه وأنا هدورلك عليه!",
-    "مرحباً! ✨ إزيك! أنا البوت الذكي بتاع 4Sale. اكتبلي اللي بتدور عليه!",
+    "أهلاً وسهلاً! 🤖 أنا مساعدك في ������. قولي عايز ايه وأنا هدورلك عليه!",
+    "مرحباً! ✨ إزيك! أنا البوت الذكي بتاع ������. اكتبلي اللي بتدور عليه!",
 ]
 
 
@@ -154,7 +154,7 @@ GREETING_RESPONSES = [
 FAQ_MAP = {
     # ── About the bot ──
     r'(انت مين|انتو مين|انتا مين|مين انت|ايه الموقع|ايه التطبيق|بتعمل (ايه|اى|اي)|ايه وظيفتك)':
-        "أنا بوت 4Sale الذكي 🤖 بساعدك تلاقي أي حاجة عايز تشتريها أو تبيعها. "
+        "أنا بوت ������ الذكي 🤖 بساعدك تلاقي أي حاجة عايز تشتريها أو تبيعها. "
         "اكتبلي اسم المنتج اللي بتدور عليه وأنا هدورلك في كل السوق!",
 
     # ── How to buy ──
@@ -175,88 +175,118 @@ FAQ_MAP = {
         "5️⃣ انشر وستنى المشترين يتواصلوا معاك! 🚀",
 
     # ── Auctions ──
-    r'(ازاي|إزاي).*(المزاد|المزادات|ازايد|أزايد|مزايدة|مزايده)':
-        "نظام المزادات:\n"
-        "🔹 كل مزاد بيبدأ بسعر افتتاحي\n"
-        "🔹 زايد بمبلغ أعلى من المزايدة الحالية\n"
-        "🔹 اللي بيكسب هو أعلى مزايد لما الوقت يخلص ⏰\n"
-        "🔹 ممكن تفعل الوكيل الذكي يزايد تلقائي عنك! 🤖",
+    r'(ازاي|إزاي).*(المزاد|المزادات|ازايد|أزايد|مزايدة|م�def classify_intent(query: str) -> dict:
+    """
+    Classify user query intent WITHOUT using any LLM.
+    
+    Returns:
+    {
+        "intent": "greeting" | "faq" | "chitchat" | "search_full" | "search_light",
+        "response": str | None,    # Pre-built response (if no LLM needed)
+        "run_sql": bool,           # Whether to run SQL generation
+        "run_vector": bool,        # Whether to run vector search
+        "run_synthesis": bool,     # Whether to run LLM synthesis
+        "tokens_saved": str,       # Estimated tokens saved
+    }
+    """
+    q = query.strip()
+    q_normalized = normalize_arabic(q)
 
-    # ── Smart Agent ──
-    r'(الوكيل|الايجنت|agent|الذكي|auto.?bid)':
-        "الوكيل الذكي 🤖 ده مساعد بيدور لك على المنتجات تلقائياً!\n"
-        "🔹 اختار نوع المنتج اللي عايزه (مثلاً: غسالة)\n"
-        "🔹 حدد ميزانيتك القصوى\n"
-        "🔹 اكتب شروطك (مثلاً: توشيبا، حالة كويسة)\n"
-        "🔹 الوكيل هيلاقيلك المنتج المناسب ويزايد عليه أوتوماتيك! ⚡",
-
-    # ── Wallet ──
-    r'(المحفظة|المحفظه|الرصيد|اشحن|فلوس|محفظتي|محفظتى|wallet)':
-        "المحفظة 💰 هي اللي بتزايد وتشتري منها:\n"
-        "🔹 روح صفحة 'المحفظة' من القائمة\n"
-        "🔹 اشحن رصيدك بالمبلغ اللي عايزه\n"
-        "🔹 الرصيد بيتخصم تلقائي لما تشتري أو تزايد",
-
-    # ── Visual Search ──
-    r'(بحث بصري|بحث بالصورة|صورة|visual.?search)':
-        "البحث البصري 📸 يخليك تلاقي منتجات شبه صورة عندك!\n"
-        "🔹 ارفع صورة أي منتج\n"
-        "🔹 الذكاء الاصطناعي هيلاقيلك منتجات مشابهة في السوق",
-
-    # ── Categories ──
-    r'(الاقسام|الأقسام|الفئات|فيه ايه|فيه إيه|بتبيعوا ايه)':
-        "الأقسام المتاحة على المنصة:\n"
-        "🏠 أثاث وديكور\n"
-        "📱 إلكترونيات وأجهزة\n"
-        "🏡 أجهزة منزلية\n"
-        "🔩 خردة ومعادن\n"
-        "🚗 سيارات\n"
-        "🏢 عقارات\n"
-        "📚 كتب\n"
-        "📦 أخرى",
-
-    # ── Safety / Trust ──
-    r'(أمان|امان|موثوق|نصب|احتيال|ثقة|ثقه)':
-        "نصائح للأمان على المنصة:\n"
-        "✅ شوف تقييم البائع قبل الشراء\n"
-        "✅ قابل البائع في مكان عام\n"
-        "✅ اتأكد من المنتج قبل ما تدفع\n"
-        "✅ استخدم الشات الداخلي للتواصل\n"
-        "⚠️ متبعتش فلوس مقدم لأي حد",
-}
-
-
-# ═══════════════════════════════════════════════════════════
-# Chitchat Patterns & Responses
-# ═══════════════════════════════════════════════════════════
-
-CHITCHAT_PATTERNS = {
-    r'^(شكرا|شكراً|متشكر|تسلم|الله ينور|يسلمو|thanks|thank you|thx)[\s\.\!\؟]*$': [
-        "العفو! 😊 لو محتاج أي حاجة تانية قولي!",
-        "ولا يهمك! 🙌 أنا موجود لو محتاج حاجة!",
-        "أي خدمة! ✨ بالتوفيق!",
-    ],
-    r'^(تمام|حلو|جميل|ممتاز|عظيم|رائع|great|nice|cool|ok|أوك|اوك|طيب|ماشي)[\s\.\!\؟]*$': [
-        "تمام! 😊 لو عايز تدور على حاجة تانية قولي!",
-        "حلو! 🎉 أنا هنا لو محتاج أي حاجة!",
-    ],
-    r'^(باي|مع السلامة|سلام|bye|goodbye|see you|يلا باي)[\s\.\!\؟]*$': [
-        "مع السلامة! 👋 بالتوفيق وارجعلنا تاني!",
-        "باي باي! 😊 أي وقت محتاج حاجة أنا موجود!",
-        "سلام! 🙌 نورتنا!",
-    ],
-    r'(هههه|ههه|😂|😁|😆|lol|haha)': [
-        "😂😂 لو محتاج حاجة قولي!",
-        "هههه 😄 طيب عايز تدور على حاجة؟",
-    ],
-    r'(❤️|👍|🔥|💪|👏)': [
-        "❤️ شكراً! لو محتاج حاجة أنا هنا!",
-        "💪 يلا بينا! عايز تدور على ايه؟",
-    ],
-}
-
-
-# ═══════════════════════════════════════════════════════════
+    # ── 0. Search Keyword Check (Short-circuit other intents if search terms are present) ──
+    normalized_search_keywords = [normalize_arabic(kw) for kw in SEARCH_KEYWORDS]
+    has_search_keyword = any(kw in q_normalized for kw in normalized_search_keywords)
+    
+    if has_search_keyword:
+        logger.info(f"[IntentRouter] SEARCH (via keywords): '{q[:40]}'")
+        return {
+            "intent": "search",
+            "response": None,
+            "run_sql": True,
+            "run_vector": True,
+            "run_synthesis": True,
+            "tokens_saved": "0",
+        }
+    
+    # ── 1. Greeting Detection ──────────────────────────
+    for pattern in GREETING_PATTERNS:
+        if re.search(pattern, q_normalized, re.IGNORECASE):
+            logger.info(f"[IntentRouter] GREETING detected: '{q[:30]}'")
+            return {
+                "intent": "greeting",
+                "response": random.choice(GREETING_RESPONSES),
+                "run_sql": False,
+                "run_vector": False,
+                "run_synthesis": False,
+                "tokens_saved": "~1300 (skipped all LLM calls)",
+            }
+    
+    # ── 2. FAQ Detection ───────────────────────────────
+    for pattern, answer in FAQ_MAP.items():
+        if re.search(pattern, q_normalized, re.IGNORECASE):
+            logger.info(f"[IntentRouter] FAQ detected: '{q[:30]}'")
+            return {
+                "intent": "faq",
+                "response": answer,
+                "run_sql": False,
+                "run_vector": False,
+                "run_synthesis": False,
+                "tokens_saved": "~1300 (skipped all LLM calls)",
+            }
+    
+    # ── 3. Chitchat Detection ──────────────────────────
+    for pattern, responses in CHITCHAT_PATTERNS.items():
+        if re.search(pattern, q_normalized, re.IGNORECASE):
+            logger.info(f"[IntentRouter] CHITCHAT detected: '{q[:30]}'")
+            return {
+                "intent": "chitchat",
+                "response": random.choice(responses),
+                "run_sql": False,
+                "run_vector": False,
+                "run_synthesis": False,
+                "tokens_saved": "~1300 (skipped all LLM calls)",
+            }
+    
+    # ── 4. Follow-up Question Detection ────────────────
+    # Questions that reference previous results (need chat history + synthesis)
+    FOLLOWUP_PATTERNS = [
+        r'(مين|منين|بتاع|بتاعه|بتاعهم|بتوعهم)',   # who/whose
+        r'(فين|مكانه|عنوانه|موقعه)',                  # where
+        r'(كام سعر|سعره كام|بكام|تمنه|ثمنه)',        # price
+        r'(حالته|حالتها|حالتهم)',                      # condition
+        r'(ورين|وريني|عايز أشوف|أشوفه|أشوفها)',       # show me
+        r'(الأول|التاني|التالت|رقم \d)',              # ordinal reference
+        r'(أحسن واحد|أحسنهم|أفضل)',                   # best one
+        r'(تاني حاجة|حاجة تانية|في غيره)',             # anything else
+        r'(أرخص واحد|أرخصهم|أغلاهم)',                 # cheapest/most expensive
+        r'(تواصل|أتواصل|رقمه|رقم البائع)',             # contact seller
+        r'(مواصفات|تفاصيل)',                          # details/specs
+    ]
+    
+    is_followup = any(re.search(p, q_normalized, re.IGNORECASE) for p in FOLLOWUP_PATTERNS)
+    
+    if is_followup:
+        # Follow-up question — needs synthesis with chat history, no new search
+        logger.info(f"[IntentRouter] FOLLOW_UP: '{q[:40]}' (references previous results)")
+        return {
+            "intent": "follow_up",
+            "response": None,
+            "run_sql": False,
+            "run_vector": False,
+            "run_synthesis": True,
+            "tokens_saved": "~500 (skipped SQL, vector uses history only)",
+        }
+    
+    # ── 5. Fallback: try search ──────────────────────────
+    # If we can't classify, still try the full pipeline
+    logger.info(f"[IntentRouter] FALLBACK search: '{q[:40]}'")
+    return {
+        "intent": "search",
+        "response": None,
+        "run_sql": True,
+        "run_vector": True,
+        "run_synthesis": True,
+        "tokens_saved": "0",
+    }═
 # Main Classification Function
 # ═══════════════════════════════════════════════════════════
 
