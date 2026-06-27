@@ -617,30 +617,35 @@ export default function AgentPage() {
 
                                             {/* Actions */}
                                             <div className="flex items-center gap-2 w-full mt-6 pt-5 border-t border-slate-100 dark:border-slate-700">
-                                                <button className="flex-1 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-bold py-3 rounded-xl border border-slate-200 dark:border-slate-600 transition-all text-sm flex items-center justify-center gap-2">
-                                                    <BarChart3 size={16} />
-                                                    {dict.agent.stats}
-                                                </button>
                                                 <motion.button
                                                     onClick={() => handleToggle(agent)}
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    title={agent.is_active ? dict.agent.stop : dict.agent.start}
-                                                    className={`p-3 rounded-xl border transition-colors ${agent.is_active
-                                                            ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20'
-                                                            : 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20'
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    className={`flex-1 py-3 px-4 rounded-xl border font-bold text-sm transition-all flex items-center justify-center gap-2 ${agent.is_active
+                                                            ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20'
+                                                            : 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20'
                                                         }`}
                                                 >
-                                                    {agent.is_active ? <PowerOff size={18} /> : <Power size={18} />}
+                                                    {agent.is_active ? (
+                                                        <>
+                                                            <PowerOff size={16} />
+                                                            <span>{dict.agent.stop}</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Power size={16} />
+                                                            <span>{dict.agent.start}</span>
+                                                        </>
+                                                    )}
                                                 </motion.button>
                                                 <motion.button
                                                     onClick={() => handleDelete(agent.id)}
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    title={dict.agent.delete}
-                                                    className="p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    className="flex-1 py-3 px-4 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all font-bold text-sm flex items-center justify-center gap-2"
                                                 >
-                                                    <Trash2 size={18} />
+                                                    <Trash2 size={16} />
+                                                    <span>{dict.agent.delete}</span>
                                                 </motion.button>
                                             </div>
                                         </motion.div>
