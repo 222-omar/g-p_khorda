@@ -20,8 +20,8 @@ function SectionHeader({
     icon: Icon,
     title,
     subtitle,
-    color = 'text-accent',
-    bgColor = 'bg-primary/10',
+    color = 'text-[#1F8A3B]',
+    bgColor = 'bg-[#1F8A3B]/10',
     action,
 }: {
     icon: any;
@@ -37,16 +37,16 @@ function SectionHeader({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.45 }}
-            className="flex items-center gap-3 mb-6"
+            className="flex items-center gap-4 mb-8"
         >
-            <div className={`${bgColor} ${color} p-2.5 rounded-xl`}>
-                <Icon size={22} />
+            <div className={`${bgColor} ${color} w-12 h-12 rounded-[16px] flex items-center justify-center shadow-sm`}>
+                <Icon size={24} strokeWidth={2.5} />
             </div>
             <div>
-                <h3 className="text-xl font-black">{title}</h3>
-                {subtitle && <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">{subtitle}</p>}
+                <h3 className="text-[24px] font-black text-slate-900 dark:text-white leading-tight">{title}</h3>
+                {subtitle && <p className="text-slate-500 dark:text-slate-400 text-[15px] mt-1 font-medium">{subtitle}</p>}
             </div>
-            <div className="flex-1 h-px bg-gradient-to-l from-transparent to-slate-200 dark:to-slate-700 mx-2" />
+            <div className="flex-1 h-px bg-gradient-to-l from-transparent via-slate-200 dark:via-slate-700 to-transparent mx-4 opacity-70" />
             {action && <div>{action}</div>}
         </motion.div>
     );
@@ -60,15 +60,15 @@ function FeaturedCard({ product, isWishlisted, onWishlistChange, isLoggedIn, isO
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            whileHover={{ y: -5 }}
+            whileHover={{ y: -6, scale: 1.02 }}
             transition={{ duration: 0.3 }}
-            className="group relative bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-slate-100 dark:border-slate-700/60 transition-all"
+            className="group relative bg-white dark:bg-slate-800 rounded-[24px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] border border-slate-100/80 dark:border-slate-700/50 transition-all h-full flex flex-col"
         >
             {/* Wishlist button */}
             {isLoggedIn && !isOwner && (
                 <motion.button
-                    whileHover={{ scale: 1.15 }}
-                    whileTap={{ scale: 0.88 }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
                     onClick={async (e) => {
                         e.preventDefault();
                         try {
@@ -76,31 +76,31 @@ function FeaturedCard({ product, isWishlisted, onWishlistChange, isLoggedIn, isO
                             onWishlistChange?.(product.id, r.is_wishlisted);
                         } catch { }
                     }}
-                    className={`absolute top-3 left-3 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-all ${isWishlisted ? 'bg-red-500 text-white' : 'bg-white/80 backdrop-blur-sm text-slate-400 hover:text-red-500'}`}
+                    className={`absolute top-4 left-4 z-20 w-11 h-11 rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition-all ${isWishlisted ? 'bg-red-500 text-white shadow-[0_8px_20px_rgba(239,68,68,0.25)]' : 'bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl text-slate-400 hover:text-red-500'}`}
                 >
-                    <svg width="16" height="16" fill={isWishlisted ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                    <svg width="20" height="20" fill={isWishlisted ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
                 </motion.button>
             )}
 
-            <Link href={`/product/${product.id}`}>
-                <div className="relative h-44 overflow-hidden bg-slate-100 dark:bg-slate-700">
+            <Link href={`/product/${product.id}`} className="flex flex-col h-full">
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100 dark:bg-slate-700 rounded-t-[24px]">
                     <img
                         src={product.image}
                         alt={product.title}
-                        className="w-full h-full object-cover group-hover:scale-[1.07] transition-transform duration-500"
+                        className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500"
                     />
                     {product.isAuction && (
-                        <div className="absolute top-3 right-3 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[11px] px-2.5 py-1 rounded-full font-bold flex items-center gap-1">
-                            <Clock size={10} /> مزاد نشط
+                        <div className="absolute top-4 right-4 bg-orange-500/90 backdrop-blur-md text-white text-[12px] px-3 py-1.5 rounded-full font-bold shadow-md flex items-center gap-1.5">
+                            <Clock size={12} /> مزاد نشط
                         </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <div className="p-4">
-                    <h4 className="font-bold text-sm line-clamp-2 mb-3 group-hover:text-accent transition-colors">{product.title}</h4>
+                <div className="p-5 flex-1 flex flex-col justify-between">
+                    <h4 className="font-bold text-[16px] line-clamp-2 mb-4 group-hover:text-[#1F8A3B] transition-colors">{product.title}</h4>
                     <div className="flex items-center justify-between">
-                        <span className="text-accent font-black text-lg">{Number(product.price).toLocaleString()} <span className="text-xs text-slate-400">{dict.currency}</span></span>
-                        <span className="text-[11px] bg-primary/10 text-accent font-bold px-2.5 py-1 rounded-lg group-hover:bg-primary group-hover:text-white transition-all">عرض</span>
+                        <span className="text-[#1F8A3B] font-black text-[22px]">{Number(product.price).toLocaleString()} <span className="text-sm text-slate-400 font-bold">{dict.currency}</span></span>
+                        <span className="text-[12px] bg-[#1F8A3B]/10 text-[#1F8A3B] font-bold px-3 py-1.5 rounded-full group-hover:bg-[#1F8A3B] group-hover:text-white transition-all shadow-sm">عرض</span>
                     </div>
                 </div>
             </Link>
@@ -241,8 +241,12 @@ export default function DashboardPage() {
     return (
         <>
             <Navbar />
-            <main className="pt-24 pb-16 min-h-screen px-4 sm:px-6 lg:px-8">
-                <div className="max-w-7xl mx-auto">
+            <main className="pt-32 pb-20 min-h-screen relative overflow-hidden bg-[#FCFDFB] dark:bg-[#0e1015]">
+                {/* Subtle Radial Gradients for Premium Feel */}
+                <div className="absolute top-0 left-1/4 w-[800px] h-[800px] bg-[#1F8A3B]/[0.025] dark:bg-[#1F8A3B]/[0.05] rounded-full blur-[100px] pointer-events-none" />
+                <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-blue-500/[0.02] dark:bg-blue-500/[0.04] rounded-full blur-[100px] pointer-events-none" />
+
+                <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
                     {/* ── Page Header ── */}
                     <motion.div
@@ -258,40 +262,63 @@ export default function DashboardPage() {
                             </p>
                         </motion.div>
 
-                        <motion.div variants={staggerItem} className="flex gap-2 items-center">
-                            {/* Search */}
-                            <div className="flex gap-2 max-w-sm w-full">
+                        <motion.div variants={staggerItem} className="flex flex-col sm:flex-row gap-4 items-center">
+                            {/* Premium Search */}
+                            <div className="relative max-w-md w-full shadow-[0_8px_30px_rgba(0,0,0,0.04)] rounded-[20px]">
                                 <input
                                     type="text"
                                     placeholder={dict.dashboard.searchPlaceholder}
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && fetchProducts()}
-                                    className="flex-1 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-800 transition-all"
+                                    className="w-full h-[56px] bg-[#F4FBF6] dark:bg-[#1F8A3B]/10 border border-[#E7ECEA] dark:border-[#1F8A3B]/20 rounded-[20px] pl-12 pr-4 text-[15px] outline-none focus:border-[#1F8A3B] transition-all font-cairo placeholder:text-[#98A2B3] text-slate-800 dark:text-white"
                                 />
-                                <motion.button
+                                <button
                                     onClick={fetchProducts}
-                                    whileHover={{ scale: 1.08 }}
-                                    whileTap={{ scale: 0.93 }}
-                                    transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                                    className="bg-primary hover:bg-primary-700 text-white p-3 rounded-xl"
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1F8A3B] hover:text-[#186a2c] transition-colors"
                                 >
-                                    <Search size={20} />
-                                </motion.button>
+                                    <Search size={22} strokeWidth={2.5} />
+                                </button>
                             </div>
 
+                            {/* Add Product CTA */}
                             <Link href="/sell">
                                 <motion.button
-                                    whileHover={{ scale: 1.05, boxShadow: '0 4px 16px rgba(22,163,74,0.3)' }}
-                                    whileTap={{ scale: 0.96 }}
-                                    transition={{ type: 'spring', stiffness: 380, damping: 20 }}
-                                    className="bg-primary text-white px-4 py-3 rounded-xl font-bold text-sm shadow-sm flex items-center gap-2 whitespace-nowrap"
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="bg-gradient-to-r from-[#1F8A3B] to-[#43A047] hover:from-[#186a2c] hover:to-[#388e3c] text-white px-6 h-[56px] rounded-[18px] font-bold text-[15px] shadow-[0_8px_20px_rgba(31,138,59,0.25)] flex items-center gap-2 whitespace-nowrap transition-all"
                                 >
-                                    <Plus size={18} />
+                                    <Plus size={20} strokeWidth={2.5} />
                                     أضف إعلان
                                 </motion.button>
                             </Link>
                         </motion.div>
+                    </motion.div>
+
+                    {/* ── Category Chips ── */}
+                    <motion.div variants={staggerItem} className="flex items-center gap-3 overflow-x-auto pb-4 mb-10 scrollbar-hide">
+                        {[
+                            { id: '', label: 'الكل', icon: '✨' },
+                            { id: 'cars', label: 'سيارات', icon: '🚗' },
+                            { id: 'real_estate', label: 'عقارات', icon: '🏠' },
+                            { id: 'electronics', label: 'إلكترونيات', icon: '💻' },
+                            { id: 'phones', label: 'هواتف', icon: '📱' },
+                            { id: 'furniture', label: 'أثاث', icon: '🪑' },
+                            { id: 'appliances', label: 'أجهزة منزلية', icon: '🧺' },
+                        ].map((cat) => (
+                            <button
+                                key={cat.id}
+                                onClick={() => handleFilterChange({ ...filters, category: cat.id })}
+                                className={`flex items-center gap-2 px-5 h-[42px] rounded-full whitespace-nowrap transition-all font-bold text-[14px] shadow-sm ${
+                                    filters.category === cat.id
+                                        ? 'bg-[#1F8A3B] text-white shadow-[0_4px_12px_rgba(31,138,59,0.25)]'
+                                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                }`}
+                            >
+                                <span>{cat.icon}</span>
+                                {cat.label}
+                            </button>
+                        ))}
                     </motion.div>
 
                     {/* ── Loading ── */}

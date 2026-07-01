@@ -4,7 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import { chatAPI } from '@/lib/api';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Conversation, ChatMessage } from '@/lib/types';
-import { MessageCircle, Send, ArrowLeft, Package, User, MoreVertical, Search, Smile, Paperclip, Trash2, Edit3, X, Check } from 'lucide-react';
+import {
+    MessageCircle, Send, ArrowLeft, Package, User, MoreVertical, Search,
+    Smile, Paperclip, Trash2, Edit3, X, Check, Zap, Lock, Sparkles
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navbar } from '@/components/layout/navbar';
 import Link from 'next/link';
@@ -23,6 +26,9 @@ export default function MessagesPage() {
     const [contextMenu, setContextMenu] = useState<{ msgId: number; x: number; y: number } | null>(null);
     const [editingMsg, setEditingMsg] = useState<{ id: number; content: string } | null>(null);
     const [headerMenu, setHeaderMenu] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filter, setFilter] = useState<'all' | 'unread' | 'favorites'>('all');
+    
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -53,7 +59,6 @@ export default function MessagesPage() {
         if (selectedConversation && authUser) {
             interval = setInterval(async () => {
                 try {
-                    // Check if token still exists before polling
                     const token = document.cookie.split(';').find(c => c.trim().startsWith('access_token='));
                     if (!token) {
                         clearInterval(interval);
@@ -61,10 +66,8 @@ export default function MessagesPage() {
                     }
 
                     const data = await chatAPI.getConversation(selectedConversation.id);
-                    // Check if message count increased
                     if (data.messages && data.messages.length > messages.length) {
                         setMessages(data.messages);
-                        // Also update last message in conversation list
                         const lastMsg = data.messages[data.messages.length - 1];
                         setConversations(prev =>
                             prev.map(c => c.id === selectedConversation.id
@@ -74,7 +77,6 @@ export default function MessagesPage() {
                         );
                     }
                 } catch (err: any) {
-                    // Stop polling on auth errors (401)
                     const status = err?.response?.status || err?.status;
                     if (status === 401) {
                         clearInterval(interval);
@@ -168,7 +170,6 @@ export default function MessagesPage() {
         return `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant?.username || 'user'}`;
     };
 
-    // ─── Delete entire conversation ───
     const handleDeleteConversation = async () => {
         if (!selectedConversation) return;
         if (!confirm(dict.messages.confirmDelete)) return;
@@ -184,7 +185,6 @@ export default function MessagesPage() {
         }
     };
 
-    // ─── Delete a single message ───
     const handleDeleteMessage = async (msgId: number) => {
         if (!selectedConversation) return;
         if (!confirm(dict.messages.confirmDeleteMsg)) return;
@@ -197,13 +197,11 @@ export default function MessagesPage() {
         }
     };
 
-    // ─── Start editing a message ───
     const startEditing = (msg: ChatMessage) => {
         setEditingMsg({ id: msg.id, content: msg.content });
         setContextMenu(null);
     };
 
-    // ─── Save edited message ───
     const handleEditMessage = async () => {
         if (!editingMsg || !selectedConversation || !editingMsg.content.trim()) return;
         try {
@@ -211,7 +209,6 @@ export default function MessagesPage() {
             const newMessages = messages.map(m => m.id === editingMsg.id ? { ...m, content: updated.content } : m);
             setMessages(newMessages);
 
-            // If the edited message is the last one, update the sidebar preview too
             const lastMsg = newMessages[newMessages.length - 1];
             if (lastMsg && lastMsg.id === editingMsg.id) {
                 setConversations(prev =>
@@ -228,368 +225,456 @@ export default function MessagesPage() {
         }
     };
 
-    return (
-        <>
-            <Navbar />
-            <div className="h-screen bg-slate-50 dark:bg-slate-950 pt-[64px] overflow-hidden">
-                <style jsx global>{`
-                    #messages-container::-webkit-scrollbar { width: 5px; }
-                    #messages-container::-webkit-scrollbar-track { background: transparent; }
-                    #messages-container::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.3); border-radius: 99px; }
-                    #messages-container::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,0.5); }
-                `}</style>
+    const filteredConversations = conversations.filter(c => {
+        const matchesSearch = c.other_participant?.username?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                              c.product_title?.toLowerCase().includes(searchQuery.toLowerCase());
+        if (!matchesSearch) return false;
+        
+        if (filter === 'unread') return c.unread_count > 0;
+        if (filter === 'favorites') return c.id % 2 === 0; // simulated favorites
+        return true;
+    });
 
-                <div className="max-w-7xl mx-auto h-full flex overflow-hidden">
+    return (
+        <div className="h-screen bg-[#FCFDFB] dark:bg-[#0e1015] pt-32 overflow-hidden flex flex-col font-cairo" dir="rtl">
+            <Navbar />
+            
+            <style jsx global>{`
+                #messages-container::-webkit-scrollbar { width: 5px; }
+                #messages-container::-webkit-scrollbar-track { background: transparent; }
+                #messages-container::-webkit-scrollbar-thumb { background: rgba(31,138,59,0.15); border-radius: 99px; }
+                #messages-container::-webkit-scrollbar-thumb:hover { background: rgba(31,138,59,0.3); }
+                #conversations-scroll::-webkit-scrollbar { width: 4px; }
+                #conversations-scroll::-webkit-scrollbar-track { background: transparent; }
+                #conversations-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.05); border-radius: 99px; }
+                
+                @keyframes bounce-subtle {
+                    0%, 100% { transform: translateY(0) rotate(0deg); }
+                    50% { transform: translateY(-8px) rotate(2deg); }
+                }
+                .animate-bounce-subtle {
+                    animation: bounce-subtle 4s ease-in-out infinite;
+                }
+                .animate-pulse-slow {
+                    animation: pulse 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+                }
+            `}</style>
+
+            <div className="max-w-[1400px] w-full mx-auto flex-1 flex gap-6 px-6 pb-6 overflow-hidden min-h-0">
+                
+                {/* ════════ LEFT SIDEBAR: Conversation View (takes 65-70%) ════════ */}
+                <div className={`flex-1 h-full flex flex-col min-w-0 ${showMobileChat ? 'flex' : 'hidden md:flex'}`}>
                     
-                    {/* ════════ Sidebar (Conversations) ════════ */}
-                    <div className={`w-full md:w-[380px] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col h-full ${showMobileChat ? 'hidden md:flex' : 'flex'}`}>
-                        {/* Sidebar Header */}
-                        <div className="p-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
-                            <div className="flex items-center justify-between mb-4">
-                                <h1 className="text-xl font-bold text-slate-800 dark:text-white">{dict.messages.title}</h1>
-                                <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-                                    <MoreVertical size={20} className="text-slate-500" />
-                                </button>
+                    {selectedConversation ? (
+                        /* Active Conversation Window */
+                        <div className="flex-grow bg-white dark:bg-slate-800 rounded-[30px] shadow-[0_15px_45px_rgba(0,0,0,0.03)] border border-[#E7ECEA] dark:border-slate-700 flex flex-col h-full overflow-hidden">
+                            {/* Chat Header */}
+                            <div className="px-6 py-4 border-b border-[#E7ECEA] dark:border-slate-700 flex items-center justify-between shrink-0 bg-white dark:bg-slate-800">
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => setShowMobileChat(false)}
+                                        className="md:hidden p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-colors"
+                                    >
+                                        <ArrowLeft size={20} className="text-slate-600 dark:text-slate-300" />
+                                    </button>
+                                    
+                                    <div className="relative shrink-0">
+                                        <img 
+                                            src={getParticipantAvatar(selectedConversation.other_participant)}
+                                            className="w-10 h-10 rounded-full object-cover shadow-sm border border-slate-100"
+                                            alt="Participant"
+                                        />
+                                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse"></div>
+                                    </div>
+                                    
+                                    <div className="text-right">
+                                        <h2 className="font-cairo font-bold text-base text-slate-800 dark:text-slate-100 leading-tight">
+                                            {selectedConversation.other_participant?.username || dict.messages.unknownUser}
+                                        </h2>
+                                        <div className="flex items-center gap-1.5 mt-0.5 justify-end">
+                                            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">نشط الآن</span>
+                                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Header Right Controls: Product details & Action Menu */}
+                                <div className="flex items-center gap-3">
+                                    <Link 
+                                        href={`/product/${selectedConversation.product}`}
+                                        className="hidden sm:flex items-center gap-2.5 p-1 pr-3 rounded-full bg-[#F4FBF6] hover:bg-[#E8F5E9] dark:bg-slate-700 dark:hover:bg-slate-600 border border-[#1F8A3B]/10 transition-all"
+                                    >
+                                        <div className="w-7 h-7 rounded-full bg-[#1F8A3B] flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden">
+                                            {selectedConversation.product_image ? (
+                                                <img src={selectedConversation.product_image.startsWith('http') ? selectedConversation.product_image : `http://localhost:8000${selectedConversation.product_image}`} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <Package size={14} />
+                                            )}
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-bold text-slate-800 dark:text-slate-100 truncate max-w-[140px] leading-tight">{selectedConversation.product_title}</p>
+                                            <p className="text-[9px] text-[#1F8A3B] font-extrabold uppercase leading-tight mt-0.5">عرض المنتج</p>
+                                        </div>
+                                    </Link>
+
+                                    <div className="relative">
+                                        <button 
+                                            onClick={() => setHeaderMenu(!headerMenu)}
+                                            className="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500"
+                                        >
+                                            <MoreVertical size={18} />
+                                        </button>
+                                        {headerMenu && (
+                                            <>
+                                                <div className="fixed inset-0 z-40" onClick={() => setHeaderMenu(false)} />
+                                                <div className="absolute left-0 top-full mt-1.5 z-50 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-[#E7ECEA] dark:border-slate-700 py-1.5 min-w-[180px]">
+                                                    <button
+                                                        onClick={handleDeleteConversation}
+                                                        className="w-full flex items-center justify-end gap-2.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                                                    >
+                                                        <span>حذف المحادثة</span>
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-                            <div className="relative">
-                                <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                <input 
-                                    type="text" 
-                                    placeholder={dict.messages.searchPlaceholder} 
-                                    className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl py-2 px-10 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                                    dir="rtl"
-                                />
+
+                            {/* Chat Messages Scrolling viewport */}
+                            <div id="messages-container" dir="ltr" className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/20 dark:bg-slate-900/10 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:20px_20px]">
+                                <div className="space-y-4">
+                                    <AnimatePresence initial={false}>
+                                        {messages.map((msg, idx) => {
+                                            const isMine = msg.sender === currentUserId;
+                                            const showAvatar = !isMine && (idx === 0 || messages[idx - 1].sender !== msg.sender);
+
+                                            return (
+                                                <motion.div
+                                                    key={msg.id}
+                                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    className={`flex items-end gap-2.5 group ${isMine ? 'justify-end' : 'justify-start'}`}
+                                                >
+                                                    {/* Other Avatar */}
+                                                    <div className={`w-8 h-8 shrink-0 ${showAvatar ? 'opacity-100' : isMine ? 'hidden' : 'opacity-0'} transition-opacity`}>
+                                                        <img 
+                                                            src={isMine ? getParticipantAvatar(authUser) : getParticipantAvatar(selectedConversation.other_participant)} 
+                                                            className="w-full h-full rounded-full object-cover border border-slate-200 dark:border-slate-800 shadow-sm"
+                                                            alt="Avatar"
+                                                        />
+                                                    </div>
+
+                                                    <div className={`max-w-[75%] flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+                                                        {editingMsg?.id === msg.id ? (
+                                                            <div className="flex items-end gap-2 w-full">
+                                                                <input
+                                                                    type="text"
+                                                                    value={editingMsg.content}
+                                                                    onChange={(e) => setEditingMsg({ ...editingMsg, content: e.target.value })}
+                                                                    onKeyDown={(e) => { if (e.key === 'Enter') handleEditMessage(); if (e.key === 'Escape') setEditingMsg(null); }}
+                                                                    autoFocus
+                                                                    className="flex-1 bg-white dark:bg-slate-700 border-2 border-[#1F8A3B] rounded-xl px-3 py-2 text-sm outline-none"
+                                                                    dir="auto"
+                                                                />
+                                                                <button onClick={handleEditMessage} className="p-1.5 bg-emerald-500 text-white rounded-full hover:bg-emerald-600 transition-colors">
+                                                                    <Check size={14} />
+                                                                </button>
+                                                                <button onClick={() => setEditingMsg(null)} className="p-1.5 bg-slate-400 text-white rounded-full hover:bg-slate-500 transition-colors">
+                                                                    <X size={14} />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <div className="relative">
+                                                                    <div className={`px-4.5 py-3 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.02)] text-sm leading-relaxed border transition-all ${
+                                                                        isMine 
+                                                                            ? 'bg-gradient-to-br from-[#1F8A3B] to-[#43A047] text-white rounded-tr-none border-transparent' 
+                                                                            : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-none border-slate-100 dark:border-slate-700/50'
+                                                                    }`}>
+                                                                        <p dir="auto">{msg.content}</p>
+                                                                    </div>
+
+                                                                    {isMine && (
+                                                                        <div className="absolute top-1/2 -translate-y-1/2 left-0 -translate-x-full pr-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 z-10">
+                                                                            <button
+                                                                                onClick={() => startEditing(msg)}
+                                                                                className="p-1.5 rounded-full bg-white dark:bg-slate-700 shadow-md border border-slate-200 dark:border-slate-600 hover:bg-slate-50 transition-colors"
+                                                                            >
+                                                                                <Edit3 size={11} className="text-[#1F8A3B]" />
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => handleDeleteMessage(msg.id)}
+                                                                                className="p-1.5 rounded-full bg-white dark:bg-slate-700 shadow-md border border-slate-200 dark:border-slate-600 hover:bg-red-50 transition-colors"
+                                                                            >
+                                                                                <Trash2 size={11} className="text-red-500" />
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex items-center gap-1.5 mt-1 px-1">
+                                                                    <span className="text-[9px] text-slate-400 font-semibold">
+                                                                        {formatTime(msg.created_at)}
+                                                                    </span>
+                                                                    {isMine && (
+                                                                        <span className={`text-[9px] font-bold ${msg.is_read ? 'text-[#1F8A3B]' : 'text-slate-300'}`}>
+                                                                            {msg.is_read ? '✓✓' : '✓'}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </AnimatePresence>
+                                </div>
+                                <div ref={messagesEndRef} />
+                            </div>
+
+                            {/* Chat bottom message entry form */}
+                            <div className="p-4 bg-white dark:bg-slate-800 border-t border-[#E7ECEA] dark:border-slate-700 shrink-0">
+                                <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex items-center gap-3">
+                                    <button type="button" className="p-2.5 text-slate-400 hover:text-[#1F8A3B] hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full transition-all">
+                                        <Paperclip size={20} />
+                                    </button>
+                                    
+                                    <div className="flex-1 bg-slate-100 dark:bg-slate-900 border border-transparent focus-within:border-[#1F8A3B] focus-within:bg-white dark:focus-within:bg-slate-900 rounded-2xl flex items-center px-4 py-1.5 transition-all">
+                                        <textarea
+                                            ref={textareaRef}
+                                            rows={1}
+                                            value={newMessage}
+                                            onChange={(e) => setNewMessage(e.target.value)}
+                                            onKeyDown={handleKeyDown}
+                                            placeholder="اكتب رسالتك هنا..."
+                                            className="w-full bg-transparent border-none focus:ring-0 text-sm py-2 px-1 outline-none resize-none min-h-[40px] text-slate-800 dark:text-slate-100 font-cairo"
+                                            dir="rtl"
+                                        />
+                                        <button type="button" className="p-2 text-slate-400 hover:text-amber-500 transition-colors">
+                                            <Smile size={20} />
+                                        </button>
+                                    </div>
+
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        type="submit"
+                                        disabled={!newMessage.trim() || sending}
+                                        className="w-11 h-11 flex items-center justify-center rounded-full bg-gradient-to-r from-[#1F8A3B] to-[#43A047] text-white shadow-md shadow-[#1F8A3B]/20 disabled:opacity-30 disabled:grayscale transition-all shrink-0 cursor-pointer"
+                                    >
+                                        {sending ? (
+                                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                        ) : (
+                                            <Send size={18} className="rotate-180" />
+                                        )}
+                                    </motion.button>
+                                </form>
                             </div>
                         </div>
+                    ) : (
+                        /* Empty Chat Dashboard state (Matches layout exactly) */
+                        <div className="flex-grow bg-white dark:bg-slate-800 rounded-[30px] shadow-[0_15px_45px_rgba(0,0,0,0.02)] border border-[#E7ECEA] dark:border-slate-700 flex flex-col justify-center items-center p-8 relative min-h-[680px] select-none">
+                            {/* Glowing circular illustration */}
+                            <div className="relative flex items-center justify-center w-52 h-52 mb-8">
+                                <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#F4FBF6] to-[#E8F5E9] dark:from-green-950/10 dark:to-emerald-950/15 filter blur-[3px] opacity-70 animate-pulse-slow"></div>
+                                
+                                {/* Outline Message Icon */}
+                                <MessageCircle size={84} className="text-[#1F8A3B] stroke-[1.2] relative z-10 animate-bounce-subtle" />
+                                
+                                {/* Sparkles & Spark icons around */}
+                                <div className="absolute top-2 right-4 text-[#43A047]/40"><Sparkles size={16} /></div>
+                                <div className="absolute bottom-6 left-2 text-[#1F8A3B]/30"><Sparkles size={14} /></div>
+                                <div className="absolute top-12 left-4 text-[#1F8A3B]/20"><Send size={16} className="rotate-12" /></div>
+                            </div>
 
-                        {/* List Items */}
-                        <div className="flex-1 overflow-y-auto">
-                            {loading ? (
-                                <div className="flex flex-col items-center justify-center h-40 gap-3">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent"></div>
-                                    <p className="text-xs text-slate-400">{dict.messages.loading}</p>
+                            {/* Headline */}
+                            <h2 className="font-cairo font-black text-2xl md:text-[32px] text-[#101828] dark:text-white text-center leading-none">
+                                مرحباً بك في <span className="text-[#1F8A3B]">المحادثات</span>
+                            </h2>
+                            
+                            {/* Subtitle */}
+                            <p className="font-cairo text-[#667085] dark:text-slate-400 text-[14px] md:text-[15px] leading-[1.8] text-center mt-4 max-w-[460px]">
+                                اختر محادثة من القائمة على اليمين لبدء الدردشة مع المشترين أو البائعين. جميع محادثاتك محمية وخاصة.
+                            </p>
+
+                            {/* Bottom tag pills */}
+                            <div className="flex flex-wrap gap-3.5 justify-center mt-10">
+                                <div className="bg-[#F2FBF5] dark:bg-green-950/20 text-[#1F8A3B] border border-[#1F8A3B]/10 rounded-full px-5 py-2.5 text-xs md:text-sm font-bold flex items-center gap-1.5 shadow-sm">
+                                    <Zap size={14} className="fill-current text-[#43A047]" />
+                                    سريع وموثوق
                                 </div>
-                            ) : conversations.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                                    <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
-                                        <MessageCircle size={28} className="text-slate-400" />
-                                    </div>
-                                    <h3 className="font-bold text-slate-800 dark:text-slate-100">{dict.messages.noConversations}</h3>
-                                    <p className="text-xs text-slate-500 mt-1">{dict.messages.startFromProduct}</p>
+                                <div className="bg-[#F2FBF5] dark:bg-green-950/20 text-[#1F8A3B] border border-[#1F8A3B]/10 rounded-full px-5 py-2.5 text-xs md:text-sm font-bold flex items-center gap-1.5 shadow-sm">
+                                    <Lock size={14} className="fill-current text-[#1F8A3B]" />
+                                    آمن تماماً
                                 </div>
-                            ) : (
-                                conversations.map(conv => (
-                                    <motion.div
-                                        key={conv.id}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => selectConversation(conv)}
-                                        className={`p-4 cursor-pointer transition-all border-l-4 ${
-                                            selectedConversation?.id === conv.id 
-                                                ? 'bg-indigo-50 dark:bg-indigo-900/10 border-l-indigo-600' 
-                                                : 'border-l-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                                        }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            {/* Participant Avatar */}
-                                            <div className="relative shrink-0">
-                                                <img 
-                                                    src={getParticipantAvatar(conv.other_participant)}
-                                                    className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-slate-800 shadow-sm"
-                                                    alt="Avatar"
-                                                />
-                                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full"></div>
-                                            </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
 
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex justify-between items-center mb-0.5">
-                                                    <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
-                                                        {conv.other_participant?.username || dict.messages.unknownUser}
-                                                    </h3>
-                                                    <span className="text-[10px] text-slate-400 shrink-0">
-                                                        {conv.last_message ? formatShortDate(conv.last_message.created_at) : ''}
-                                                    </span>
-                                                </div>
+                {/* ════════ RIGHT SIDEBAR: Conversations List (takes 30-35%) ════════ */}
+                <div className={`w-full md:w-[380px] lg:w-[420px] bg-white dark:bg-slate-800 border border-[#E7ECEA] dark:border-slate-700 rounded-[30px] shadow-[0_15px_45px_rgba(0,0,0,0.03)] flex flex-col h-full overflow-hidden ${showMobileChat ? 'hidden md:flex' : 'flex'}`}>
+                    
+                    {/* Header: Title & Actions */}
+                    <div className="px-6 pt-6 pb-3 flex-shrink-0 flex items-center justify-between">
+                        <h2 className="font-cairo font-black text-2xl text-[#101828] dark:text-white">المحادثات</h2>
+                        <button className="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 transition-colors">
+                            <MoreVertical size={18} />
+                        </button>
+                    </div>
 
-                                                <div className="flex items-center gap-1 text-[11px] text-indigo-600 dark:text-indigo-400 mb-1 font-medium">
-                                                    <Package size={12} />
-                                                    <span className="truncate">{conv.product_title}</span>
-                                                </div>
-
-                                                <div className="flex justify-between items-center gap-2">
-                                                    <p className={`text-xs truncate ${conv.unread_count > 0 ? 'text-slate-900 dark:text-slate-100 font-semibold' : 'text-slate-500 dark:text-slate-400'}`}>
-                                                        {conv.last_message?.content || dict.messages.startChat}
-                                                    </p>
-                                                    {conv.unread_count > 0 && (
-                                                        <span className="bg-indigo-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                                                            {conv.unread_count}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                ))
-                            )}
+                    {/* Search Field */}
+                    <div className="px-6 pb-4 flex-shrink-0">
+                        <div className="relative bg-[#F3F4F6] dark:bg-slate-900 rounded-2xl flex items-center px-4 py-3 border border-transparent focus-within:border-[#1F8A3B]/30 transition-all">
+                            <Search className="text-slate-400 flex-shrink-0" size={16} />
+                            <input 
+                                type="text" 
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="بحث في المحادثات..." 
+                                className="w-full bg-transparent border-none focus:ring-0 text-sm px-2.5 outline-none font-cairo text-[#101828] dark:text-white"
+                                dir="rtl"
+                            />
                         </div>
                     </div>
 
-                    {/* ════════ Chat Main View ════════ */}
-                    <div className={`flex-1 flex flex-col h-full bg-white dark:bg-slate-900 ${showMobileChat ? 'flex' : 'hidden md:flex'}`}>
-                        {selectedConversation ? (
-                            <>
-                                {/* Chat Header */}
-                                <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
-                                    <div className="flex items-center gap-3">
-                                        <button
-                                            onClick={() => setShowMobileChat(false)}
-                                            className="md:hidden p-2 -mr-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-                                        >
-                                            <ArrowLeft size={20} className="text-slate-600 dark:text-slate-300" />
-                                        </button>
-                                        
-                                        <div className="relative shrink-0">
-                                            <img 
-                                                src={getParticipantAvatar(selectedConversation.other_participant)}
-                                                className="w-10 h-10 rounded-full object-cover shadow-sm"
-                                                alt="Participant"
-                                            />
-                                            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full"></div>
-                                        </div>
-                                        
-                                        <div>
-                                            <h2 className="font-bold text-sm text-slate-800 dark:text-slate-100">
-                                                {selectedConversation.other_participant?.username || dict.messages.unknownUser}
-                                            </h2>
-                                            <div className="flex items-center gap-1.5 mt-0.5">
-                                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                                                <span className="text-[10px] text-slate-400">{dict.messages.activeNow}</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                    {/* Filter Chips */}
+                    <div className="px-6 pb-4 flex-shrink-0 flex gap-2 border-b border-[#E7ECEA] dark:border-slate-700/50">
+                        <button
+                            onClick={() => setFilter('all')}
+                            className={`px-4.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                                filter === 'all'
+                                    ? 'bg-[#1F8A3B] text-white shadow-sm'
+                                    : 'bg-slate-50 dark:bg-slate-700/50 text-[#667085] hover:bg-slate-100 hover:text-[#101828]'
+                            }`}
+                        >
+                            الكل
+                        </button>
+                        <button
+                            onClick={() => setFilter('unread')}
+                            className={`px-4.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                                filter === 'unread'
+                                    ? 'bg-[#1F8A3B] text-white shadow-sm'
+                                    : 'bg-slate-50 dark:bg-slate-700/50 text-[#667085] hover:bg-slate-100 hover:text-[#101828]'
+                            }`}
+                        >
+                            غير مقرودة
+                        </button>
+                        <button
+                            onClick={() => setFilter('favorites')}
+                            className={`px-4.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                                filter === 'favorites'
+                                    ? 'bg-[#1F8A3B] text-white shadow-sm'
+                                    : 'bg-slate-50 dark:bg-slate-700/50 text-[#667085] hover:bg-slate-100 hover:text-[#101828]'
+                            }`}
+                        >
+                            المفضلة
+                        </button>
+                    </div>
 
-                                    {/* Right side: Product chip + Actions Menu */}
-                                    <div className="flex items-center gap-2">
-                                        <Link 
-                                            href={`/product/${selectedConversation.product}`}
-                                            className="hidden sm:flex items-center gap-2 p-1.5 pr-3 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border border-transparent hover:border-indigo-200 transition-all"
-                                        >
-                                            <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden">
-                                                {selectedConversation.product_image ? (
-                                                    <img src={selectedConversation.product_image.startsWith('http') ? selectedConversation.product_image : `http://localhost:8000${selectedConversation.product_image}`} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <Package size={16} />
-                                                )}
-                                            </div>
-                                            <div className="max-w-[120px]">
-                                                <p className="text-[10px] font-bold text-slate-800 dark:text-slate-100 truncate">{selectedConversation.product_title}</p>
-                                                <p className="text-[8px] text-indigo-600 dark:text-indigo-400 uppercase tracking-wider font-semibold">{dict.messages.viewProduct}</p>
-                                            </div>
-                                        </Link>
-
-                                        {/* Three-dots menu */}
-                                        <div className="relative">
-                                            <button 
-                                                onClick={() => setHeaderMenu(!headerMenu)}
-                                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-                                            >
-                                                <MoreVertical size={18} className="text-slate-500" />
-                                            </button>
-                                            {headerMenu && (
-                                                <>
-                                                    <div className="fixed inset-0 z-40" onClick={() => setHeaderMenu(false)} />
-                                                    <div className="absolute left-0 top-full mt-1 z-50 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1 min-w-[180px]">
-                                                        <button
-                                                            onClick={handleDeleteConversation}
-                                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                            {dict.messages.deleteConversation}
-                                                        </button>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-
-                                {/* Messages Area */}
-                                <div id="messages-container" dir="ltr" className="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50/50 dark:bg-slate-950/20 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:20px_20px]">
-                                    {loading ? (
-                                        <div className="flex items-center justify-center h-full">
-                                            <div className="animate-pulse text-slate-400 text-sm">{dict.messages.loadingChat}</div>
-                                        </div>
-                                    ) : messages.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center h-full text-center">
-                                            <div className="w-20 h-20 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center mb-4 shadow-sm">
-                                                <Smile size={32} className="text-indigo-500" />
-                                            </div>
-                                            <p className="text-slate-500 font-medium tracking-wide">{dict.messages.sayHi} {selectedConversation.other_participant?.username}</p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            <AnimatePresence initial={false}>
-                                                {messages.map((msg, idx) => {
-                                                    const isMine = msg.sender === currentUserId;
-                                                    const showAvatar = !isMine && (idx === 0 || messages[idx - 1].sender !== msg.sender);
-
-                                                    return (
-                                                        <motion.div
-                                                            key={msg.id}
-                                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                            className={`flex items-end gap-2 group ${isMine ? 'justify-end' : 'justify-start'}`}
-                                                        >
-                                                            {/* Avatar (only on their messages) */}
-                                                            <div className={`w-8 h-8 shrink-0 ${showAvatar ? 'opacity-100' : isMine ? 'hidden' : 'opacity-0'} transition-opacity`}>
-                                                                <img 
-                                                                    src={isMine ? getParticipantAvatar(authUser) : getParticipantAvatar(selectedConversation.other_participant)} 
-                                                                    className="w-full h-full rounded-full object-cover border border-slate-200 dark:border-slate-800 shadow-sm"
-                                                                    alt="Avatar"
-                                                                />
-                                                            </div>
-
-                                                            <div className={`max-w-[80%] flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
-                                                                {/* Editing mode */}
-                                                                {editingMsg?.id === msg.id ? (
-                                                                    <div className="flex items-end gap-2 w-full">
-                                                                        <input
-                                                                            type="text"
-                                                                            value={editingMsg.content}
-                                                                            onChange={(e) => setEditingMsg({ ...editingMsg, content: e.target.value })}
-                                                                            onKeyDown={(e) => { if (e.key === 'Enter') handleEditMessage(); if (e.key === 'Escape') setEditingMsg(null); }}
-                                                                            autoFocus
-                                                                            className="flex-1 bg-white dark:bg-slate-700 border-2 border-indigo-500 rounded-xl px-3 py-2 text-sm outline-none"
-                                                                            dir="auto"
-                                                                        />
-                                                                        <button onClick={handleEditMessage} className="p-1.5 bg-emerald-500 text-white rounded-full hover:bg-emerald-600 transition-colors">
-                                                                            <Check size={14} />
-                                                                        </button>
-                                                                        <button onClick={() => setEditingMsg(null)} className="p-1.5 bg-slate-400 text-white rounded-full hover:bg-slate-500 transition-colors">
-                                                                            <X size={14} />
-                                                                        </button>
-                                                                    </div>
-                                                                ) : (
-                                                                    <>
-                                                                        <div className="relative">
-                                                                            <div className={`px-4 py-2.5 rounded-2xl shadow-sm text-sm border leading-relaxed transition-all ${
-                                                                                isMine 
-                                                                                    ? 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white rounded-br-sm border-transparent' 
-                                                                                    : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-bl-sm border-slate-100 dark:border-slate-700/50'
-                                                                            }`}>
-                                                                                <p dir="auto">{msg.content}</p>
-                                                                            </div>
-
-                                                                            {/* Hover action buttons (only on own messages) */}
-                                                                            {isMine && (
-                                                                                <div className={`absolute top-1/2 -translate-y-1/2 ${isMine ? 'left-0 -translate-x-full pr-1' : 'right-0 translate-x-full pl-1'} opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5`}>
-                                                                                    <button
-                                                                                        onClick={() => startEditing(msg)}
-                                                                                        className="p-1.5 rounded-full bg-white dark:bg-slate-700 shadow-md border border-slate-200 dark:border-slate-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
-                                                                                        title="تعديل"
-                                                                                    >
-                                                                                        <Edit3 size={12} className="text-indigo-600 dark:text-indigo-400" />
-                                                                                    </button>
-                                                                                    <button
-                                                                                        onClick={() => handleDeleteMessage(msg.id)}
-                                                                                        className="p-1.5 rounded-full bg-white dark:bg-slate-700 shadow-md border border-slate-200 dark:border-slate-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-                                                                                        title="حذف"
-                                                                                    >
-                                                                                        <Trash2 size={12} className="text-red-500" />
-                                                                                    </button>
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                        <div className="flex items-center gap-1.5 mt-1 px-1">
-                                                                            <span className="text-[9px] text-slate-400 font-medium">
-                                                                                {formatTime(msg.created_at)}
-                                                                            </span>
-                                                                            {isMine && (
-                                                                                <span className={`text-[9px] font-bold ${msg.is_read ? 'text-emerald-500' : 'text-slate-300'}`}>
-                                                                                    {msg.is_read ? '✓✓' : '✓'}
-                                                                                </span>
-                                                                            )}
-                                                                        </div>
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                        </motion.div>
-
-                                                    );
-                                                })}
-                                            </AnimatePresence>
-                                        </div>
-                                    )}
-                                    <div ref={messagesEndRef} />
-                                </div>
-
-                                {/* Message Input Area */}
-                                <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 shrink-0">
-                                    <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex items-end gap-2">
-                                        <button type="button" className="p-2.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all">
-                                            <Paperclip size={20} />
-                                        </button>
-                                        
-                                        <div className="flex-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl flex items-end px-3 py-1.5 border border-transparent focus-within:border-indigo-300 dark:focus-within:border-indigo-700 focus-within:bg-white dark:focus-within:bg-slate-800 transition-all">
-                                            <textarea
-                                                ref={textareaRef}
-                                                rows={1}
-                                                value={newMessage}
-                                                onChange={(e) => setNewMessage(e.target.value)}
-                                                onKeyDown={handleKeyDown}
-                                                placeholder={dict.messages.typePlaceholder}
-                                                className="w-full bg-transparent border-none focus:ring-0 text-sm py-2 px-1 outline-none resize-none min-h-[40px] text-slate-800 dark:text-slate-100"
-                                                dir="rtl"
-                                            />
-                                            <button type="button" className="p-2 text-slate-400 hover:text-amber-500 transition-colors">
-                                                <Smile size={20} />
-                                            </button>
-                                        </div>
-
-                                        <motion.button
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            type="submit"
-                                            disabled={!newMessage.trim() || sending}
-                                            className="w-11 h-11 flex items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30 disabled:opacity-30 disabled:grayscale transition-all"
-                                        >
-                                            {sending ? (
-                                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                                            ) : (
-                                                <Send size={18} className="translate-x-[-1px] rotate-180" />
-                                            )}
-                                        </motion.button>
-                                    </form>
-                                    <p className="text-[9px] text-center text-slate-400 mt-2 tracking-wide font-medium">{dict.messages.secureChat}</p>
-                                </div>
-                            </>
-                        ) : (
-                            /* ════════ Empty Chat State ════════ */
-                            <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-slate-50/30 dark:bg-slate-950/20">
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.8 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className="w-28 h-28 rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 dark:from-indigo-900/20 dark:to-violet-900/20 flex items-center justify-center mb-8 shadow-inner"
-                                >
-                                    <MessageCircle size={48} className="text-indigo-500" />
-                                </motion.div>
-                                <h1 className="text-2xl font-bold text-slate-800 dark:text-white mb-3">{dict.messages.welcomeTitle}</h1>
-                                <p className="text-slate-500 dark:text-slate-400 max-w-sm text-sm leading-relaxed">
-                                    {dict.messages.welcomeDesc}
-                                </p>
-                                <div className="mt-8 flex gap-3">
-                                    <div className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-sm">
-                                        {dict.messages.fast}
-                                    </div>
-                                    <div className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-sm">
-                                        {dict.messages.secure}
-                                    </div>
-                                </div>
+                    {/* Conversations list container */}
+                    <div className="flex-grow overflow-y-auto px-4 py-4 space-y-3" id="conversations-scroll">
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center py-16 gap-3">
+                                <Loader2 className="animate-spin text-[#1F8A3B]" size={28} />
+                                <p className="text-xs text-slate-400 font-cairo">جاري تحميل المحادثات...</p>
                             </div>
+                        ) : filteredConversations.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+                                <MessageCircle size={36} className="text-slate-300 dark:text-slate-600 mb-3" />
+                                <h3 className="font-bold text-sm text-[#101828] dark:text-slate-200">لا توجد محادثات</h3>
+                                <p className="text-xs text-slate-500 mt-1">المحادثات الخاصة بك ستظهر هنا بمجرد بدئها.</p>
+                            </div>
+                        ) : (
+                            filteredConversations.map(conv => {
+                                const isSelected = selectedConversation?.id === conv.id;
+                                return (
+                                    <button
+                                        key={conv.id}
+                                        onClick={() => selectConversation(conv)}
+                                        className={`w-full h-[84px] text-right p-4 rounded-2xl flex items-center justify-between gap-3 border transition-all cursor-pointer group ${
+                                            isSelected 
+                                                ? 'bg-[#F4FBF6] dark:bg-green-950/15 border-r-4 border-r-[#1F8A3B] border-y-transparent border-l-transparent shadow-sm' 
+                                                : 'bg-white border-transparent hover:bg-slate-50/50 hover:border-slate-100'
+                                        }`}
+                                    >
+                                        {/* Left Side: timestamp & unread badge */}
+                                        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                                            <span className="text-[10px] text-slate-400">
+                                                {conv.last_message ? formatShortDate(conv.last_message.created_at) : ''}
+                                            </span>
+                                            {conv.unread_count > 0 && (
+                                                <span className="bg-indigo-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center px-1 shadow-sm shadow-indigo-600/20">
+                                                    {conv.unread_count}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Center Text Column: Username & last message & product preview */}
+                                        <div className="flex-1 min-w-0 flex flex-col justify-center text-right">
+                                            <div className="flex justify-between items-center mb-0.5">
+                                                <h3 className="font-cairo font-bold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                                    {conv.other_participant?.username || dict.messages.unknownUser}
+                                                </h3>
+                                            </div>
+
+                                            <div className="flex items-center justify-end gap-1 text-[10px] text-[#1F8A3B] font-bold mb-0.5">
+                                                <span className="truncate">{conv.product_title}</span>
+                                                <Package size={10} />
+                                            </div>
+
+                                            <p className={`text-xs truncate ${conv.unread_count > 0 ? 'text-[#101828] dark:text-white font-extrabold' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                {conv.last_message?.content || 'ابدأ المحادثة الآن...'}
+                                            </p>
+                                        </div>
+
+                                        {/* Right Side: Participant Avatar */}
+                                        <div className="relative flex-shrink-0">
+                                            <img 
+                                                src={getParticipantAvatar(conv.other_participant)}
+                                                className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-slate-800 shadow-sm"
+                                                alt="Avatar"
+                                            />
+                                            <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full"></div>
+                                        </div>
+                                    </button>
+                                );
+                            })
                         )}
                     </div>
                 </div>
+
             </div>
-        </>
+        </div>
+    );
+}
+
+// Simple missing loader component
+function Loader2({ className, size }: { className?: string; size?: number }) {
+    return (
+        <svg
+            className={`animate-spin ${className}`}
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            width={size || 24}
+            height={size || 24}
+        >
+            <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+            ></circle>
+            <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+        </svg>
     );
 }

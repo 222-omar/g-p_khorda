@@ -86,15 +86,15 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
     const FilterContent = () => (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between pb-4">
                 <div className="flex items-center gap-2">
-                    <Filter size={20} className="text-accent" />
-                    <h3 className="font-bold text-lg">تصفية النتائج</h3>
+                    <Filter size={22} className="text-[#1F8A3B]" strokeWidth={2.5} />
+                    <h3 className="font-black text-xl text-slate-900 dark:text-white">تصفية النتائج</h3>
                 </div>
                 {hasActiveFilters && (
                     <button
                         onClick={clearFilters}
-                        className="text-xs text-red-500 hover:text-red-600 transition-colors font-bold bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded-full"
+                        className="text-xs text-red-500 hover:text-white transition-all font-bold bg-red-50 hover:bg-red-500 dark:bg-red-900/20 dark:hover:bg-red-500 px-4 py-2 rounded-full shadow-sm"
                     >
                         مسح الكل ✕
                     </button>
@@ -110,11 +110,11 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.8 }}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-accent text-xs font-bold rounded-full"
+                                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1F8A3B]/10 text-[#1F8A3B] text-[13px] font-bold rounded-full"
                             >
                                 {categories.find((c) => c.id === selectedCategory)?.label}
                                 <button onClick={() => toggleCategory(selectedCategory)} className="hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full p-0.5 transition-colors">
-                                    <X size={14} />
+                                    <X size={14} strokeWidth={3} />
                                 </button>
                             </motion.span>
                         )}
@@ -123,11 +123,11 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.8 }}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-accent text-xs font-bold rounded-full"
+                                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1F8A3B]/10 text-[#1F8A3B] text-[13px] font-bold rounded-full"
                             >
                                 {priceRanges.find((p) => p.id === selectedPriceRangeId)?.label}
                                 <button onClick={() => togglePriceRange(null)} className="hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full p-0.5 transition-colors">
-                                    <X size={14} />
+                                    <X size={14} strokeWidth={3} />
                                 </button>
                             </motion.span>
                         )}
@@ -136,11 +136,11 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.8 }}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-accent text-xs font-bold rounded-full"
+                                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1F8A3B]/10 text-[#1F8A3B] text-[13px] font-bold rounded-full"
                             >
                                 {conditions.find((c) => c.id === selectedCondition)?.label}
                                 <button onClick={() => toggleCondition(selectedCondition)} className="hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full p-0.5 transition-colors">
-                                    <X size={14} />
+                                    <X size={14} strokeWidth={3} />
                                 </button>
                             </motion.span>
                         )}
@@ -149,25 +149,28 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
             )}
 
             {/* Categories */}
-            <div>
-                <h4 className="font-bold text-sm mb-3 text-slate-700 dark:text-slate-300">التصنيفات</h4>
+            <div className="bg-[#F8FAF9] dark:bg-slate-800/40 p-5 rounded-[24px] border border-black/[0.03] dark:border-white/[0.05]">
+                <h4 className="font-bold text-[15px] mb-4 text-slate-800 dark:text-slate-200">التصنيفات</h4>
                 <div className="space-y-2">
                     {categories.map((category) => (
                         <label
                             key={category.id}
-                            className={`flex items-center justify-between p-2 rounded-lg cursor-pointer group transition-colors ${selectedCategory === category.id
-                                ? 'bg-primary/10 border border-primary/30'
-                                : 'hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent'
+                            className={`flex items-center p-3 rounded-[16px] cursor-pointer group transition-all ${selectedCategory === category.id
+                                ? 'bg-[#1F8A3B]/10 shadow-sm'
+                                : 'hover:bg-white dark:hover:bg-slate-800'
                                 }`}
                         >
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3 w-full">
+                                <div className={`w-5 h-5 rounded-[6px] border-2 flex items-center justify-center transition-all ${selectedCategory === category.id ? 'border-[#1F8A3B] bg-[#1F8A3B]' : 'border-slate-300 dark:border-slate-600 group-hover:border-[#1F8A3B]/50'}`}>
+                                    {selectedCategory === category.id && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                                </div>
                                 <input
                                     type="checkbox"
                                     checked={selectedCategory === category.id}
                                     onChange={() => toggleCategory(category.id)}
-                                    className="w-4 h-4 text-accent rounded focus:ring-primary"
+                                    className="hidden"
                                 />
-                                <span className={`text-sm font-medium transition-colors ${selectedCategory === category.id ? 'text-accent font-bold' : 'group-hover:text-accent'
+                                <span className={`text-[14px] transition-colors ${selectedCategory === category.id ? 'text-[#1F8A3B] font-bold' : 'font-medium text-slate-600 dark:text-slate-300 group-hover:text-[#1F8A3B]'
                                     }`}>
                                     {category.label}
                                 </span>
@@ -178,59 +181,69 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
             </div>
 
             {/* Price Range */}
-            <div>
-                <h4 className="font-bold text-sm mb-3 text-slate-700 dark:text-slate-300">النطاق السعري</h4>
+            <div className="bg-[#F8FAF9] dark:bg-slate-800/40 p-5 rounded-[24px] border border-black/[0.03] dark:border-white/[0.05]">
+                <h4 className="font-bold text-[15px] mb-4 text-slate-800 dark:text-slate-200">النطاق السعري</h4>
                 <div className="space-y-2">
                     {priceRanges.map((range) => (
                         <label
                             key={range.id}
-                            className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer group transition-colors ${selectedPriceRangeId === range.id
-                                ? 'bg-primary/10 border border-primary/30'
-                                : 'hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent'
+                            className={`flex items-center p-3 rounded-[16px] cursor-pointer group transition-all ${selectedPriceRangeId === range.id
+                                ? 'bg-[#1F8A3B]/10 shadow-sm'
+                                : 'hover:bg-white dark:hover:bg-slate-800'
                                 }`}
                             onClick={(e) => {
                                 e.preventDefault();
                                 togglePriceRange(selectedPriceRangeId === range.id ? null : range.id);
                             }}
                         >
-                            <input
-                                type="radio"
-                                name="price-range"
-                                checked={selectedPriceRangeId === range.id}
-                                readOnly
-                                className="w-4 h-4 text-accent focus:ring-primary"
-                            />
-                            <span className={`text-sm font-medium transition-colors ${selectedPriceRangeId === range.id ? 'text-accent font-bold' : 'group-hover:text-accent'
-                                }`}>
-                                {range.label}
-                            </span>
+                            <div className="flex items-center gap-3 w-full">
+                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${selectedPriceRangeId === range.id ? 'border-[#1F8A3B]' : 'border-slate-300 dark:border-slate-600 group-hover:border-[#1F8A3B]/50'}`}>
+                                    {selectedPriceRangeId === range.id && <div className="w-2.5 h-2.5 rounded-full bg-[#1F8A3B]" />}
+                                </div>
+                                <input
+                                    type="radio"
+                                    name="price-range"
+                                    checked={selectedPriceRangeId === range.id}
+                                    readOnly
+                                    className="hidden"
+                                />
+                                <span className={`text-[14px] transition-colors ${selectedPriceRangeId === range.id ? 'text-[#1F8A3B] font-bold' : 'font-medium text-slate-600 dark:text-slate-300 group-hover:text-[#1F8A3B]'
+                                    }`}>
+                                    {range.label}
+                                </span>
+                            </div>
                         </label>
                     ))}
                 </div>
             </div>
 
             {/* Condition */}
-            <div>
-                <h4 className="font-bold text-sm mb-3 text-slate-700 dark:text-slate-300">الحالة</h4>
+            <div className="bg-[#F8FAF9] dark:bg-slate-800/40 p-5 rounded-[24px] border border-black/[0.03] dark:border-white/[0.05]">
+                <h4 className="font-bold text-[15px] mb-4 text-slate-800 dark:text-slate-200">الحالة</h4>
                 <div className="space-y-2">
                     {conditions.map((condition) => (
                         <label
                             key={condition.id}
-                            className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer group transition-colors ${selectedCondition === condition.id
-                                ? 'bg-primary/10 border border-primary/30'
-                                : 'hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent'
+                            className={`flex items-center p-3 rounded-[16px] cursor-pointer group transition-all ${selectedCondition === condition.id
+                                ? 'bg-[#1F8A3B]/10 shadow-sm'
+                                : 'hover:bg-white dark:hover:bg-slate-800'
                                 }`}
                         >
-                            <input
-                                type="checkbox"
-                                checked={selectedCondition === condition.id}
-                                onChange={() => toggleCondition(condition.id)}
-                                className="w-4 h-4 text-accent rounded focus:ring-primary"
-                            />
-                            <span className={`text-sm font-medium transition-colors ${selectedCondition === condition.id ? 'text-accent font-bold' : 'group-hover:text-accent'
-                                }`}>
-                                {condition.label}
-                            </span>
+                            <div className="flex items-center gap-3 w-full">
+                                <div className={`w-5 h-5 rounded-[6px] border-2 flex items-center justify-center transition-all ${selectedCondition === condition.id ? 'border-[#1F8A3B] bg-[#1F8A3B]' : 'border-slate-300 dark:border-slate-600 group-hover:border-[#1F8A3B]/50'}`}>
+                                    {selectedCondition === condition.id && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    checked={selectedCondition === condition.id}
+                                    onChange={() => toggleCondition(condition.id)}
+                                    className="hidden"
+                                />
+                                <span className={`text-[14px] transition-colors ${selectedCondition === condition.id ? 'text-[#1F8A3B] font-bold' : 'font-medium text-slate-600 dark:text-slate-300 group-hover:text-[#1F8A3B]'
+                                    }`}>
+                                    {condition.label}
+                                </span>
+                            </div>
                         </label>
                     ))}
                 </div>
@@ -252,7 +265,7 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
             </div>
 
             {/* Desktop Sidebar */}
-            <div className="hidden lg:block w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-6">
+            <div className="hidden lg:block w-full bg-white dark:bg-slate-800 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.06)] rounded-[30px] p-6">
                 <FilterContent />
             </div>
 

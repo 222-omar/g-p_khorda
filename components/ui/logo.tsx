@@ -19,7 +19,7 @@ export function Logo({ className = '' }: LogoProps) {
       <img
         src="/logo.png"
         alt="Tadwera Logo"
-        className="h-16 w-auto object-contain"
+        className="h-[56px] w-auto object-contain"
       />
     </Link>
   );

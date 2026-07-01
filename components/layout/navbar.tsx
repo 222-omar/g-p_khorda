@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useLanguage } from '@/components/providers/language-provider';
 import {
-    Moon, Sun, Languages, Menu, X, LogOut, MessageCircle, Bot, Sparkles, Shield,
-    LayoutDashboard, Gavel, Search, Bell
+  Moon, Sun, Languages, Menu, X, LogOut, MessageCircle, Bot, Sparkles, Shield,
+  LayoutDashboard, Gavel, Search, Bell, ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Logo } from '@/components/ui/logo';
@@ -29,14 +29,12 @@ function NavLink({
   return (
     <a
       href={href}
-      className={`relative font-tajawal text-[15px] transition-all duration-300 py-1 group focus-visible:outline-none font-medium ${
-        isActive ? 'text-accent' : 'text-slate-600 dark:text-slate-300 hover:text-accent'
-      }`}
+      className={`relative font-tajawal text-[15px] transition-all duration-300 py-1 flex items-center group focus-visible:outline-none font-medium ${isActive ? 'text-[#1F8A3B] font-bold' : 'text-slate-600 dark:text-slate-300 hover:text-[#1F8A3B]'
+        }`}
     >
       {children}
-      <span className={`absolute bottom-0 right-0 h-[2px] bg-primary rounded-full transition-all duration-300 ${
-        isActive ? 'w-full' : 'w-0 group-hover:w-full'
-      }`} />
+      <span className={`absolute bottom-0 right-0 h-[3px] bg-primary rounded-full transition-all duration-300 ${isActive ? 'w-full' : 'w-0 group-hover:w-full'
+        }`} />
     </a>
   );
 }
@@ -93,8 +91,8 @@ export function Navbar() {
   // Fetch notifications + unread messages
   useEffect(() => {
     if (user) {
-        notificationsAPI.list().then(data => setNotifications(data)).catch(console.error);
-        chatAPI.getUnreadCount().then(d => setUnreadMessages(d.unread_count)).catch(console.error);
+      notificationsAPI.list().then(data => setNotifications(data)).catch(console.error);
+      chatAPI.getUnreadCount().then(d => setUnreadMessages(d.unread_count)).catch(console.error);
     }
   }, [user]);
 
@@ -102,7 +100,7 @@ export function Navbar() {
   useEffect(() => {
     if (!user) return;
     const interval = setInterval(() => {
-      chatAPI.getUnreadCount().then(d => setUnreadMessages(d.unread_count)).catch(() => {});
+      chatAPI.getUnreadCount().then(d => setUnreadMessages(d.unread_count)).catch(() => { });
     }, 30000);
     return () => clearInterval(interval);
   }, [user]);
@@ -121,32 +119,32 @@ export function Navbar() {
   }, [pathname]);
 
   const navLinks = [
-    { name: dict.nav.home,       href: '#home' },
+    { name: dict.nav.home, href: '#home' },
     { name: dict.nav.categories, href: '#categories' },
     { name: dict.nav.howItWorks, href: '#how-it-works' },
-    { name: dict.nav.whyUs,      href: '#why-us' },
-    { name: dict.nav.faqLink,    href: '#faq' },
+    { name: dict.nav.whyUs, href: '#why-us' },
+    { name: dict.nav.faqLink, href: '#faq' },
   ];
 
   const unreadCount = notifications.filter((n: any) => !n.is_read).length;
   const pendingAgentApprovals = notifications.filter((n: any) => n.notification_type === 'bid_approval' && n.is_approved === null).length;
 
   const appLinks = [
-    { name: dict.nav.shop,       href: '/dashboard', icon: <LayoutDashboard size={16} /> },
-    { name: dict.nav.auctions,   href: '/auctions',  icon: <Gavel size={16} /> },
-    { name: dict.nav.visualSearch, href: '/visual-search', icon: <Search size={16} /> },
+    { name: dict.nav.shop, href: '/dashboard', icon: <LayoutDashboard size={18} /> },
+    { name: dict.nav.auctions, href: '/auctions', icon: <Gavel size={18} /> },
+    { name: dict.nav.visualSearch, href: '/visual-search', icon: <Search size={18} /> },
     ...(user ? [
-      { name: dict.nav.smartAgent, href: '/agent',  icon: <Bot size={16} />, badge: pendingAgentApprovals },
-      { name: dict.nav.messagesLink, href: '/messages', icon: <MessageCircle size={16} />, badge: unreadMessages }
+      { name: dict.nav.smartAgent, href: '/agent', icon: <Bot size={18} />, badge: pendingAgentApprovals },
+      { name: dict.nav.messagesLink, href: '/messages', icon: <MessageCircle size={18} />, badge: unreadMessages }
     ] : []),
     ...(isAdmin ? [
-      { name: dict.nav.adminPanel, href: '/admin-dashboard', icon: <Shield size={16} />, color: 'text-amber-600' }
+      { name: dict.nav.adminPanel, href: '/admin-dashboard', icon: <Shield size={18} />, color: 'text-amber-600' }
     ] : []),
   ];
 
-  const isLoggedIn   = !!user;
+  const isLoggedIn = !!user;
   const isLandingPage = pathname === '/';
-  const activeLinks  = isLandingPage ? navLinks : appLinks;
+  const activeLinks = isLandingPage ? navLinks : appLinks;
 
   const avatarUrl = user?.avatar ||
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.user?.username || 'default'}`;
@@ -157,22 +155,21 @@ export function Navbar() {
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-[100] transition-all duration-300 ease-[0.22,1,0.36,1] ${
-          scrolled
-            ? 'py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-3xl saturate-[1.6] border-b border-black/[0.05] dark:border-white/[0.1] shadow-[0_20px_70px_-20px_rgba(0,0,0,0.12)]'
-            : 'py-5 bg-transparent'
-        }`}
+        className={`fixed inset-x-4 md:inset-x-8 z-[100] transition-all duration-300 ease-[0.22,1,0.36,1] mx-auto max-w-[1400px] h-[90px] flex flex-col justify-center ${scrolled
+            ? 'top-[20px] bg-white/95 dark:bg-slate-900/95 border border-black/[0.04] dark:border-white/[0.06] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.06)] rounded-[28px]'
+            : 'top-[20px] bg-white dark:bg-slate-900 border border-black/[0.03] dark:border-white/[0.04] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.03)] rounded-[28px]'
+          }`}
       >
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav className="w-full px-8">
           <div className="flex items-center justify-between gap-4">
 
             {/* ── Logo ── */}
             <Logo />
 
             {/* ── Desktop Links (centered) ── */}
-            <div className="hidden lg:flex items-center gap-7 flex-1 justify-center">
+            <div className="hidden lg:flex items-center gap-12 flex-1 justify-center">
               {activeLinks.map((link) => {
-                const isActive = isLandingPage 
+                const isActive = isLandingPage
                   ? activeSection === link.href.replace('#', '')
                   : (pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href)));
 
@@ -184,14 +181,13 @@ export function Navbar() {
                   <Link
                     key={link.name}
                     href={link.href}
-                    className={`font-tajawal text-[15px] font-bold flex items-center gap-2 transition-all duration-300 relative ${
-                      isActive 
-                        ? 'text-accent' 
+                    className={`font-tajawal text-[15px] font-bold flex items-center gap-2 transition-all duration-300 px-4 py-2 rounded-[14px] ${isActive
+                        ? 'bg-[#1F8A3B]/10 text-[#1F8A3B]'
                         // @ts-ignore
-                        : (link.color || 'text-slate-600 dark:text-slate-300 hover:text-accent')
-                    }`}
+                        : (link.color || 'text-slate-600 dark:text-slate-300 hover:text-[#1F8A3B] hover:bg-slate-50 dark:hover:bg-white/5')
+                      }`}
                   >
-                     {/* @ts-ignore */}
+                    {/* @ts-ignore */}
                     {link.icon}
                     {link.name}
                     {/* @ts-ignore */}
@@ -274,7 +270,7 @@ export function Navbar() {
                             </span>
                           )}
                         </button>
-                        
+
                         {/* Notifications Dropdown */}
                         <AnimatePresence>
                           {notificationsOpen && (
@@ -298,17 +294,17 @@ export function Navbar() {
                               </div>
                               <div className="max-h-80 overflow-y-auto">
                                 {notifications.length > 0 ? (
-                                    notifications.slice(0, 6).map((n: any) => (
-                                        <div key={n.id} className={`p-4 border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${!n.is_read ? 'bg-primary/5 border-r-2 border-r-primary' : ''}`}>
-                                            <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-100 mb-1 line-clamp-1">{n.title}</p>
-                                            <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">{n.message}</p>
-                                            <p className="text-[10px] text-slate-400 mt-1.5">
-                                              {new Date(n.created_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                                            </p>
-                                        </div>
-                                    ))
+                                  notifications.slice(0, 6).map((n: any) => (
+                                    <div key={n.id} className={`p-4 border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${!n.is_read ? 'bg-primary/5 border-r-2 border-r-primary' : ''}`}>
+                                      <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-100 mb-1 line-clamp-1">{n.title}</p>
+                                      <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">{n.message}</p>
+                                      <p className="text-[10px] text-slate-400 mt-1.5">
+                                        {new Date(n.created_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                      </p>
+                                    </div>
+                                  ))
                                 ) : (
-                                    <div className="p-6 text-center text-sm text-slate-500">{dict.nav.noNotifications}</div>
+                                  <div className="p-6 text-center text-sm text-slate-500">{dict.nav.noNotifications}</div>
                                 )}
                               </div>
                               <Link href="/agent" onClick={() => setNotificationsOpen(false)}>
@@ -323,22 +319,23 @@ export function Navbar() {
 
                       <div className="w-px h-5 bg-slate-200 dark:bg-white/10 mx-1" />
 
-                      <Link href="/profile" className="flex items-center gap-3 group">
-                        <div className="relative">
-                           <img
-                            src={avatarUrl}
-                            alt={fullUserName}
-                            className="w-9 h-9 rounded-full border-2 border-primary/30 object-cover transition-transform group-hover:scale-105"
-                          />
-                          {isAdmin && (
-                            <div className="absolute -top-1 -right-1 bg-amber-500 w-3 h-3 rounded-full border-2 border-white dark:border-[#0f172a]" />
-                          )}
-                        </div>
-                        <div className="hidden xl:flex flex-col text-right">
+                      <Link href="/profile" className="flex items-center gap-2 group">
+                        <ChevronDown size={14} className="text-slate-400 group-hover:text-slate-600 transition-colors" />
+                        <div className="hidden sm:flex flex-col text-right">
                           <span className="font-tajawal text-[10px] text-slate-400 leading-none mb-0.5">{dict.nav.greeting}</span>
                           <span className="font-tajawal text-[14px] font-bold text-slate-800 dark:text-white leading-none">
                             {fullUserName}
                           </span>
+                        </div>
+                        <div className="relative">
+                          <img
+                            src={avatarUrl}
+                            alt={fullUserName}
+                            className="w-10 h-10 rounded-full border-2 border-primary/20 object-cover transition-transform group-hover:scale-105"
+                          />
+                          {isAdmin && (
+                            <div className="absolute -top-1 -right-1 bg-amber-500 w-3 h-3 rounded-full border-2 border-white dark:border-[#0f172a]" />
+                          )}
                         </div>
                       </Link>
                       <button
@@ -386,33 +383,32 @@ export function Navbar() {
               role="dialog"
               aria-label="قائمة التنقل"
               initial={{ opacity: 0, y: -12, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0,   scale: 1    }}
-              exit={{ opacity: 0,    y: -12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -12, scale: 0.98 }}
               transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
               className="fixed top-[72px] inset-x-4 z-[99] lg:hidden bg-white dark:bg-[#0f172a] border border-black/[0.07] dark:border-white/[0.09] rounded-2xl shadow-2xl overflow-hidden"
             >
               {/* Nav links */}
               <nav className="p-2 space-y-1">
                 {activeLinks.map((link, i) => {
-                  const isActive = isLandingPage 
+                  const isActive = isLandingPage
                     ? activeSection === link.href.replace('#', '')
                     : (pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href)));
-                    
+
                   return (
                     <motion.div
                       key={link.name}
                       initial={{ opacity: 0, x: 10 }}
-                      animate={{ opacity: 1, x: 0  }}
+                      animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.045, duration: 0.2 }}
                     >
                       <Link
                         href={link.href}
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center gap-4 w-full px-4 py-3.5 rounded-xl font-tajawal text-[15px] transition-all font-semibold group ${
-                          isActive 
-                            ? 'bg-primary/10 text-accent shadow-sm ring-1 ring-primary/20' 
+                        className={`flex items-center gap-4 w-full px-4 py-3.5 rounded-xl font-tajawal text-[15px] transition-all font-semibold group ${isActive
+                            ? 'bg-primary/10 text-accent shadow-sm ring-1 ring-primary/20'
                             : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-accent'
-                        }`}
+                          }`}
                       >
                         <span className={`${isActive ? 'text-accent' : 'text-accent/70 group-hover:text-accent'} transition-colors`}>
                           {/* @ts-ignore */}

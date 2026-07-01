@@ -96,9 +96,9 @@ export function ProductCard({
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            whileHover={{ y: -4 }}
-            transition={{ duration: 0.25 }}
-            className="group relative bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300 border border-slate-100 dark:border-slate-700/60 flex flex-col h-full"
+            whileHover={{ y: -6, scale: 1.02 }}
+            transition={{ duration: 0.3 }}
+            className="group relative bg-white dark:bg-slate-800 rounded-[24px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] transition-all duration-300 border border-slate-100/80 dark:border-slate-700/50 flex flex-col h-full"
         >
             {/* Absolute Link overlay for broad click target without HTML violations */}
             <Link href={`/product/${product.id}`} className="absolute inset-0 z-0" aria-label={`View ${product.title}`} />
@@ -107,22 +107,22 @@ export function ProductCard({
             {showWishlistBtn && (
                 <motion.button
                     onClick={handleToggleWishlist}
-                    whileHover={{ scale: 1.15 }}
-                    whileTap={{ scale: 0.88 }}
-                    className={`absolute top-3 left-3 z-20 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm ${
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className={`absolute top-4 left-4 z-20 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 shadow-[0_8px_20px_rgba(0,0,0,0.08)] ${
                         wishlisted
-                            ? 'bg-red-500 text-white scale-110'
-                            : 'bg-white/80 dark:bg-slate-800/80 backdrop-blur-md text-slate-400 hover:text-red-500 hover:bg-white'
+                            ? 'bg-red-500 text-white scale-110 shadow-[0_8px_20px_rgba(239,68,68,0.25)]'
+                            : 'bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl text-slate-400 hover:text-red-500 hover:bg-white'
                     }`}
                     disabled={toggling}
                     title={wishlisted ? 'إزالة من المفضلة' : 'أضف للمفضلة'}
                 >
-                    <Heart size={16} fill={wishlisted ? 'currentColor' : 'none'} />
+                    <Heart size={20} fill={wishlisted ? 'currentColor' : 'none'} />
                 </motion.button>
             )}
 
             {/* Image Section */}
-            <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100 dark:bg-slate-700 pointer-events-none z-10">
+            <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100 dark:bg-slate-700 pointer-events-none z-10 rounded-t-[24px]">
                 <img
                     src={product.image || 'https://images.unsplash.com/photo-1562989108-7261a8ef1fdb'}
                     alt={product.title}
@@ -152,8 +152,8 @@ export function ProductCard({
                 </div>
 
                 {/* Category badge */}
-                <div className="absolute bottom-3 right-3">
-                    <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border backdrop-blur-md ${catInfo.bg} ${catInfo.color}`}>
+                <div className="absolute bottom-4 right-4">
+                    <span className={`text-[12px] font-bold px-3 py-1.5 rounded-full border backdrop-blur-md ${catInfo.bg} ${catInfo.color}`}>
                         {catInfo.label}
                     </span>
                 </div>
@@ -163,19 +163,19 @@ export function ProductCard({
             </div>
 
             {/* Content Section */}
-            <div className="flex-1 flex flex-col p-4 pointer-events-none z-10">
-                <h3 className="font-bold text-[15px] mb-2 line-clamp-1 leading-relaxed group-hover:text-accent transition-colors duration-200" title={product.title}>
+            <div className="flex-1 flex flex-col p-5 pointer-events-none z-10">
+                <h3 className="font-bold text-[16px] mb-3 line-clamp-1 leading-relaxed group-hover:text-[#1F8A3B] transition-colors duration-200" title={product.title}>
                     {product.title}
                 </h3>
 
-                <div className="flex justify-between items-end mb-4">
+                <div className="flex justify-between items-end mb-5">
                     {/* Price */}
                     <div className="flex flex-col">
                         <div className="flex items-baseline gap-1">
-                            <span className="text-accent font-black text-xl leading-none">
+                            <span className="text-[#1F8A3B] font-black text-[22px] leading-none">
                                 {Number(product.price).toLocaleString()}
                             </span>
-                            <span className="text-slate-400 text-xs font-semibold">{dict.currency}</span>
+                            <span className="text-slate-400 text-sm font-bold">{dict.currency}</span>
                         </div>
                     </div>
 

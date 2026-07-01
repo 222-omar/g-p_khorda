@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { useLanguage } from '@/components/providers/language-provider';
-import { Plus, ShoppingCart, LogOut, Star, TrendingUp, Package, Loader2, Heart, Pencil, Wallet, Camera, Settings } from 'lucide-react';
+import { Plus, ShoppingCart, LogOut, Star, TrendingUp, Package, Loader2, Heart, Pencil, Wallet, Camera, Settings, Eye, ArrowLeft, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SettingsModal } from '@/components/ui/settings-modal';
 import { profilesAPI, productsAPI, authAPI, wishlistAPI } from '@/lib/api';
@@ -41,9 +41,8 @@ export default function ProfilePage() {
             }
         };
         fetchData();
-    }, [refreshUser]); // Refresh user trigger can re-fetch profile if needed
-    
-    // Allow SettingsModal to trigger a refresh 
+    }, [refreshUser]);
+
     const handleProfileSuccess = async () => {
         try {
             const [profileData] = await Promise.all([profilesAPI.getMe()]);
@@ -67,7 +66,6 @@ export default function ProfilePage() {
         try {
             const updatedProfile = await profilesAPI.update(formData);
             setProfile(updatedProfile);
-            // Update auth state globally so Navbar reflects the new avatar
             await refreshUser();
         } catch (err) {
             console.error('Failed to update avatar', err);
@@ -79,9 +77,9 @@ export default function ProfilePage() {
         return (
             <>
                 <Navbar />
-                <div className="min-h-screen pt-32 flex justify-center items-start">
+                <div className="min-h-screen pt-32 flex justify-center items-start bg-[#FCFDFB] dark:bg-[#0e1015]">
                     <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
-                        <Loader2 className="animate-spin text-accent" size={40} />
+                        <Loader2 className="animate-spin text-[#1F8A3B]" size={40} />
                     </motion.div>
                 </div>
                 <Footer />
@@ -94,88 +92,82 @@ export default function ProfilePage() {
     const user = profile.user || {};
     const trustScore = profile.trust_score || 50;
 
-    const statCards = [
-        {
-            gradient: 'bg-gradient-to-br from-primary to-green-600',
-            icon: Package,
-            label: dict.profile.walletBalance,
-            value: `${profile.wallet_balance || 0} ${dict.currency}`,
-            delay: 0.1,
-        },
-        {
-            gradient: 'bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-700 dark:to-slate-800',
-            icon: Star,
-            iconClass: 'fill-yellow-400 text-yellow-400',
-            label: dict.profile.sellerRating,
-            value: profile.seller_rating || 0,
-            isRating: true,
-            delay: 0.2,
-        },
-        {
-            gradient: 'bg-white dark:bg-slate-800',
-            icon: TrendingUp,
-            iconBg: 'bg-blue-100 dark:bg-blue-900/30',
-            iconColor: 'text-blue-600 dark:text-blue-400',
-            label: 'إجمالي المبيعات',
-            value: profile.total_sales || 0,
-            light: true,
-            delay: 0.3,
-        },
-        {
-            gradient: 'bg-white dark:bg-slate-800',
-            icon: Package,
-            iconBg: 'bg-orange-100 dark:bg-orange-900/30',
-            iconColor: 'text-orange-600 dark:text-orange-400',
-            label: 'الإعلانات النشطة',
-            value: myListings.filter(i => i.status === 'active').length,
-            light: true,
-            delay: 0.4,
-        },
-    ];
-
     return (
         <>
             <Navbar />
-            <main className="pt-24 pb-12 min-h-screen px-4 sm:px-6 lg:px-8">
-                <div className="max-w-6xl mx-auto">
-                    <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
-                        {/* Sidebar */}
+            <main className="pt-32 pb-20 min-h-screen relative overflow-hidden bg-[#FCFDFB] dark:bg-[#0e1015]">
+                {/* Background Effects */}
+                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-green-500/[0.03] rounded-full blur-[120px] pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-emerald-500/[0.03] rounded-full blur-[100px] pointer-events-none" />
+                <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay pointer-events-none" />
+                
+                <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                    
+                    {/* Header */}
+                    <motion.div 
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="mb-12"
+                    >
+                        <h1 className="text-[32px] md:text-[40px] font-black text-slate-900 dark:text-white mb-3">إحصائيات حسابك</h1>
+                        <p className="text-slate-500 dark:text-slate-400 text-[16px] font-medium">تابع أداء حسابك وإعلاناتك ومبيعاتك في مكان واحد.</p>
+                    </motion.div>
+
+                    <div className="grid lg:grid-cols-12 gap-8">
+                        {/* Sidebar (4 cols) */}
                         <motion.div
-                            className="md:col-span-1"
+                            className="lg:col-span-4"
                             initial={{ opacity: 0, x: -30 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
                         >
-                            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 sticky top-24 relative">
+                            <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-3xl p-8 rounded-[32px] border border-white/40 dark:border-slate-700/50 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] sticky top-32">
                                 {/* Settings Trigger */}
                                 <motion.button
                                     whileHover={{ rotate: 90 }}
                                     transition={{ type: 'spring', stiffness: 200, damping: 10 }}
                                     onClick={() => setIsSettingsOpen(true)}
-                                    className="absolute top-4 left-4 p-2 text-slate-400 hover:text-accent hover:bg-primary/10 rounded-full transition-colors z-10"
+                                    className="absolute top-6 left-6 p-2 text-slate-400 hover:text-[#1F8A3B] hover:bg-[#1F8A3B]/10 rounded-full transition-colors z-10"
                                 >
                                     <Settings size={22} />
                                 </motion.button>
                                 
                                 {/* User Info */}
-                                <div className="flex flex-col items-center mb-6 pb-6 border-b border-slate-200 dark:border-slate-700 mt-2">
-                                    <motion.div
-                                        initial={{ scale: 0.7, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: 1 }}
-                                        transition={{ type: 'spring', stiffness: 280, damping: 18, delay: 0.2 }}
-                                        whileHover={{ scale: 1.06 }}
-                                        className="w-20 h-20 bg-slate-200 dark:bg-slate-700 rounded-full mb-4 border-4 border-primary overflow-hidden cursor-pointer ring-2 ring-transparent hover:ring-primary/40 transition-all relative group"
-                                        onClick={() => document.getElementById('avatar-upload')?.click()}
-                                    >
-                                        <img
-                                            src={profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
-                                            alt="avatar"
-                                            className="w-full h-full object-cover"
-                                        />
-                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Camera size={20} className="text-white" />
-                                        </div>
-                                    </motion.div>
+                                <div className="flex flex-col items-center mb-8">
+                                    <div className="relative mb-6">
+                                        <svg className="absolute -inset-2 w-[116px] h-[116px] -rotate-90">
+                                            <circle cx="58" cy="58" r="56" className="stroke-slate-100 dark:stroke-slate-700/50" strokeWidth="4" fill="none" />
+                                            <motion.circle 
+                                                cx="58" cy="58" r="56" 
+                                                className="stroke-[#1F8A3B]" 
+                                                strokeWidth="4" 
+                                                fill="none" 
+                                                strokeDasharray="351"
+                                                initial={{ strokeDashoffset: 351 }}
+                                                animate={{ strokeDashoffset: 351 - (351 * trustScore) / 100 }}
+                                                transition={{ duration: 1.5, ease: "easeOut" }}
+                                                strokeLinecap="round"
+                                            />
+                                        </svg>
+                                        <motion.div
+                                            initial={{ scale: 0.7, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            transition={{ type: 'spring', stiffness: 280, damping: 18, delay: 0.2 }}
+                                            whileHover={{ scale: 1.06 }}
+                                            className="w-[100px] h-[100px] bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden border-[4px] border-white dark:border-slate-800 shadow-xl cursor-pointer relative group"
+                                            onClick={() => document.getElementById('avatar-upload')?.click()}
+                                        >
+                                            <img
+                                                src={profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
+                                                alt="avatar"
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Camera size={24} className="text-white" />
+                                            </div>
+                                        </motion.div>
+                                    </div>
                                     <input 
                                         type="file" 
                                         id="avatar-upload" 
@@ -183,91 +175,64 @@ export default function ProfilePage() {
                                         accept="image/*"
                                         onChange={handleAvatarUpdate}
                                     />
-                                    <motion.h3
-                                        initial={{ opacity: 0, y: 8 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.3 }}
-                                        className="font-bold text-lg mb-1 text-center"
-                                    >
-                                        {user.first_name} {user.last_name || ''} (@{user.username})
-                                    </motion.h3>
-                                    <motion.p
-                                        initial={{ opacity: 0, y: 6 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.35 }}
-                                        className="text-slate-500 dark:text-slate-400 text-sm"
-                                    >
-                                        {profile.city || 'العنوان غير محدد'}
-                                    </motion.p>
-
-                                    {/* Trust Score */}
-                                    <div className="mt-4 w-full">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">نقاط الثقة</span>
-                                            <motion.span
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                transition={{ delay: 0.7 }}
-                                                className="text-sm font-black text-accent"
-                                            >
-                                                {trustScore}%
-                                            </motion.span>
-                                        </div>
-                                        <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                                            <motion.div
-                                                className="h-full bg-gradient-to-r from-primary to-green-400 rounded-full"
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${trustScore}%` }}
-                                                transition={{ duration: 1.2, ease: 'easeOut', delay: 0.5 }}
-                                            />
-                                        </div>
+                                    <h3 className="font-black text-[22px] mb-1 text-center text-slate-900 dark:text-white">
+                                        {user.first_name} {user.last_name || ''}
+                                    </h3>
+                                    <p className="text-slate-500 font-medium text-[15px]">@{user.username}</p>
+                                    
+                                    <div className="mt-4 bg-slate-50 dark:bg-slate-900/50 py-2 px-4 rounded-[16px] flex items-center gap-2 border border-slate-100 dark:border-slate-700/50">
+                                        <div className="w-2 h-2 rounded-full bg-[#1F8A3B]" />
+                                        <span className="text-[13px] font-bold text-slate-600 dark:text-slate-300">نقاط الثقة {trustScore}%</span>
                                     </div>
                                 </div>
 
                                 {/* Navigation */}
                                 <motion.div
-                                    className="space-y-2"
+                                    className="space-y-3"
                                     variants={staggerContainer}
                                     initial="hidden"
                                     animate="visible"
                                 >
                                     {[
-                                        { icon: Plus, bg: 'bg-primary-100 dark:bg-primary-900/30 group-hover:bg-primary', label: `${dict.profile.myListings}`, badge: myListings.length },
-                                        { icon: ShoppingCart, bg: 'bg-blue-100 dark:bg-blue-900/30 group-hover:bg-blue-500', label: dict.profile.myPurchases },
-                                        { icon: Heart, bg: 'bg-red-100 dark:bg-red-900/30 group-hover:bg-red-500', label: 'المفضلة', badge: wishlistItems.length },
+                                        { icon: Plus, bg: 'group-hover:bg-[#1F8A3B]/10', color: 'group-hover:text-[#1F8A3B]', label: dict.profile.myListings, badge: myListings.length },
+                                        { icon: ShoppingCart, bg: 'group-hover:bg-blue-500/10', color: 'group-hover:text-blue-600', label: dict.profile.myPurchases },
+                                        { icon: Heart, bg: 'group-hover:bg-red-500/10', color: 'group-hover:text-red-500', label: 'المفضلة', badge: wishlistItems.length },
                                     ].map((item, i) => (
                                         <motion.button
                                             key={i}
                                             variants={staggerItem}
-                                            whileHover={{ x: -4 }}
-                                            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                                            className="w-full text-right p-3 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl text-sm font-bold flex items-center gap-3 transition-colors group"
+                                            whileHover={{ x: -4, scale: 1.02 }}
+                                            whileTap={{ scale: 0.98 }}
+                                            className="w-full text-right p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50 hover:border-slate-200 dark:hover:border-slate-600 rounded-[20px] text-[15px] font-bold flex items-center justify-between transition-all group shadow-[0_4px_12px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.04)]"
                                         >
-                                            <div className={`${item.bg} group-hover:text-white p-2 rounded-lg transition-colors`}>
-                                                <item.icon size={16} />
+                                            <div className="flex items-center gap-3">
+                                                <div className={`bg-slate-50 dark:bg-slate-900/50 text-slate-500 ${item.bg} ${item.color} p-2.5 rounded-[12px] transition-colors`}>
+                                                    <item.icon size={18} strokeWidth={2.5} />
+                                                </div>
+                                                <span className={`text-slate-700 dark:text-slate-200 ${item.color} transition-colors`}>{item.label}</span>
                                             </div>
-                                            {item.label}
                                             {item.badge !== undefined && (
                                                 <motion.span
                                                     initial={{ scale: 0 }}
                                                     animate={{ scale: 1 }}
                                                     transition={{ type: 'spring', stiffness: 400, delay: 0.5 + i * 0.1 }}
-                                                    className="text-xs bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-full"
+                                                    className="text-[12px] bg-slate-100 dark:bg-slate-700 px-2.5 py-1 rounded-[10px] text-slate-600 dark:text-slate-300"
                                                 >
                                                     {item.badge}
                                                 </motion.span>
                                             )}
                                         </motion.button>
                                     ))}
+                                    
                                     <motion.button
                                         variants={staggerItem}
-                                        whileHover={{ x: -4 }}
-                                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                                        whileHover={{ x: -4, scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
                                         onClick={handleLogout}
-                                        className="w-full text-right p-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl text-sm font-bold flex items-center gap-3 transition-colors group"
+                                        className="w-full text-right mt-6 p-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-[20px] text-[15px] font-bold flex items-center gap-3 transition-all group shadow-[0_4px_12px_rgba(239,68,68,0.05)] text-red-600 dark:text-red-400"
                                     >
-                                        <div className="bg-red-100 dark:bg-red-900/30 group-hover:bg-red-500 group-hover:text-white p-2 rounded-lg transition-colors">
-                                            <LogOut size={16} />
+                                        <div className="bg-white/50 dark:bg-black/20 text-red-500 group-hover:text-red-600 p-2.5 rounded-xl transition-colors">
+                                            <LogOut size={18} strokeWidth={2.5} />
                                         </div>
                                         {dict.profile.logout}
                                     </motion.button>
@@ -275,221 +240,215 @@ export default function ProfilePage() {
                             </div>
                         </motion.div>
 
-                        {/* Main Content */}
+                        {/* Main Content (8 cols) */}
                         <motion.div
-                            className="md:col-span-2 space-y-6"
+                            className="lg:col-span-8 space-y-6"
                             initial={{ opacity: 0, x: 30 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
                         >
-                            <h2 className="text-2xl md:text-3xl font-bold">{dict.profile.accountStats}</h2>
+                            {/* Quick Actions */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <Link href="/sell" className="flex-1">
+                                    <button className="w-full h-[72px] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50 hover:border-[#1F8A3B]/30 hover:bg-[#F4FBF6] dark:hover:bg-[#1F8A3B]/5 rounded-[20px] flex items-center justify-center gap-3 transition-all group shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+                                        <div className="bg-slate-50 dark:bg-slate-900/50 group-hover:bg-[#1F8A3B]/10 p-2 rounded-xl text-slate-500 dark:text-slate-400 group-hover:text-[#1F8A3B] transition-colors">
+                                            <Plus size={20} strokeWidth={2.5} />
+                                        </div>
+                                        <span className="font-bold text-[15px] text-slate-700 dark:text-slate-200 group-hover:text-[#1F8A3B] transition-colors">إضافة إعلان</span>
+                                    </button>
+                                </Link>
+                                <Link href="/auctions/create" className="flex-1">
+                                    <button className="w-full h-[72px] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50 hover:border-orange-500/30 hover:bg-orange-50 dark:hover:bg-orange-500/5 rounded-[20px] flex items-center justify-center gap-3 transition-all group shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+                                        <div className="bg-slate-50 dark:bg-slate-900/50 group-hover:bg-orange-500/10 p-2 rounded-xl text-slate-500 dark:text-slate-400 group-hover:text-orange-500 transition-colors">
+                                            <TrendingUp size={20} strokeWidth={2.5} />
+                                        </div>
+                                        <span className="font-bold text-[15px] text-slate-700 dark:text-slate-200 group-hover:text-orange-500 transition-colors">إضافة مزاد</span>
+                                    </button>
+                                </Link>
+                                <Link href="/payment" className="flex-1">
+                                    <button className="w-full h-[72px] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50 hover:border-blue-500/30 hover:bg-blue-50 dark:hover:bg-blue-500/5 rounded-[20px] flex items-center justify-center gap-3 transition-all group shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+                                        <div className="bg-slate-50 dark:bg-slate-900/50 group-hover:bg-blue-500/10 p-2 rounded-xl text-slate-500 dark:text-slate-400 group-hover:text-blue-500 transition-colors">
+                                            <Wallet size={20} strokeWidth={2.5} />
+                                        </div>
+                                        <span className="font-bold text-[15px] text-slate-700 dark:text-slate-200 group-hover:text-blue-500 transition-colors">شحن المحفظة</span>
+                                    </button>
+                                </Link>
+                            </div>
 
                             {/* Stats Grid */}
-                            <div className="grid sm:grid-cols-2 gap-6">
+                            <div className="grid sm:grid-cols-2 gap-4">
                                 {/* Wallet */}
                                 <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.1 }}
-                                    whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                                    className="bg-gradient-to-br from-primary to-green-600 p-6 rounded-2xl text-white shadow-lg cursor-default"
+                                    className="bg-gradient-to-br from-[#1F8A3B] to-[#166534] p-6 rounded-[24px] text-white shadow-[0_20px_40px_-15px_rgba(31,138,59,0.3)] relative overflow-hidden group"
                                 >
-                                    <div className="flex items-start justify-between mb-4">
-                                        <motion.div
-                                            whileHover={{ rotate: 10, scale: 1.1 }}
-                                            className="bg-white/20 p-3 rounded-xl backdrop-blur-sm"
-                                        >
-                                            <Package size={24} />
-                                        </motion.div>
+                                    <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-colors" />
+                                    <div className="relative z-10">
+                                        <div className="flex items-start justify-between mb-6">
+                                            <div className="bg-white/20 p-4 rounded-[16px] backdrop-blur-md">
+                                                <Wallet size={28} className="text-white" />
+                                            </div>
+                                        </div>
+                                        <p className="text-[14px] text-emerald-100 font-medium mb-1">{dict.profile.walletBalance}</p>
+                                        <div className="flex items-baseline gap-2 mb-6">
+                                            <p className="text-[36px] font-black tracking-tight">{profile.wallet_balance || 0}</p>
+                                            <span className="text-[16px] text-emerald-100 font-bold">{dict.currency}</span>
+                                        </div>
+                                        <Link href="/payment">
+                                            <button className="w-full bg-white text-[#166534] hover:bg-emerald-50 py-3.5 rounded-[16px] font-bold text-[15px] flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+                                                <Plus size={18} strokeWidth={2.5} />
+                                                شحن المحفظة
+                                            </button>
+                                        </Link>
                                     </div>
-                                    <p className="text-sm opacity-90 mb-2">{dict.profile.walletBalance}</p>
-                                    <p className="text-3xl font-black">
-                                        {profile.wallet_balance || 0} <span className="text-base">{dict.currency}</span>
-                                    </p>
-                                    <Link href="/payment">
-                                        <motion.button
-                                            whileHover={{ scale: 1.04 }}
-                                            whileTap={{ scale: 0.96 }}
-                                            className="mt-4 w-full bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all border border-white/10"
-                                        >
-                                            <Wallet size={16} />
-                                            {dict.profile.topUpWallet}
-                                        </motion.button>
-                                    </Link>
                                 </motion.div>
 
                                 {/* Seller Rating */}
                                 <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.2 }}
-                                    whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                                    className="bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-700 dark:to-slate-800 p-6 rounded-2xl text-white border border-slate-700 shadow-lg cursor-default"
+                                    className="bg-white dark:bg-slate-800 p-6 rounded-[24px] border border-slate-100 dark:border-slate-700/50 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] transition-shadow relative overflow-hidden"
                                 >
                                     <div className="flex items-start justify-between mb-4">
-                                        <motion.div
-                                            whileHover={{ rotate: -10, scale: 1.1 }}
-                                            className="bg-white/10 p-3 rounded-xl backdrop-blur-sm"
-                                        >
-                                            <Star className="fill-yellow-400 text-yellow-400" size={24} />
-                                        </motion.div>
-                                    </div>
-                                    <p className="text-sm opacity-90 mb-2">{dict.profile.sellerRating}</p>
-                                    <div className="flex items-center gap-3">
-                                        <p className="text-3xl font-black">{profile.seller_rating || 0}</p>
-                                        <div className="flex gap-0.5">
-                                            {[1, 2, 3, 4, 5].map((i) => (
-                                                <motion.div
-                                                    key={i}
-                                                    initial={{ opacity: 0, scale: 0 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    transition={{ type: 'spring', stiffness: 400, delay: 0.3 + i * 0.05 }}
-                                                >
-                                                    <Star
-                                                        size={16}
-                                                        className={i <= Math.round(Number(profile.seller_rating || 0)) ? 'fill-yellow-400 text-yellow-400' : 'text-slate-600'}
-                                                    />
-                                                </motion.div>
-                                            ))}
+                                        <div className="bg-orange-50 dark:bg-orange-500/10 p-4 rounded-[16px]">
+                                            <Star className="fill-orange-500 text-orange-500" size={28} />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="text-[13px] font-bold text-slate-400">تقييم البائع</p>
                                         </div>
                                     </div>
+                                    <div className="flex items-baseline gap-3 mb-4">
+                                        <p className="text-[36px] font-black text-slate-900 dark:text-white">{profile.seller_rating || 0}</p>
+                                        <p className="text-[14px] font-medium text-slate-500">من 5.0</p>
+                                    </div>
+                                    <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden mb-3">
+                                        <motion.div
+                                            className="h-full bg-orange-500 rounded-full"
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${((profile.seller_rating || 0) / 5) * 100}%` }}
+                                            transition={{ duration: 1, delay: 0.2 }}
+                                        />
+                                    </div>
+                                    <p className="text-[14px] text-slate-500 font-medium">بناءً على {profile.total_reviews || 0} مراجعة</p>
                                 </motion.div>
 
                                 {/* Total Sales */}
                                 <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.3 }}
-                                    whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                                    className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 cursor-default"
+                                    className="bg-white dark:bg-slate-800 p-6 rounded-[24px] border border-slate-100 dark:border-slate-700/50 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] transition-shadow"
                                 >
-                                    <div className="flex items-start justify-between mb-4">
-                                        <motion.div whileHover={{ rotate: 8 }} className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl">
-                                            <TrendingUp className="text-blue-600 dark:text-blue-400" size={24} />
-                                        </motion.div>
+                                    <div className="bg-blue-50 dark:bg-blue-500/10 p-4 rounded-[16px] w-fit mb-6">
+                                        <TrendingUp className="text-blue-600 dark:text-blue-400" size={28} />
                                     </div>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">إجمالي المبيعات</p>
-                                    <p className="text-3xl font-black text-slate-900 dark:text-white">{profile.total_sales || 0}</p>
+                                    <p className="text-[14px] font-medium text-slate-500 mb-1">إجمالي المبيعات</p>
+                                    <p className="text-[36px] font-black text-slate-900 dark:text-white">{profile.total_sales || 0}</p>
                                 </motion.div>
 
                                 {/* Active Listings */}
                                 <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.4 }}
-                                    whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                                    className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 cursor-default"
+                                    className="bg-white dark:bg-slate-800 p-6 rounded-[24px] border border-slate-100 dark:border-slate-700/50 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] transition-shadow"
                                 >
-                                    <div className="flex items-start justify-between mb-4">
-                                        <motion.div whileHover={{ rotate: -8 }} className="bg-orange-100 dark:bg-orange-900/30 p-3 rounded-xl">
-                                            <Package className="text-orange-600 dark:text-orange-400" size={24} />
-                                        </motion.div>
+                                    <div className="bg-emerald-50 dark:bg-emerald-500/10 p-4 rounded-[16px] w-fit mb-6">
+                                        <Package className="text-[#1F8A3B]" size={28} />
                                     </div>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">الإعلانات النشطة</p>
-                                    <p className="text-3xl font-black text-slate-900 dark:text-white">{myListings.filter(i => i.status === 'active').length}</p>
+                                    <p className="text-[14px] font-medium text-slate-500 mb-1">الإعلانات النشطة</p>
+                                    <p className="text-[36px] font-black text-slate-900 dark:text-white">{myListings.filter(i => i.status === 'active').length}</p>
                                 </motion.div>
                             </div>
 
-                            {/* My Listings */}
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.5 }}
-                                className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700"
-                            >
-                                <h3 className="font-bold text-lg mb-4">{dict.profile.myListings} ({myListings.length})</h3>
+                            {/* Advertisements */}
+                            <motion.div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-3xl p-8 rounded-[32px] border border-white/40 dark:border-slate-700/50 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)]">
+                                <div className="flex items-center justify-between mb-8">
+                                    <h3 className="font-black text-[20px] text-slate-900 dark:text-white">إعلاناتي ({myListings.length})</h3>
+                                    <Link href="/sell">
+                                        <button className="text-[#1F8A3B] font-bold text-[14px] hover:bg-[#1F8A3B]/10 px-4 py-2 rounded-[12px] transition-colors">
+                                            إضافة إعلان
+                                        </button>
+                                    </Link>
+                                </div>
+                                
                                 {myListings.length > 0 ? (
-                                    <motion.div
-                                        className="space-y-3"
-                                        variants={staggerContainer}
-                                        initial="hidden"
-                                        animate="visible"
-                                    >
+                                    <div className="grid gap-4">
                                         {myListings.slice(0, 5).map((item, i) => (
-                                            <motion.div
-                                                key={item.id || i}
-                                                variants={staggerItem}
-                                                whileHover={{ x: -4, backgroundColor: 'rgba(0,0,0,0.02)' }}
-                                                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-                                                className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                                            >
-                                                <div
-                                                    className="w-12 h-12 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-                                                    onClick={() => router.push(`/product/${item.id}`)}
-                                                >
+                                            <div key={item.id} className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50 p-4 rounded-[24px] flex flex-col sm:flex-row items-center gap-5 hover:shadow-[0_12px_30px_rgba(0,0,0,0.04)] hover:border-slate-200 dark:hover:border-slate-600 transition-all group">
+                                                <div className="w-full sm:w-[140px] h-[100px] bg-slate-50 dark:bg-slate-900 rounded-[16px] overflow-hidden flex-shrink-0 relative">
                                                     {item.images?.[0]?.image ? (
-                                                        <img src={item.images[0].image} alt={item.title} className="w-full h-full object-cover" />
+                                                        <img src={item.images[0].image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                                     ) : (
-                                                        <Package size={24} className="m-auto mt-3 text-slate-400" />
+                                                        <Package size={28} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-slate-300" />
                                                     )}
+                                                    <div className="absolute top-2 right-2">
+                                                        <span className={`px-2.5 py-1 rounded-[10px] text-[11px] font-black backdrop-blur-md shadow-sm border ${
+                                                            item.status === 'active' ? 'bg-[#F4FBF6]/95 text-[#1F8A3B] border-[#1F8A3B]/20' : 
+                                                            item.status === 'pending' ? 'bg-orange-50/95 text-orange-600 border-orange-200/50' : 
+                                                            item.status === 'inactive' ? 'bg-red-50/95 text-red-600 border-red-200/50' : 
+                                                            item.status === 'sold' ? 'bg-blue-50/95 text-blue-600 border-blue-200/50' :
+                                                            'bg-slate-50/95 text-slate-600 border-slate-200/50'
+                                                        }`}>
+                                                            {item.status === 'active' ? 'نشط' : item.status === 'pending' ? 'قيد المراجعة' : item.status === 'inactive' ? 'مرفوض' : item.status === 'sold' ? 'مباع' : item.status}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex-1 cursor-pointer" onClick={() => router.push(`/product/${item.id}`)}>
-                                                    <p className="font-semibold text-sm">{item.title}</p>
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">{item.price} {dict.currency}</p>
+                                                <div className="flex-1 w-full text-right">
+                                                    <h4 className="font-bold text-[16px] text-slate-900 dark:text-white mb-1.5 line-clamp-1 group-hover:text-[#1F8A3B] transition-colors cursor-pointer" onClick={() => router.push(`/product/${item.id}`)}>{item.title}</h4>
+                                                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[13px] font-medium mb-3">
+                                                        <Calendar size={14} />
+                                                        تم النشر في {new Date(item.created_at || Date.now()).toLocaleDateString('ar-EG')}
+                                                    </div>
+                                                    <div className="flex items-center gap-4">
+                                                        <span className="font-black text-[18px] text-[#1F8A3B]">{item.price} {dict.currency}</span>
+                                                        <div className="flex items-center gap-1.5 text-slate-400 text-[12px] font-bold bg-slate-50 dark:bg-slate-900/50 px-2.5 py-1 rounded-[10px] border border-slate-100 dark:border-slate-800">
+                                                            <Eye size={14} />
+                                                            {item.views || 0} مشاهدة
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className={`px-2 py-1 rounded text-xs font-bold ${item.status === 'active' ? 'bg-green-100 text-green-700' : item.status === 'pending' ? 'bg-amber-100 text-amber-700' : item.status === 'inactive' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}`}>
-                                                    {item.status === 'active' ? 'نشط' : item.status === 'pending' ? 'قيد المراجعة' : item.status === 'inactive' ? 'مرفوض' : item.status}
+                                                <div className="flex sm:flex-col gap-2 w-full sm:w-auto mt-4 sm:mt-0">
+                                                    <button onClick={() => router.push(`/product/edit/${item.id}`)} className="flex-1 sm:flex-none bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 p-3 rounded-[14px] flex items-center justify-center transition-colors">
+                                                        <Pencil size={18} />
+                                                    </button>
+                                                    <button onClick={() => router.push(`/product/${item.id}`)} className="flex-1 sm:flex-none bg-[#1F8A3B]/5 hover:bg-[#1F8A3B]/10 text-[#1F8A3B] p-3 rounded-[14px] flex items-center justify-center transition-colors">
+                                                        <ArrowLeft size={18} />
+                                                    </button>
                                                 </div>
-                                                <motion.button
-                                                    onClick={() => router.push(`/product/edit/${item.id}`)}
-                                                    whileHover={{ scale: 1.15, color: 'var(--color-primary, #16a34a)' }}
-                                                    whileTap={{ scale: 0.9 }}
-                                                    className="p-2 text-slate-400 hover:text-accent hover:bg-primary/10 rounded-lg transition-colors"
-                                                    title="تعديل الإعلان"
-                                                >
-                                                    <Pencil size={16} />
-                                                </motion.button>
-                                            </motion.div>
+                                            </div>
                                         ))}
-                                    </motion.div>
+                                    </div>
                                 ) : (
-                                    <p className="text-slate-500 text-sm py-4 text-center">لا توجد إعلانات حتى الآن</p>
+                                    <div className="bg-white dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 border-dashed rounded-[24px] p-10 flex flex-col items-center justify-center text-center shadow-sm">
+                                        <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-[20px] mb-4 text-[#1F8A3B]/40">
+                                            <Package size={32} />
+                                        </div>
+                                        <p className="text-[16px] font-bold text-slate-900 dark:text-white mb-2">ليس لديك أي إعلانات بعد</p>
+                                        <p className="text-[14px] font-medium text-slate-500 max-w-[250px]">ابدأ ببيع أشيائك القديمة واربح المال اليوم</p>
+                                    </div>
                                 )}
                             </motion.div>
 
                             {/* Wishlist */}
                             <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.6 }}
-                                className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700"
+                                className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-3xl p-8 rounded-[32px] border border-white/40 dark:border-slate-700/50 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)]"
                             >
-                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                                    <motion.span
-                                        animate={{ scale: [1, 1.2, 1] }}
-                                        transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                                    >
-                                        <Heart size={20} className="text-red-500" />
-                                    </motion.span>
+                                <h3 className="font-black text-[20px] text-slate-900 dark:text-white mb-8 flex items-center gap-3">
+                                    <div className="bg-red-50 dark:bg-red-500/10 p-2.5 rounded-[12px] text-red-500">
+                                        <Heart size={20} className="fill-red-500" />
+                                    </div>
                                     المفضلة ({wishlistItems.length})
                                 </h3>
                                 {wishlistItems.length > 0 ? (
-                                    <motion.div
-                                        className="space-y-3"
-                                        variants={staggerContainer}
-                                        initial="hidden"
-                                        animate="visible"
-                                    >
+                                    <div className="grid gap-4">
                                         {wishlistItems.map((item: any, i: number) => (
-                                            <motion.div
+                                            <div
                                                 key={item.id || i}
-                                                variants={staggerItem}
-                                                whileHover={{ x: -4 }}
-                                                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-                                                className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                                                className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50 p-3 rounded-[20px] flex items-center gap-4 hover:shadow-[0_12px_30px_rgba(0,0,0,0.04)] hover:border-slate-200 dark:hover:border-slate-600 transition-all cursor-pointer group"
+                                                onClick={() => router.push(`/product/${item.id}`)}
                                             >
-                                                <div className="flex-1 flex items-center gap-3" onClick={() => router.push(`/product/${item.id}`)}>
-                                                    <div className="w-12 h-12 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
-                                                        {item.primary_image ? (
-                                                            <img src={item.primary_image} alt={item.title} className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <Package size={24} className="m-auto mt-3 text-slate-400" />
-                                                        )}
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <p className="font-semibold text-sm">{item.title}</p>
-                                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">{item.price} {dict.currency}</p>
-                                                    </div>
+                                                <div className="w-[80px] h-[80px] bg-slate-50 dark:bg-slate-900 rounded-[14px] overflow-hidden flex-shrink-0">
+                                                    {item.primary_image ? (
+                                                        <img src={item.primary_image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                                    ) : (
+                                                        <Package size={24} className="m-auto mt-7 text-slate-300" />
+                                                    )}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h4 className="font-bold text-[15px] text-slate-900 dark:text-white mb-1 group-hover:text-[#1F8A3B] transition-colors">{item.title}</h4>
+                                                    <p className="font-black text-[15px] text-[#1F8A3B]">{item.price} {dict.currency}</p>
                                                 </div>
                                                 <motion.button
                                                     onClick={async (e) => {
@@ -501,34 +460,26 @@ export default function ProfilePage() {
                                                             console.error(err);
                                                         }
                                                     }}
-                                                    whileHover={{ scale: 1.2 }}
-                                                    whileTap={{ scale: 0.85 }}
-                                                    transition={{ type: 'spring', stiffness: 400 }}
-                                                    className="text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-lg transition-colors"
+                                                    whileHover={{ scale: 1.1 }}
+                                                    whileTap={{ scale: 0.9 }}
+                                                    className="bg-slate-50 dark:bg-slate-900/50 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-400 hover:text-red-500 p-3 rounded-[14px] transition-colors ml-2"
                                                     title="إزالة من المفضلة"
                                                 >
-                                                    <Heart size={16} fill="currentColor" />
+                                                    <Heart size={18} fill="currentColor" />
                                                 </motion.button>
-                                            </motion.div>
+                                            </div>
                                         ))}
-                                    </motion.div>
+                                    </div>
                                 ) : (
-                                    <p className="text-slate-500 text-sm py-4 text-center">لسه مضفتش حاجة للمفضلة ❤️</p>
+                                    <div className="bg-white dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 border-dashed rounded-[24px] p-10 flex flex-col items-center justify-center text-center shadow-sm">
+                                        <div className="bg-red-50 dark:bg-red-500/10 p-4 rounded-[20px] mb-4 text-red-400">
+                                            <Heart size={32} />
+                                        </div>
+                                        <p className="text-[16px] font-bold text-slate-900 dark:text-white mb-2">ليس لديك أي إعلانات في المفضلة</p>
+                                        <p className="text-[14px] font-medium text-slate-500 max-w-[250px]">احفظ الإعلانات التي تعجبك هنا للعودة إليها لاحقاً</p>
+                                    </div>
                                 )}
                             </motion.div>
-
-                            {/* Quick Action */}
-                            <Link href="/sell">
-                                <motion.button
-                                    whileHover={{ scale: 1.02, boxShadow: '0 8px 24px rgba(22,163,74,0.3)' }}
-                                    whileTap={{ scale: 0.97 }}
-                                    transition={{ type: 'spring', stiffness: 360, damping: 22 }}
-                                    className="w-full bg-primary hover:bg-primary-700 text-white py-4 rounded-xl font-bold shadow-md flex items-center justify-center gap-2"
-                                >
-                                    <Plus size={20} />
-                                    أضف منتج جديد
-                                </motion.button>
-                            </Link>
                         </motion.div>
                     </div>
                 </div>

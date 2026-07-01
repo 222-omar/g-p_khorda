@@ -7,7 +7,7 @@ import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { useLanguage } from '@/components/providers/language-provider';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Search, Loader2, Clock, Gavel, Users, TrendingUp, Plus } from 'lucide-react';
+import { Search, Loader2, Clock, Gavel, Users, TrendingUp, Plus, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { auctionsAPI } from '@/lib/api';
 import { SidebarFilters } from '@/components/ui/sidebar-filters';
@@ -158,52 +158,56 @@ export default function AuctionsPage() {
     return (
         <>
             <Navbar />
-            <main className="pt-24 pb-12 min-h-screen px-4 sm:px-6 lg:px-8">
-                <div className="max-w-7xl mx-auto">
-                    {/* ── Page Header (same layout as dashboard) ── */}
+            <main className="pt-32 pb-20 min-h-screen relative overflow-hidden bg-[#FCFDFB] dark:bg-[#0e1015]">
+                {/* Subtle Radial Gradients for Premium Feel */}
+                <div className="absolute top-0 left-1/4 w-[800px] h-[800px] bg-orange-500/[0.02] dark:bg-orange-500/[0.04] rounded-full blur-[100px] pointer-events-none" />
+                <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-red-500/[0.02] dark:bg-red-500/[0.04] rounded-full blur-[100px] pointer-events-none" />
+
+                <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                    {/* ── Premium Hero Header ── */}
                     <motion.div
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-10"
+                        className="flex flex-col md:flex-row md:justify-between md:items-center gap-6 mb-12"
                     >
                         <div>
-                            <h2 className="text-2xl md:text-3xl font-black flex items-center gap-3">
-                                <div className="bg-gradient-to-r from-orange-500 to-red-500 p-2.5 rounded-xl text-white shadow-md">
-                                    <Gavel size={24} />
-                                </div>
-                                المزادات
+                            <h2 className="text-[32px] md:text-[40px] font-black text-slate-900 dark:text-white leading-tight">
+                                🔥 المزادات
                             </h2>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                                زايد على المنتجات المميزة واحصل على أفضل الأسعار
+                            <p className="text-slate-500 dark:text-slate-400 text-[16px] mt-2 font-medium">
+                                زايد الآن واحصل على أفضل الأسعار
                             </p>
                         </div>
 
-                        <div className="flex gap-2 items-center">
-                            {/* Search */}
-                            <div className="flex gap-2 max-w-sm w-full">
+                        <div className="flex flex-col sm:flex-row gap-4 items-center">
+                            {/* Premium Search */}
+                            <div className="relative max-w-md w-full shadow-[0_8px_30px_rgba(0,0,0,0.04)] rounded-[20px]">
                                 <input
                                     type="text"
                                     placeholder="ابحث في المزادات..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && fetchAuctions()}
-                                    className="flex-1 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 bg-white dark:bg-slate-800 transition-all"
+                                    className="w-full h-[56px] bg-[#F4FBF6] dark:bg-[#1F8A3B]/10 border border-[#E7ECEA] dark:border-[#1F8A3B]/20 rounded-[20px] pl-12 pr-4 text-[15px] outline-none focus:border-[#1F8A3B] transition-all font-cairo placeholder:text-[#98A2B3] text-slate-800 dark:text-white"
                                 />
                                 <button
                                     onClick={fetchAuctions}
-                                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white p-3 rounded-xl transition-all"
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1F8A3B] hover:text-[#186a2c] transition-colors"
                                 >
-                                    <Search size={20} />
+                                    <Search size={22} strokeWidth={2.5} />
                                 </button>
                             </div>
 
+                            {/* Add Auction CTA */}
                             <Link href="/sell">
-                                <button
-                                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-3 rounded-xl font-bold text-sm shadow-sm flex items-center gap-2 whitespace-nowrap hover:shadow-md transition-all"
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 h-[56px] rounded-[18px] font-bold text-[15px] shadow-[0_8px_20px_rgba(249,115,22,0.25)] flex items-center gap-2 whitespace-nowrap transition-all"
                                 >
-                                    <Plus size={18} />
+                                    <Plus size={20} strokeWidth={2.5} />
                                     أضف مزاد
-                                </button>
+                                </motion.button>
                             </Link>
                         </div>
                     </motion.div>
@@ -239,69 +243,103 @@ export default function AuctionsPage() {
                                     <SidebarFilters currentFilters={filters} onFilterChange={handleFilterChange} />
                                 </motion.div>
 
-                                {/* Grid */}
                                 <div className="lg:col-span-3">
+                                    {/* Premium Sort Bar (Visual Only for now) */}
+                                    <div className="flex items-center gap-3 overflow-x-auto pb-6 scrollbar-hide">
+                                        {['الأحدث', 'ينتهي قريباً', 'الأعلى سعراً', 'الأقل سعراً', 'الأكثر نشاطاً'].map((sort, idx) => (
+                                            <button
+                                                key={idx}
+                                                className={`flex items-center gap-2 px-5 h-[42px] rounded-full whitespace-nowrap transition-all font-bold text-[14px] shadow-sm ${
+                                                    idx === 0
+                                                        ? 'bg-orange-500 text-white shadow-[0_4px_12px_rgba(249,115,22,0.25)]'
+                                                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                                }`}
+                                            >
+                                                {sort}
+                                            </button>
+                                        ))}
+                                    </div>
+
                                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                                         {visibleAuctions.map((auction) => (
                                             <motion.div
                                                 key={auction.id}
                                                 initial={{ opacity: 0, y: 20 }}
                                                 animate={{ opacity: 1, y: 0 }}
-                                                whileHover={{ y: -5 }}
+                                                whileHover={{ y: -6, scale: 1.02 }}
                                                 transition={{ duration: 0.3 }}
-                                                className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden hover:shadow-xl transition-all"
+                                                className="group relative bg-white dark:bg-slate-800 rounded-[24px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] transition-all duration-300 border border-slate-100/80 dark:border-slate-700/50 flex flex-col h-full"
                                             >
-                                                <Link href={`/product/${auction.product}`}>
-                                                    <div className={`relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-700 ${!auction.is_active ? 'grayscale-[50%]' : ''}`}>
+                                                <Link href={`/product/${auction.product}`} className="flex flex-col h-full">
+                                                    <div className={`relative aspect-[4/3] w-full overflow-hidden bg-slate-100 dark:bg-slate-700 rounded-t-[24px] ${!auction.is_active ? 'grayscale-[50%]' : ''}`}>
                                                         <img
                                                             src={auction.product_image || '/placeholder.png'}
                                                             alt={auction.product_title}
-                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                            className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500"
                                                         />
+
+                                                        {/* Favorite Button */}
+                                                        <div className="absolute top-4 left-4 z-20 w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 shadow-[0_8px_20px_rgba(0,0,0,0.08)] bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl text-slate-400 hover:text-red-500 hover:bg-white hover:scale-110">
+                                                            <Heart size={20} />
+                                                        </div>
+
+                                                        {/* Status Badge */}
                                                         {auction.is_active ? (
-                                                            <div className="absolute top-3 right-3 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs px-3 py-1 rounded-full font-bold shadow-lg flex items-center gap-1">
-                                                                <Gavel size={12} />
+                                                            <div className="absolute top-4 right-4 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[12px] px-4 py-1.5 rounded-full font-bold shadow-[0_4px_12px_rgba(249,115,22,0.3)] flex items-center gap-1.5 backdrop-blur-md">
+                                                                <Gavel size={14} />
                                                                 مزاد نشط
                                                             </div>
                                                         ) : (
-                                                            <div className="absolute top-3 right-3 bg-red-600 text-white text-xs px-3 py-1 rounded-full font-bold shadow-lg flex items-center gap-1">
+                                                            <div className="absolute top-4 right-4 bg-slate-800/80 dark:bg-black/80 text-white text-[12px] px-4 py-1.5 rounded-full font-bold shadow-md flex items-center gap-1.5 backdrop-blur-md">
                                                                 🔴 المزاد انتهى
                                                             </div>
                                                         )}
-                                                        {auction.is_active && (
-                                                            <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-full font-bold flex items-center gap-1">
-                                                                <CountdownTimer endTime={auction.end_time} />
-                                                            </div>
-                                                        )}
-                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                                     </div>
 
-                                                    <div className="p-4">
-                                                        <h3 className="font-bold text-sm mb-3 line-clamp-2 group-hover:text-accent transition-colors">
+                                                    <div className="p-5 flex-1 flex flex-col">
+                                                        <h3 className="font-bold text-[16px] mb-3 line-clamp-1 group-hover:text-orange-500 transition-colors">
                                                             {auction.product_title}
                                                         </h3>
 
-                                                        <div className="flex justify-between items-end">
-                                                            <div>
-                                                                <span className="text-xs text-slate-500 block mb-1">السعر الحالي</span>
-                                                                <span className="text-orange-600 font-black text-lg">
-                                                                    {parseFloat(auction.current_bid).toLocaleString()}
-                                                                </span>
-                                                                <span className="text-slate-500 text-xs mr-1">{dict.currency}</span>
+                                                        {/* Info Row */}
+                                                        <div className="flex items-center gap-4 mb-4 pb-4 border-b border-slate-100 dark:border-slate-700/50">
+                                                            <div className="flex items-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400 font-medium bg-slate-50 dark:bg-slate-800 p-2 rounded-lg flex-1 justify-center">
+                                                                <Users size={14} className="text-blue-500" />
+                                                                {auction.total_bids} مزايد
                                                             </div>
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="flex items-center gap-1 text-xs text-slate-500">
-                                                                    <Users size={14} />
-                                                                    <span>{auction.total_bids}</span>
-                                                                </div>
+                                                            <div className="flex items-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400 font-medium bg-slate-50 dark:bg-slate-800 p-2 rounded-lg flex-1 justify-center">
                                                                 {auction.is_active ? (
-                                                                    <div className="bg-orange-100 dark:bg-orange-900/30 p-2 rounded-lg">
-                                                                        <TrendingUp size={16} className="text-orange-600" />
+                                                                    <CountdownTimer endTime={auction.end_time} />
+                                                                ) : (
+                                                                    <div className="flex items-center gap-1 text-red-500">
+                                                                        <Clock size={12} /> منتهي
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Price Footer */}
+                                                        <div className="flex justify-between items-end mt-auto">
+                                                            <div>
+                                                                <span className="text-[12px] text-slate-400 block mb-1 font-medium">السعر الحالي</span>
+                                                                <div className="flex items-baseline gap-1">
+                                                                    <span className="text-orange-500 font-black text-[22px] leading-none">
+                                                                        {parseFloat(auction.current_bid).toLocaleString()}
+                                                                    </span>
+                                                                    <span className="text-slate-400 text-sm font-bold">{dict.currency}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                {!auction.is_active && auction.highest_bidder_name ? (
+                                                                    <div className="text-[12px] bg-green-50 text-green-600 dark:bg-green-900/20 px-3 py-1.5 rounded-full font-bold">
+                                                                        🏆 الفائز: {auction.highest_bidder_name}
                                                                     </div>
                                                                 ) : (
-                                                                    auction.highest_bidder_name && (
-                                                                        <span className="text-xs text-green-600 font-bold">الفائز: {auction.highest_bidder_name}</span>
-                                                                    )
+                                                                    <div className="bg-orange-50 dark:bg-orange-900/20 p-2.5 rounded-xl group-hover:bg-orange-500 transition-colors">
+                                                                        <TrendingUp size={18} className="text-orange-500 group-hover:text-white" />
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         </div>
