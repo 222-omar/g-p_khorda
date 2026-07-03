@@ -620,15 +620,16 @@ class ProductCreateSerializer(serializers.ModelSerializer):
                                 # Store on Product for counter-bid lookup & agent discovery
                                 prod.detected_item = detected_item
                                 
-                                # Also update the product category if it was left as 'other'
-                                if prod.category == 'other':
-                                    from ai.classifier import CATEGORY_MAP, ARABIC_TO_CATEGORY_ID
-                                    arabic_label = CATEGORY_MAP.get(detected_item)
-                                    if arabic_label:
-                                        new_category_id = ARABIC_TO_CATEGORY_ID.get(arabic_label)
-                                        if new_category_id and new_category_id != 'other':
-                                            prod.category = new_category_id
-                                            logger.info(f"[Agent] 🏷️ Auto-corrected category from 'other' to '{new_category_id}' based on detected item '{detected_item}'")
+                                # Always auto-correct category based on AI detection
+                                # (even if user already chose a category, AI takes priority)
+                                from ai.classifier import CATEGORY_MAP, ARABIC_TO_CATEGORY_ID
+                                arabic_label = CATEGORY_MAP.get(detected_item)
+                                if arabic_label:
+                                    new_category_id = ARABIC_TO_CATEGORY_ID.get(arabic_label)
+                                    if new_category_id and new_category_id != 'other':
+                                        old_category = prod.category
+                                        prod.category = new_category_id
+                                        logger.info(f"[Agent] 🏷️ Category set to '{new_category_id}' (was '{old_category}') based on detected item '{detected_item}'")
                                 
                                 prod.save(update_fields=['detected_item', 'category'])
                                 logger.info(f"[Agent] 🔍 Detected '{detected_item}' — checking agents...")

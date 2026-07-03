@@ -190,7 +190,7 @@ export function Hero() {
                     >
                         <div className="relative flex justify-center items-center">
                             <img
-                                src="/hero-bg.jpg"
+                                src="/NEWPHOTO.png"
                                 alt="Tadwera marketplace"
                                 className="max-h-[65vh] w-auto max-w-full object-contain rounded-[24px] shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] border border-black/[0.04] dark:border-white/[0.04]"
                             />

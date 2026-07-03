@@ -182,22 +182,86 @@ def guess_item_from_text(text: str) -> str:
     """
     if not text:
         return None
-        
+
     text_lower = text.lower()
-    
-    # First check exact English keys
+
+    # ── Extra keyword map for common Arabic/slang words users actually type ──
+    EXTRA_KEYWORDS = {
+        # خردة ومعادن
+        'خورده':      'korda',
+        'خرده':       'korda',
+        'خردة':       'korda',
+        'سكراب':      'scrap_metal',
+        'scrap':      'scrap_metal',
+        'نحاس':       'copper_wire',
+        'سلك':        'wire',
+        'كابل':       'wire',
+        'ألمنيوم':    'aluminum',
+        'الومنيوم':   'aluminum',
+        'حديد':       'scrap_metal',
+        'معادن':      'scrap_metal',
+        'موتور':      'mator',
+        'مواتير':     'mator',
+        'معدة':       'equipment',
+        'معدات':      'equipment',
+        # إلكترونيات
+        'موبايل':     'mobile_phone',
+        'تليفون':     'mobile_phone',
+        'لاب توب':    'laptop',
+        'لابتوب':     'laptop',
+        'تلفزيون':    'tv',
+        'شاشة':       'tv',
+        'كاميرا':     'camera',
+        'سماعة':      'headphone',
+        'سبيكر':      'speaker',
+        'راوتر':      'router',
+        'طابعة':      'printer',
+        'بلايستيشن':  'ps_console',
+        # أجهزة منزلية
+        'ثلاجة':      'fridge',
+        'غسالة':      'washing_machine',
+        'بوتاجاز':    'cooker',
+        'ميكروويف':   'microwave',
+        'تكييف':      'ac_unit',
+        'مكيف':       'ac_unit',
+        'سخان':       'water_heater',
+        'مكواة':      'iron',
+        'مكنسة':      'vacuum_cleaner',
+        'فريزر':      'freighter',
+        # أثاث
+        'كنبة':       'sofa',
+        'كنبه':       'sofa',
+        'سرير':       'bed',
+        'طاولة':      'table',
+        'ترابيزة':    'table',
+        'كرسي':       'chair',
+        'دولاب':      'wardrobe',
+        'ستارة':      'curtain',
+        # سيارات
+        'سيارة':      'car',
+        'عربية':      'car',
+        # كتب
+        'كتاب':       'book',
+        'كتب':        'book',
+    }
+
+    for keyword, class_key in EXTRA_KEYWORDS.items():
+        if keyword in text_lower:
+            return class_key
+
+    # Then check exact English keys
     for key in CATEGORY_MAP.keys():
         if key.lower() in text_lower:
             return key
-            
-    # Then check Arabic labels
+
+    # Finally check Arabic labels from YOLO_CLASS_LABELS
     for key, ar_label in YOLO_CLASS_LABELS.items():
         # Split by " / " for labels like 'طاولة / ترابيزة'
         labels = [l.strip() for l in ar_label.split('/')]
         for label in labels:
             if label and label in text_lower:
                 return key
-                
+
     return None
 
 def _lookup_category(class_name: str):
@@ -206,95 +270,51 @@ def _lookup_category(class_name: str):
 
 
 # ─────────────────────────────────────────────────────────────
-# HF Space API helpers
+# gradio_client-based prediction (more reliable than raw HTTP)
 # ─────────────────────────────────────────────────────────────
 
-def _hf_headers(content_type=None):
-    """Build HTTP headers for HF Space requests."""
-    headers = {}
-    if HF_API_TOKEN:
-        headers["Authorization"] = f"Bearer {HF_API_TOKEN}"
-    if content_type:
-        headers["Content-Type"] = content_type
-    return headers
-
-
-def _upload_to_space(image_bytes: bytes, filename: str = "image.jpg") -> str:
+def _predict_via_gradio_client(image_bytes: bytes, filename: str = "image.jpg") -> str | None:
     """
-    Upload image bytes to the HF Space and return the server-side path.
-    Uses the Gradio /gradio_api/upload endpoint.
+    Use gradio_client to call the HF Space predict endpoint.
+    Writes image to a temp file, calls predict, returns the class string.
+    Returns None on failure.
     """
-    upload_url = f"{HF_SPACE_URL}/gradio_api/upload"
-    resp = http_requests.post(
-        upload_url,
-        files={"files": (filename, image_bytes, "image/jpeg")},
-        headers=_hf_headers(),
-        timeout=30,
-    )
-    resp.raise_for_status()
-    paths = resp.json()
-    if paths and isinstance(paths, list):
-        return paths[0]
-    raise ValueError(f"Unexpected upload response: {paths}")
+    import tempfile
+    from gradio_client import Client, handle_file
 
+    tmp_path = None
+    try:
+        # Write bytes to a temp file so handle_file() can read it
+        suffix = os.path.splitext(filename)[-1] or ".jpg"
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(image_bytes)
+            tmp_path = tmp.name
 
-def _predict_on_space(uploaded_path: str) -> str | None:
-    """
-    Call /gradio_api/call/predict with the uploaded file path,
-    then read the SSE stream for the result.
-
-    Returns the detected class string (e.g. "bed", "laptop", "other")
-    or None on failure.
-    """
-    predict_url = f"{HF_SPACE_URL}/gradio_api/call/predict"
-    input_data = {
-        "path": uploaded_path,
-        "meta": {"_type": "gradio.FileData"},
-    }
-
-    # Step 1 — Start the prediction
-    resp = http_requests.post(
-        predict_url,
-        json={"data": [input_data]},
-        headers=_hf_headers("application/json"),
-        timeout=60,
-    )
-    resp.raise_for_status()
-    event_id = resp.json().get("event_id")
-    if not event_id:
-        logger.error(f"[AI] HF Space returned no event_id: {resp.text}")
+        client = Client(
+            "Omarh353111/khorda_yolo",
+            token=HF_API_TOKEN or None,
+            verbose=False,
+        )
+        result = client.predict(
+            image_path=handle_file(tmp_path),
+            api_name="/predict",
+        )
+        # result = (image_filepath, class_string)
+        if isinstance(result, (list, tuple)) and len(result) >= 2:
+            detected = result[1]
+            if isinstance(detected, str):
+                return detected.strip() or None
         return None
 
-    # Step 2 — Read the SSE result stream
-    result_url = f"{predict_url}/{event_id}"
-    sse_resp = http_requests.get(
-        result_url,
-        stream=True,
-        headers=_hf_headers(),
-        timeout=120,
-    )
-
-    event_type = None
-    for line in sse_resp.iter_lines(decode_unicode=True):
-        line = line.strip()
-        if line.startswith("event:"):
-            event_type = line[len("event:"):].strip()
-        elif line.startswith("data:") and event_type == "complete":
-            data_str = line[len("data:"):].strip()
-            if not data_str or data_str == "null":
-                return None
-            data = json.loads(data_str)
-            # The Space returns: [<annotated_image_dict>, "<class_name>"]
-            if isinstance(data, list) and len(data) >= 2:
-                detected = data[-1]  # last element is the class string
-                if isinstance(detected, str):
-                    return detected
-            return None
-        elif event_type == "error":
-            logger.error(f"[AI] HF Space prediction error (SSE): {line}")
-            return None
-
-    return None
+    except Exception as e:
+        logger.warning(f"[AI] gradio_client predict failed: {e}")
+        return None
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
 
 
 # ─────────────────────────────────────────────────────────────
@@ -304,6 +324,7 @@ def _predict_on_space(uploaded_path: str) -> str | None:
 def classify_image(image_path: str) -> dict:
     """
     Classify a product image via the remote HF Space YOLO model.
+    Uses gradio_client for reliable communication with the Space.
     Supports both local file paths and remote URLs (Cloudinary, etc.).
 
     Returns a dict with keys:
@@ -332,25 +353,20 @@ def classify_image(image_path: str) -> dict:
                 image_bytes = f.read()
             filename = os.path.basename(image_path)
 
-        # ── Step 2: Upload to HF Space ───────────────────────
-        print(f"[AI] [UP] Uploading to HF Space ({HF_SPACE_URL})...")
-        uploaded_path = _upload_to_space(image_bytes, filename)
-        print(f"[AI] [UP] Uploaded -> {uploaded_path}")
-
-        # ── Step 3: Run prediction ───────────────────────────
-        print("[AI] [RUN] Running YOLO inference on HF Space...")
-        detected_class = _predict_on_space(uploaded_path)
+        # ── Step 2: Run prediction via gradio_client ──────────
+        print(f"[AI] [RUN] Running YOLO inference via gradio_client...")
+        detected_class = _predict_via_gradio_client(image_bytes, filename)
 
         if not detected_class or detected_class == "other":
             logger.warning(
-                f"[AI] HF Space returned '{detected_class}'. Falling back."
+                f"[AI] YOLO returned '{detected_class}'. Falling back to text guess."
             )
             return fallback
 
-        # ── Step 4: Normalize & map to category ──────────────
+        # ── Step 3: Normalize & map to category ──────────────
         normalized = normalize_class(detected_class)
         print(
-            f"[AI] [SEARCH] HF Space detected: '{detected_class}' "
+            f"[AI] [SEARCH] YOLO detected: '{detected_class}' "
             f"-> Normalized: '{normalized}'"
         )
 
@@ -373,12 +389,12 @@ def classify_image(image_path: str) -> dict:
         return {
             'category': category_id,
             'category_label': arabic_label,
-            'confidence': 1.0,          # HF Space doesn't return a score
+            'confidence': 1.0,
             'detected_class': normalized,
         }
 
     except Exception as e:
-        logger.error(f"[AI] HF Space inference error: {e}")
+        logger.error(f"[AI] classify_image error: {e}")
         import traceback
         traceback.print_exc()
         return fallback

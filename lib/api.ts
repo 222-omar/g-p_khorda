@@ -591,54 +591,99 @@ export const classifyAPI = {
             const canonical = rawClass.toLowerCase().replace(/[\s_-]+/g, '_').trim();
             
             // Categories mapping
+            // Categories mapping
             const CATEGORY_MAP: Record<string, string> = {
-                'scrap_metals': 'خردة ومعادن',
+                // خردة ومعادن
+                'korda': 'خردة ومعادن',
                 'scrap_metal': 'خردة ومعادن',
                 'copper': 'خردة ومعادن',
+                'copper_wire': 'خردة ومعادن',
+                'wire': 'خردة ومعادن',
                 'iron': 'خردة ومعادن',
                 'aluminum': 'خردة ومعادن',
                 'metal': 'خردة ومعادن',
                 'can': 'خردة ومعادن',
+                'equipment': 'خردة ومعادن',
+                'mator': 'خردة ومعادن',
+                'scrap_metals': 'خردة ومعادن',
                 
-                'electronics': 'إلكترونيات وأجهزة',
-                'electronic': 'إلكترونيات وأجهزة',
-                'tv': 'إلكترونيات وأجهزة',
-                'television': 'إلكترونيات وأجهزة',
-                'computer': 'إلكترونيات وأجهزة',
+                // إلكترونيات وأجهزة
                 'laptop': 'إلكترونيات وأجهزة',
+                'computer': 'إلكترونيات وأجهزة',
+                'mobile_phone': 'إلكترونيات وأجهزة',
                 'phone': 'إلكترونيات وأجهزة',
                 'mobile': 'إلكترونيات وأجهزة',
+                'tv': 'إلكترونيات وأجهزة',
+                'television': 'إلكترونيات وأجهزة',
+                'camera': 'إلكترونيات وأجهزة',
+                'headphone': 'إلكترونيات وأجهزة',
+                'airpods': 'إلكترونيات وأجهزة',
+                'speaker': 'إلكترونيات وأجهزة',
+                'receiver': 'إلكترونيات وأجهزة',
+                'router': 'إلكترونيات وأجهزة',
+                'printer': 'إلكترونيات وأجهزة',
                 'keyboard': 'إلكترونيات وأجهزة',
                 'mouse': 'إلكترونيات وأجهزة',
-                
-                'appliances': 'أجهزة منزلية',
-                'appliance': 'أجهزة منزلية',
+                'watch': 'إلكترونيات وأجهزة',
+                'controller': 'إلكترونيات وأجهزة',
+                'ps_console': 'إلكترونيات وأجهزة',
+                'pc_case': 'إلكترونيات وأجهزة',
+                'electronics': 'إلكترونيات وأجهزة',
+                'electronic': 'إلكترونيات وأجهزة',
+
+                // أجهزة منزلية
                 'washing_machine': 'أجهزة منزلية',
-                'refrigerator': 'أجهزة منزلية',
                 'fridge': 'أجهزة منزلية',
-                'microwave': 'أجهزة منزلية',
+                'refrigerator': 'أجهزة منزلية',
+                'cooker': 'أجهزة منزلية',
                 'stove': 'أجهزة منزلية',
                 'oven': 'أجهزة منزلية',
-                
-                'furniture': 'أثاث وديكور',
-                'chair': 'أثاث وديكور',
-                'table': 'أثاث وديكور',
-                'sofa': 'أثاث وديكور',
+                'microwave': 'أجهزة منزلية',
+                'blender': 'أجهزة منزلية',
+                'ac_unit': 'أجهزة منزلية',
+                'fan': 'أجهزة منزلية',
+                'heater': 'أجهزة منزلية',
+                'water_heater': 'أجهزة منزلية',
+                'iron': 'أجهزة منزلية',
+                'vacuum_cleaner': 'أجهزة منزلية',
+                'water_filter': 'أجهزة منزلية',
+                'gas_cylinder': 'أجهزة منزلية',
+                'freighter': 'أجهزة منزلية',
+                'appliances': 'أجهزة منزلية',
+                'appliance': 'أجهزة منزلية',
+
+                // أثاث وديكور
                 'bed': 'أثاث وديكور',
+                'chair': 'أثاث وديكور',
                 'cabinet': 'أثاث وديكور',
-                
-                'cars': 'سيارات للبيع',
+                'cupboard': 'أثاث وديكور',
+                'curtain': 'أثاث وديكور',
+                'lamp': 'أثاث وديكور',
+                'mirror': 'أثاث وديكور',
+                'sofa': 'أثاث وديكور',
+                'table': 'أثاث وديكور',
+                'wardrobe': 'أثاث وديكور',
+                'dressing_table': 'أثاث وديكور',
+                'food_trip': 'أثاث وديكور',
+                'safe': 'أثاث وديكور',
+                'office': 'أثاث وديكور',
+                'furniture': 'أثاث وديكور',
+
+                // سيارات للبيع
                 'car': 'سيارات للبيع',
                 'vehicle': 'سيارات للبيع',
-                
-                'real_estate': 'عقارات',
-                'apartment': 'عقارات',
+                'cars': 'سيارات للبيع',
+
+                // عقارات
                 'building': 'عقارات',
+                'apartment': 'عقارات',
                 'house': 'عقارات',
-                
-                'books': 'كتب',
+                'real_estate': 'عقارات',
+
+                // كتب
                 'book': 'كتب',
                 'magazine': 'كتب',
+                'books': 'كتب',
             };
             
             const ARABIC_TO_CATEGORY_ID: Record<string, string> = {
@@ -653,17 +698,95 @@ export const classifyAPI = {
             };
             
             const YOLO_CLASS_LABELS: Record<string, string> = {
-                'washing_machine': 'غسالة',
-                'refrigerator': 'ثلاجة',
-                'scrap_metals': 'خردة ومعادن',
-                'electronics': 'إلكترونيات وأجهزة',
+                // أثاث
+                'bed': 'سرير',
+                'chair': 'كرسي',
+                'cabinet': 'خزانة',
+                'cupboard': 'دولاب',
+                'curtain': 'ستارة',
+                'lamp': 'لمبة / أباجورة',
+                'mirror': 'مرآة',
+                'sofa': 'كنبة',
+                'table': 'طاولة / ترابيزة',
+                'wardrobe': 'دولاب ملابس',
+                'dressing_table': 'تسريحة', 
+                'food_trip': 'سفرة',
+                'safe': 'خزنة',
                 'furniture': 'أثاث وديكور',
-                'cars': 'سيارات',
-                'books': 'كتب',
+                
+                // الكترونيات
+                'laptop': 'لابتوب',
+                'computer': 'كمبيوتر',
+                'mobile_phone': 'موبايل',
+                'phone': 'موبايل',
+                'mobile': 'موبايل',
+                'tv': 'تلفزيون',
+                'television': 'تلفزيون',
+                'camera': 'كاميرا',
+                'headphone': 'سماعات',
+                'airpods': 'سماعات إيربودز',
+                'speaker': 'سبيكر',
+                'receiver': 'رسيفر',
+                'router': 'راوتر',
+                'printer': 'طابعة',
+                'keyboard': 'كيبورد',
+                'watch': 'ساعة',
+                'controller': 'دراعة تحكم',
+                'ps_console': 'بلايستيشن',
+                'pc_case': 'كيسة كمبيوتر',
+                'electronics': 'إلكترونيات وأجهزة',
+                'electronic': 'إلكترونيات وأجهزة',
+
+                // أجهزة منزلية
+                'washing_machine': 'غسالة',
+                'fridge': 'ثلاجة',
+                'refrigerator': 'ثلاجة',
+                'cooker': 'بوتاجاز',
+                'stove': 'بوتاجاز',
+                'oven': 'فرن',
+                'microwave': 'ميكروويف',
+                'blender': 'خلاط',
+                'ac_unit': 'تكييف',
+                'fan': 'مروحة',
+                'heater': 'دفاية',
+                'water_heater': 'سخان مياه',
+                'iron': 'مكواة',
+                'vacuum_cleaner': 'مكنسة كهربائية',
+                'water_filter': 'فلتر مياه',
+                'gas_cylinder': 'أنبوبة غاز',
+                'freighter': 'ديب فريزر',
+                'appliances': 'أجهزة منزلية',
+                'appliance': 'أجهزة منزلية',
+
+                // خردة
+                'korda': 'خردة',
+                'scrap_metal': 'خردة معادن',
+                'copper_wire': 'سلك نحاس',
                 'copper': 'نحاس',
-                'iron': 'حديد',
+                'wire': 'سلك',
                 'aluminum': 'ألومنيوم',
                 'can': 'علب كنز',
+                'metal': 'معادن / خردة',
+                'equipment': 'معدات',
+                'mator': 'موتور',
+                'scrap_metals': 'خردة ومعادن',
+
+                // سيارات
+                'car': 'سيارة',
+                'vehicle': 'مركبة',
+                'cars': 'سيارات',
+
+                // عقارات
+                'building': 'مبنى',
+                'office': 'مكتب / أوفيس',
+                'apartment': 'شقة',
+                'house': 'منزل',
+                'real_estate': 'عقارات',
+
+                // كتب
+                'book': 'كتاب',
+                'magazine': 'مجلة',
+                'books': 'كتب',
                 'other': 'أخرى'
             };
             
