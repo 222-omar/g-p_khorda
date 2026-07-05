@@ -128,8 +128,7 @@ class AuctionService:
                 models.Q(product__description__icontains=search) |
                 models.Q(product__location__icontains=search)
             )
-
-        return queryset.order_by('-is_active', '-end_time')
+        return queryset.order_by('-is_active', '-created_at')
 
     @staticmethod
     def parse_bid_amount(amount_raw):

@@ -46,7 +46,7 @@ const conditionLabels: Record<string, string> = {
 };
 
 export default function VisualSearchPage() {
-    const { dict } = useLanguage();
+    const { dict, isRtl } = useLanguage();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [results, setResults] = useState<SearchResult[]>([]);
@@ -144,10 +144,10 @@ export default function VisualSearchPage() {
                                     <div className="bg-[#1F8A3B]/10 text-[#1F8A3B] p-3 rounded-[20px] shadow-sm">
                                         <Scan size={36} strokeWidth={2.5} />
                                     </div>
-                                    البحث بالذكاء الاصطناعي
+                                    {dict.nav?.visualSearch || (isRtl ? 'البحث بالذكاء الاصطناعي' : 'AI Visual Search')}
                                 </h1>
                                 <p className="text-slate-500 dark:text-slate-400 text-[18px] mt-4 max-w-lg font-medium leading-relaxed">
-                                    ارفع صورة لأي منتج وسيقوم الذكاء الاصطناعي بتحليلها والعثور على أقرب المنتجات المشابهة خلال ثوانٍ.
+                                    {isRtl ? 'ارفع صورة لأي منتج وسيقوم الذكاء الاصطناعي بتحليلها والعثور على أقرب المنتجات المشابهة خلال ثوانٍ.' : 'Upload an image of any product and AI will analyze it to find the closest matching products in seconds.'}
                                 </p>
                             </motion.div>
 
@@ -235,12 +235,12 @@ export default function VisualSearchPage() {
                                                     {loading ? (
                                                         <>
                                                             <Loader2 size={18} className="animate-spin" />
-                                                            جاري التحليل...
+                                                            {isRtl ? 'جاري التحليل...' : 'Analyzing...'}
                                                         </>
                                                     ) : (
                                                         <>
                                                             <Search size={18} strokeWidth={2.5} />
-                                                            بحث
+                                                            {isRtl ? 'بحث' : 'Search'}
                                                         </>
                                                     )}
                                                 </motion.button>
@@ -256,7 +256,7 @@ export default function VisualSearchPage() {
                                                 <Upload size={36} className="text-[#1F8A3B]" strokeWidth={2} />
                                             </motion.div>
                                             <h3 className="text-[20px] font-black text-slate-800 dark:text-white mb-2">
-                                                اسحب الصورة هنا أو اضغط للرفع
+                                                {isRtl ? 'اسحب الصورة هنا أو اضغط للرفع' : 'Drag image here or click to upload'}
                                             </h3>
                                             
                                             {/* Formats Chips */}
@@ -271,10 +271,10 @@ export default function VisualSearchPage() {
                                             {/* Actions */}
                                             <div className="flex flex-wrap justify-center gap-3 mt-8">
                                                 <button className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 h-[48px] rounded-[16px] font-bold text-[14px] shadow-md hover:scale-105 transition-transform flex items-center gap-2">
-                                                    <ImageIcon size={18} /> اختر صورة
+                                                    <ImageIcon size={18} /> {isRtl ? 'اختر صورة' : 'Choose Image'}
                                                 </button>
                                                 <button className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-6 h-[48px] rounded-[16px] font-bold text-[14px] shadow-sm hover:scale-105 transition-transform flex items-center gap-2">
-                                                    <Camera size={18} /> استخدم الكاميرا
+                                                    <Camera size={18} /> {isRtl ? 'استخدم الكاميرا' : 'Use Camera'}
                                                 </button>
                                             </div>
                                         </div>
@@ -292,10 +292,10 @@ export default function VisualSearchPage() {
                                         >
                                             <div className="flex flex-col gap-3">
                                                 {[
-                                                    { num: 1, text: 'جاري رفع الصورة...' },
-                                                    { num: 2, text: 'تحليل الصورة بالذكاء الاصطناعي...' },
-                                                    { num: 3, text: 'استخراج الميزات العميقة...' },
-                                                    { num: 4, text: 'جاري البحث في قاعدة البيانات...' },
+                                                    { num: 1, text: isRtl ? 'جاري رفع الصورة...' : 'Uploading image...' },
+                                                    { num: 2, text: isRtl ? 'تحليل الصورة بالذكاء الاصطناعي...' : 'AI analyzing image...' },
+                                                    { num: 3, text: isRtl ? 'استخراج الميزات العميقة...' : 'Extracting deep features...' },
+                                                    { num: 4, text: isRtl ? 'جاري البحث في قاعدة البيانات...' : 'Searching database...' },
                                                 ].map(step => (
                                                     <div key={step.num} className={`flex items-center gap-3 transition-opacity duration-300 ${searchStep >= step.num ? 'opacity-100' : 'opacity-30'}`}>
                                                         {searchStep > step.num ? (
@@ -401,8 +401,8 @@ export default function VisualSearchPage() {
                                             <Sparkles size={28} />
                                         </div>
                                         <div>
-                                            <h3 className="text-[28px] font-black text-slate-900 dark:text-white">تطابق عالي</h3>
-                                            <p className="text-slate-500 dark:text-slate-400 text-[15px] mt-1 font-medium">أعلى 3 منتجات تشابهاً مع صورتك</p>
+                                            <h3 className="text-[28px] font-black text-slate-900 dark:text-white">{isRtl ? 'تطابق عالي' : 'High Match'}</h3>
+                                            <p className="text-slate-500 dark:text-slate-400 text-[15px] mt-1 font-medium">{isRtl ? 'أعلى 3 منتجات تشابهاً مع صورتك' : 'Top 3 most similar products'}</p>
                                         </div>
                                     </div>
                                     <div className="hidden sm:block flex-1 h-px bg-gradient-to-l from-transparent to-slate-200 dark:to-slate-700 mx-8" />
@@ -498,10 +498,10 @@ export default function VisualSearchPage() {
                                     <ImageIcon size={40} className="text-slate-400 dark:text-slate-500" />
                                 </motion.div>
                                 <p className="text-slate-800 dark:text-white text-[20px] font-black mb-2">
-                                    لم يتم العثور على منتجات مشابهة
+                                    {isRtl ? 'لم يتم العثور على منتجات مشابهة' : 'No similar products found'}
                                 </p>
                                 <p className="text-slate-500 text-[15px] font-medium">
-                                    جرب رفع صورة من زاوية مختلفة أو بإضاءة أوضح
+                                    {isRtl ? 'جرب رفع صورة من زاوية مختلفة أو بإضاءة أوضح' : 'Try uploading an image from a different angle or with better lighting'}
                                 </p>
                             </motion.div>
                         )}

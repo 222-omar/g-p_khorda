@@ -4,30 +4,7 @@ import { useState } from 'react';
 import { Filter, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const categories = [
-    { id: 'appliances', label: 'أجهزة منزلية' },
-    { id: 'scrap_metals', label: 'خردة ومعادن' },
-    { id: 'electronics', label: 'إلكترونيات وأجهزة' },
-    { id: 'furniture', label: 'أثاث وديكور' },
-    { id: 'cars', label: 'سيارات للبيع' },
-    { id: 'real_estate', label: 'عقارات' },
-    { id: 'books', label: 'كتب' },
-    { id: 'other', label: 'أخرى' },
-];
-
-const priceRanges = [
-    { id: 'under-1000', label: 'أقل من 1000 ج.م', min: 0, max: 1000 },
-    { id: '1000-5000', label: '1000 - 5000 ج.م', min: 1000, max: 5000 },
-    { id: '5000-10000', label: '5000 - 10000 ج.م', min: 5000, max: 10000 },
-    { id: 'over-10000', label: 'أكثر من 10000 ج.م', min: 10000, max: Infinity },
-];
-
-const conditions = [
-    { id: 'new', label: 'جديد' },
-    { id: 'like-new', label: 'كالجديد' },
-    { id: 'good', label: 'جيد' },
-    { id: 'fair', label: 'مقبول' },
-];
+import { useLanguage } from '@/components/providers/language-provider';
 
 interface SidebarFiltersProps {
     currentFilters: {
@@ -46,6 +23,32 @@ interface SidebarFiltersProps {
 
 export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFiltersProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const { isRtl, dict } = useLanguage();
+
+    const categories = [
+        { id: 'appliances', label: dict.categories?.appliances || (isRtl ? 'أجهزة منزلية' : 'Home Appliances') },
+        { id: 'scrap_metals', label: dict.categories?.scrap || (isRtl ? 'خردة ومعادن' : 'Scrap & Metals') },
+        { id: 'electronics', label: dict.categories?.electronics || (isRtl ? 'إلكترونيات وأجهزة' : 'Electronics & Devices') },
+        { id: 'furniture', label: dict.categories?.furniture || (isRtl ? 'أثاث وديكور' : 'Furniture & Decor') },
+        { id: 'cars', label: dict.categories?.cars || (isRtl ? 'سيارات للبيع' : 'Cars for Sale') },
+        { id: 'real_estate', label: dict.categories?.real_estate || (isRtl ? 'عقارات' : 'Real Estate') },
+        { id: 'books', label: dict.categories?.books || (isRtl ? 'كتب' : 'Books') },
+        { id: 'other', label: dict.categories?.other || (isRtl ? 'أخرى' : 'Other') },
+    ];
+
+    const priceRanges = [
+        { id: 'under-1000', label: isRtl ? `أقل من 1000 ${dict.currency}` : `Under 1000 ${dict.currency}`, min: 0, max: 1000 },
+        { id: '1000-5000', label: isRtl ? `1000 - 5000 ${dict.currency}` : `1000 - 5000 ${dict.currency}`, min: 1000, max: 5000 },
+        { id: '5000-10000', label: isRtl ? `5000 - 10000 ${dict.currency}` : `5000 - 10000 ${dict.currency}`, min: 5000, max: 10000 },
+        { id: 'over-10000', label: isRtl ? `أكثر من 10000 ${dict.currency}` : `Over 10000 ${dict.currency}`, min: 10000, max: Infinity },
+    ];
+
+    const conditions = [
+        { id: 'new', label: dict.product?.conditionNew || (isRtl ? 'جديد' : 'New') },
+        { id: 'like-new', label: dict.product?.conditionLikeNew || (isRtl ? 'كالجديد' : 'Like New') },
+        { id: 'good', label: dict.product?.conditionGood || (isRtl ? 'جيد' : 'Good') },
+        { id: 'fair', label: dict.product?.conditionFair || (isRtl ? 'مقبول' : 'Fair') },
+    ];
 
     // Derived state from props
     const selectedCategory = currentFilters?.category || null;
@@ -83,20 +86,20 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
 
     const hasActiveFilters = !!(selectedCategory || selectedPriceRangeId || selectedCondition);
 
-    const FilterContent = () => (
+    const filterContent = (
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between pb-4">
                 <div className="flex items-center gap-2">
                     <Filter size={22} className="text-[#1F8A3B]" strokeWidth={2.5} />
-                    <h3 className="font-black text-xl text-slate-900 dark:text-white">تصفية النتائج</h3>
+                    <h3 className="font-black text-xl text-slate-900 dark:text-white">{isRtl ? 'تصفية النتائج' : 'Filter Results'}</h3>
                 </div>
                 {hasActiveFilters && (
                     <button
                         onClick={clearFilters}
                         className="text-xs text-red-500 hover:text-white transition-all font-bold bg-red-50 hover:bg-red-500 dark:bg-red-900/20 dark:hover:bg-red-500 px-4 py-2 rounded-full shadow-sm"
                     >
-                        مسح الكل ✕
+                        {isRtl ? 'مسح الكل ✕' : 'Clear All ✕'}
                     </button>
                 )}
             </div>
@@ -150,7 +153,7 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
 
             {/* Categories */}
             <div className="bg-[#F8FAF9] dark:bg-slate-800/40 p-5 rounded-[24px] border border-black/[0.03] dark:border-white/[0.05]">
-                <h4 className="font-bold text-[15px] mb-4 text-slate-800 dark:text-slate-200">التصنيفات</h4>
+                <h4 className="font-bold text-[15px] mb-4 text-slate-800 dark:text-slate-200">{dict.categories?.titleHighlight || (isRtl ? 'التصنيفات' : 'Categories')}</h4>
                 <div className="space-y-2">
                     {categories.map((category) => (
                         <label
@@ -182,7 +185,7 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
 
             {/* Price Range */}
             <div className="bg-[#F8FAF9] dark:bg-slate-800/40 p-5 rounded-[24px] border border-black/[0.03] dark:border-white/[0.05]">
-                <h4 className="font-bold text-[15px] mb-4 text-slate-800 dark:text-slate-200">النطاق السعري</h4>
+                <h4 className="font-bold text-[15px] mb-4 text-slate-800 dark:text-slate-200">{isRtl ? 'النطاق السعري' : 'Price Range'}</h4>
                 <div className="space-y-2">
                     {priceRanges.map((range) => (
                         <label
@@ -219,7 +222,7 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
 
             {/* Condition */}
             <div className="bg-[#F8FAF9] dark:bg-slate-800/40 p-5 rounded-[24px] border border-black/[0.03] dark:border-white/[0.05]">
-                <h4 className="font-bold text-[15px] mb-4 text-slate-800 dark:text-slate-200">الحالة</h4>
+                <h4 className="font-bold text-[15px] mb-4 text-slate-800 dark:text-slate-200">{dict.product?.condition || (isRtl ? 'الحالة' : 'Condition')}</h4>
                 <div className="space-y-2">
                     {conditions.map((condition) => (
                         <label
@@ -260,13 +263,13 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
                     className="w-full flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 py-3 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >
                     <Filter size={18} />
-                    تصفية النتائج
+                    {isRtl ? 'تصفية النتائج' : 'Filter Results'}
                 </button>
             </div>
 
             {/* Desktop Sidebar */}
             <div className="hidden lg:block w-full bg-white dark:bg-slate-800 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.06)] rounded-[30px] p-6">
-                <FilterContent />
+                {filterContent}
             </div>
 
             {/* Mobile Drawer */}
@@ -297,7 +300,7 @@ export function SidebarFilters({ currentFilters, onFilterChange }: SidebarFilter
                                 >
                                     <X size={20} />
                                 </button>
-                                <FilterContent />
+                                {filterContent}
                             </div>
                         </motion.div>
                     </>

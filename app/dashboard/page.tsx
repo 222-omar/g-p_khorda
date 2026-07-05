@@ -305,7 +305,6 @@ export default function DashboardPage() {
                             { id: 'cars', label: dict.categories?.cars || 'سيارات', icon: '🚗' },
                             { id: 'real_estate', label: dict.categories?.real_estate || 'عقارات', icon: '🏠' },
                             { id: 'electronics', label: dict.categories?.electronics || 'إلكترونيات', icon: '💻' },
-                            { id: 'phones', label: dict.categories?.phones || 'هواتف', icon: '📱' },
                             { id: 'furniture', label: dict.categories?.furniture || 'أثاث', icon: '🪑' },
                             { id: 'appliances', label: dict.categories?.appliances || 'أجهزة منزلية', icon: '🧺' },
                         ].map((cat) => (

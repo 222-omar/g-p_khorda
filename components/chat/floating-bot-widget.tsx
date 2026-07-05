@@ -59,6 +59,13 @@ export function FloatingBotWidget() {
         set_agent: dict.chatWidget.setAgent,
     };
 
+    const ACTION_ICONS: Record<string, any> = {
+        view_listing: ShoppingBag,
+        place_bid: Gavel,
+        compare_prices: BarChart3,
+        set_agent: Settings,
+    };
+
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');

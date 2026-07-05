@@ -209,7 +209,7 @@ export default function AuctionsPage() {
                                     className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 h-[56px] rounded-[18px] font-bold text-[15px] shadow-[0_8px_20px_rgba(249,115,22,0.25)] flex items-center gap-2 whitespace-nowrap transition-all"
                                 >
                                     <Plus size={20} strokeWidth={2.5} />
-                                    أضف مزاد
+                                    {dict.auctions.addAuctionBtn}
                                 </motion.button>
                             </Link>
                         </div>

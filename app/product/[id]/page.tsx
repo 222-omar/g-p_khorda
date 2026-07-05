@@ -271,7 +271,7 @@ export default function ProductPage() {
                             {/* Title & Category */}
                             <div>
                                 <span className="inline-block bg-primary-100 dark:bg-primary-900/30 text-accent-700 dark:text-accent-300 px-3 py-1 rounded-lg text-xs font-bold mb-3">
-                                    {dict.categories[product.category] || categoryLabels[product.category] || product.category}
+                                    {dict.categories[product.category as keyof typeof dict.categories] || categoryLabels[product.category as keyof typeof categoryLabels] || product.category}
                                 </span>
                                 <div className="flex justify-between items-start gap-4">
                                     <h1 className="text-3xl md:text-4xl font-black mb-3">{product.title}</h1>
@@ -314,7 +314,7 @@ export default function ProductPage() {
                                 </div>
                                 <div className="flex-1">
                                     <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mb-1">{dict.product.category}</p>
-                                    <p className="font-bold">{dict.categories[product.category] || categoryLabels[product.category] || product.category}</p>
+                                    <p className="font-bold">{dict.categories[product.category as keyof typeof dict.categories] || categoryLabels[product.category as keyof typeof categoryLabels] || product.category}</p>
                                 </div>
                             </div>
 

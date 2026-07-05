@@ -145,7 +145,7 @@ export default function AgentPage() {
                     <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-right">
                         {/* Title Card (Glassmorphic, Rounded 32px) */}
                         <div className="bg-white dark:bg-slate-800 border border-[#E7ECEA] dark:border-slate-700 rounded-[32px] px-8 py-4 flex items-center gap-3.5 shadow-[0_12px_40px_rgba(0,0,0,0.03)] hover:shadow-[0_15px_45px_rgba(0,0,0,0.05)] transition-all">
-                            <h1 className="font-cairo font-black text-2xl lg:text-[32px] text-[#101828] dark:text-white leading-none">الوكيل الذكي</h1>
+                            <h1 className="font-cairo font-black text-2xl lg:text-[32px] text-[#101828] dark:text-white leading-none">{dict.agent?.title || (isRtl ? 'الوكيل الذكي' : 'Smart Agent')}</h1>
                             <div className="w-11 h-11 bg-[#F2FBF5] dark:bg-[#1F8A3B]/10 rounded-[14px] flex items-center justify-center text-[#1F8A3B] border border-[#1F8A3B]/5 flex-shrink-0">
                                 <Bot size={22} className="stroke-[2.2]" />
                             </div>
@@ -153,9 +153,7 @@ export default function AgentPage() {
                         
                         {/* Subtitle */}
                         <p className="text-[#667085] dark:text-slate-400 font-cairo text-[15px] sm:text-[16px] leading-[1.8] mt-6 max-w-[480px] lg:max-w-none text-center lg:text-right">
-                            فعل وكيلك الذكي وخليه يراقب المزادات ويزايد تلقائي على المنتجات
-                            <br />
-                            اللي بتدور عليها.
+                            {dict.agent?.desc || (isRtl ? 'فعل وكيلك الذكي وخليه يراقب المزادات ويزايد تلقائي على المنتجات اللي بتدور عليها.' : 'Activate your smart agent to monitor auctions and auto-bid on products you are looking for.')}
                         </p>
                     </div>
                     
@@ -202,7 +200,7 @@ export default function AgentPage() {
                         <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white">
                             <Plus size={18} className="stroke-[2.5]" />
                         </div>
-                        <span>إضافة وكيل جديد</span>
+                        <span>{dict.agent?.addAgent || (isRtl ? 'إضافة وكيل جديد' : 'Add New Agent')}</span>
                     </motion.button>
                 </div>
 
@@ -224,8 +222,8 @@ export default function AgentPage() {
                         {agents.length === 0 ? (
                             <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-[30px] border border-[#E7ECEA] dark:border-slate-700 shadow-[0_12px_40px_rgba(0,0,0,0.02)]">
                                 <Bot size={52} className="mx-auto text-slate-300 dark:text-slate-600 mb-4" />
-                                <h3 className="text-lg font-bold text-[#101828] dark:text-slate-200">لا يوجد وكلاء حالياً</h3>
-                                <p className="text-[#667085] dark:text-slate-400 text-sm mt-2">أنشئ وكيلك الذكي الأول وخليه يشتغل عنك!</p>
+                                <h3 className="text-lg font-bold text-[#101828] dark:text-slate-200">{dict.agent?.noAgents || (isRtl ? 'لا يوجد وكلاء حالياً' : 'No agents currently')}</h3>
+                                <p className="text-[#667085] dark:text-slate-400 text-sm mt-2">{dict.agent?.noAgentsDesc || (isRtl ? 'أنشئ وكيلك الذكي الأول وخليه يشتغل عنك!' : 'Create your first smart agent and let it work for you!')}</p>
                             </div>
                         ) : (
                             <div className="space-y-8">
@@ -311,7 +309,7 @@ export default function AgentPage() {
                                                 className="flex-1 h-[60px] rounded-[20px] bg-red-50/40 hover:bg-red-50 dark:bg-red-950/10 border border-red-200 dark:border-red-900/30 text-[#D92D20] font-cairo font-bold text-[15px] flex items-center justify-center gap-2 transition-all cursor-pointer"
                                             >
                                                 <Trash2 size={16} />
-                                                <span>حذف</span>
+                                                <span>{dict.agent?.delete || (isRtl ? 'حذف' : 'Delete')}</span>
                                             </motion.button>
                                             
                                             {/* Pause Agent (وقف الوكيل) */}
@@ -328,12 +326,12 @@ export default function AgentPage() {
                                                 {agent.is_active ? (
                                                     <>
                                                         <PowerOff size={16} />
-                                                        <span>وقف الوكيل</span>
+                                                        <span>{dict.agent?.stop || (isRtl ? 'وقف الوكيل' : 'Pause Agent')}</span>
                                                     </>
                                                 ) : (
                                                     <>
                                                         <Power size={16} />
-                                                        <span>تشغيل الوكيل</span>
+                                                        <span>{dict.agent?.start || (isRtl ? 'تشغيل الوكيل' : 'Activate Agent')}</span>
                                                     </>
                                                 )}
                                             </motion.button>
