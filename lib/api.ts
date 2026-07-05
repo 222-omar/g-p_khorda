@@ -644,7 +644,6 @@ export const classifyAPI = {
                 'fan': 'أجهزة منزلية',
                 'heater': 'أجهزة منزلية',
                 'water_heater': 'أجهزة منزلية',
-                'iron': 'أجهزة منزلية',
                 'vacuum_cleaner': 'أجهزة منزلية',
                 'water_filter': 'أجهزة منزلية',
                 'gas_cylinder': 'أجهزة منزلية',

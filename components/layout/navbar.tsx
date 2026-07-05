@@ -13,6 +13,7 @@ import { Logo } from '@/components/ui/logo';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../providers/auth-provider';
 import { notificationsAPI, chatAPI } from '@/lib/api';
+import { useWebSocket } from '@/hooks/use-websocket';
 
 // ─────────────────────────────────────────────
 // DESKTOP NAV LINK
@@ -96,7 +97,7 @@ export function Navbar() {
     }
   }, [user]);
 
-  // Poll unread messages every 30 seconds
+  // Poll unread messages every 30 seconds (fallback)
   useEffect(() => {
     if (!user) return;
     const interval = setInterval(() => {
@@ -104,6 +105,23 @@ export function Navbar() {
     }, 30000);
     return () => clearInterval(interval);
   }, [user]);
+
+  // WebSocket for real-time notifications
+  const { lastMessage: wsMessage } = useWebSocket(user ? '/ws/notifications/' : null);
+
+  useEffect(() => {
+    if (wsMessage) {
+      if (wsMessage.type === 'new_notification') {
+        setNotifications(prev => {
+          if (prev.find(n => n.id === wsMessage.notification.id)) return prev;
+          return [wsMessage.notification, ...prev];
+        });
+      } else if (wsMessage.type === 'chat_message') {
+        // Just refetch unread count when a new message arrives and we are not in that chat
+        chatAPI.getUnreadCount().then(d => setUnreadMessages(d.unread_count)).catch(() => { });
+      }
+    }
+  }, [wsMessage]);
 
   const handleMarkNotificationsRead = async () => {
     try {

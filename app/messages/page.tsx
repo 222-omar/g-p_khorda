@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Navbar } from '@/components/layout/navbar';
 import Link from 'next/link';
 import { useLanguage } from '@/components/providers/language-provider';
+import { useWebSocket } from '@/hooks/use-websocket';
 
 export default function MessagesPage() {
     const { dict, isRtl, locale } = useLanguage();
@@ -53,39 +54,31 @@ export default function MessagesPage() {
         }
     }, [newMessage]);
 
-    // Polling for new messages
-    useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (selectedConversation && authUser) {
-            interval = setInterval(async () => {
-                try {
-                    const token = document.cookie.split(';').find(c => c.trim().startsWith('access_token='));
-                    if (!token) {
-                        clearInterval(interval);
-                        return;
-                    }
+    // WebSocket for real-time messaging
+    const wsEndpoint = selectedConversation ? `/ws/chat/${selectedConversation.id}/` : null;
+    const { lastMessage: wsMessage, sendMessage: sendWsMessage } = useWebSocket(wsEndpoint);
 
-                    const data = await chatAPI.getConversation(selectedConversation.id);
-                    if (data.messages && data.messages.length > messages.length) {
-                        setMessages(data.messages);
-                        const lastMsg = data.messages[data.messages.length - 1];
-                        setConversations(prev =>
-                            prev.map(c => c.id === selectedConversation.id
-                                ? { ...c, last_message: { content: lastMsg.content, sender_name: lastMsg.sender_name, created_at: lastMsg.created_at, is_read: lastMsg.is_read }, updated_at: lastMsg.created_at }
-                                : c
-                            ).sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-                        );
-                    }
-                } catch (err: any) {
-                    const status = err?.response?.status || err?.status;
-                    if (status === 401) {
-                        clearInterval(interval);
-                    }
-                }
-            }, 5000);
+    useEffect(() => {
+        if (wsMessage && wsMessage.type === 'chat_message') {
+            const msg = wsMessage.message;
+            // Only process if it belongs to the current conversation
+            if (msg.conversation === selectedConversation?.id) {
+                setMessages(prev => {
+                    // Prevent duplicates
+                    if (prev.find(m => m.id === msg.id)) return prev;
+                    return [...prev, msg];
+                });
+                
+                // Update conversation list with the new message
+                setConversations(prev =>
+                    prev.map(c => c.id === selectedConversation?.id
+                        ? { ...c, last_message: { content: msg.content, sender_name: msg.sender_name, created_at: msg.created_at, is_read: msg.is_read }, updated_at: msg.created_at }
+                        : c
+                    ).sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+                );
+            }
         }
-        return () => clearInterval(interval);
-    }, [selectedConversation, messages.length, authUser]);
+    }, [wsMessage, selectedConversation]);
 
     const loadConversations = async () => {
         try {
@@ -121,17 +114,28 @@ export default function MessagesPage() {
 
         try {
             setSending(true);
-            const msg = await chatAPI.sendMessage(selectedConversation.id, newMessage.trim());
-            setMessages(prev => [...prev, msg]);
-            setNewMessage('');
+            const content = newMessage.trim();
+            const success = sendWsMessage({ message: content });
+            
+            if (success) {
+                setNewMessage('');
+                // The message will be appended and conversation list updated when it's broadcasted back via WebSocket
+            } else {
+                // Fallback to REST API if WebSocket is not OPEN
+                const msg = await chatAPI.sendMessage(selectedConversation.id, content);
+                setMessages(prev => {
+                    if (prev.find(m => m.id === msg.id)) return prev;
+                    return [...prev, msg];
+                });
+                setNewMessage('');
 
-            // Update last message in conversation list
-            setConversations(prev =>
-                prev.map(c => c.id === selectedConversation.id
-                    ? { ...c, last_message: { content: msg.content, sender_name: msg.sender_name, created_at: msg.created_at, is_read: false }, updated_at: msg.created_at }
-                    : c
-                ).sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-            );
+                setConversations(prev =>
+                    prev.map(c => c.id === selectedConversation.id
+                        ? { ...c, last_message: { content: msg.content, sender_name: msg.sender_name, created_at: msg.created_at, is_read: false }, updated_at: msg.created_at }
+                        : c
+                    ).sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+                );
+            }
         } catch (err) {
             console.error('Failed to send message:', err);
         } finally {

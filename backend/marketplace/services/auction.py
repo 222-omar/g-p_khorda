@@ -282,6 +282,15 @@ class AuctionService:
         except Auction.DoesNotExist:
             raise
 
+        Notification.objects.create(
+            user=auction.product.owner,
+            title='مزايدة جديدة على مزادك',
+            message=f'قام {user.username} بالمزايدة بمبلغ {amount} جنيه على مزادك "{auction.product.title}".',
+            related_product=auction.product,
+            related_auction=auction,
+            notification_type='info',
+        )
+
         return bid, auction
 
     @staticmethod
@@ -394,6 +403,15 @@ class AuctionService:
                 f'وافقت على مزايدة الوكيل الذكي بمبلغ {bid_amount} جنيه '
                 f'على "{auction.product.title}".'
             ),
+            related_product=auction.product,
+            related_auction=auction,
+            notification_type='info',
+        )
+
+        Notification.objects.create(
+            user=auction.product.owner,
+            title='مزايدة جديدة على مزادك',
+            message=f'قام {user.username} بالمزايدة بمبلغ {bid_amount} جنيه على مزادك "{auction.product.title}".',
             related_product=auction.product,
             related_auction=auction,
             notification_type='info',

@@ -28,7 +28,7 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
-ALLOWED_HOSTS = ['*', '.vercel.app', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['*', '.vercel.app', '.onrender.com', 'localhost', '127.0.0.1']
 
 # Application definition
 INSTALLED_APPS = [
@@ -199,20 +199,20 @@ CORS_ALLOW_CREDENTIALS = True
 # For production (Render/Railway/VPS): switch to RedisChannelLayer
 #
 # PRODUCTION CONFIG (uncomment and set REDIS_URL env var):
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": [os.getenv('REDIS_URL', 'redis://localhost:6379/0')],
-#         },
-#     },
-# }
-
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.getenv('REDIS_URL', 'redis://localhost:6379/0')],
+        },
     },
 }
+
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels.layers.InMemoryChannelLayer",
+#     },
+# }
 
 # ──────────────────────────────────────────────────────────────
 # Celery Configuration
