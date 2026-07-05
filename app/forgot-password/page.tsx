@@ -135,7 +135,7 @@ export default function ForgotPasswordPage() {
                         <div className="bg-primary p-2.5 rounded-xl text-white">
                             <Leaf size={24} />
                         </div>
-                        <span className="text-2xl font-bold"><span className="text-accent">4</span>Sale</span>
+                        <span className="text-2xl font-bold"><span className="text-accent">Tad</span>wera</span>
                     </Link>
                 </motion.div>
 

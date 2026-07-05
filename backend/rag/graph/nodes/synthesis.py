@@ -222,6 +222,14 @@ def synthesis_node(state: AgentState) -> dict:
     else:
         synthesis["suggested_action"] = "view_listing"
 
+    # Ensure brand name is always 'تدويرة'
+    summary = synthesis.get("summary", "")
+    if summary:
+        import re
+        for old in ["4sale", "4 sale", "four-sale", "four sale", "4-sale", "فور سيل", "فور سيلز", "فور سأل"]:
+            summary = re.sub(re.escape(old), "تدويرة", summary, flags=re.IGNORECASE)
+        synthesis["summary"] = summary
+
     # ── Build products_data for frontend (From Fused Results, No DB Query) ──
     products_data = _build_products_data(items, fused)
 

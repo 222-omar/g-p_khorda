@@ -73,6 +73,15 @@ def followup_node(state: AgentState) -> dict:
             "suggested_action": "view_listing",
         }
 
+    # Ensure brand name is always 'تدويرة'
+    if res_dict:
+        summary = res_dict.get("summary", "")
+        if summary:
+            import re
+            for old in ["4sale", "4 sale", "four-sale", "four sale", "4-sale", "فور سيل", "فور سيلز", "فور سأل"]:
+                summary = re.sub(re.escape(old), "تدويرة", summary, flags=re.IGNORECASE)
+            res_dict["summary"] = summary
+
     return {
         "final_response": res_dict,
         "products_data": [],
