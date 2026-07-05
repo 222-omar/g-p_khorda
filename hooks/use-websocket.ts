@@ -8,19 +8,11 @@ function getAuthToken(): string | null {
 }
 
 function getWebSocketBase(): string {
-    if (process.env.NEXT_PUBLIC_API_URL) {
-        // e.g. "http://localhost:8000/api" -> "ws://localhost:8000"
-        try {
-            const url = new URL(process.env.NEXT_PUBLIC_API_URL);
-            const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-            return `${protocol}//${url.host}`;
-        } catch (e) {
-            // fallback if invalid URL
-        }
+    if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        return `${protocol}//${window.location.host}`;
     }
-    
-    // Default development fallback
-    return 'ws://127.0.0.1:8000';
+    return 'wss://four-sale-backend.onrender.com';
 }
 
 interface UseWebSocketOptions {

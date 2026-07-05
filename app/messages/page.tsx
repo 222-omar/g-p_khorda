@@ -169,7 +169,7 @@ export default function MessagesPage() {
 
     const getParticipantAvatar = (participant: any) => {
         if (participant?.avatar) {
-            return participant.avatar.startsWith('http') ? participant.avatar : `http://localhost:8000${participant.avatar}`;
+            return participant.avatar.startsWith('http') ? participant.avatar : `https://four-sale-backend.onrender.com${participant.avatar}`;
         }
         return `https://api.dicebear.com/7.x/avataaars/svg?seed=${participant?.username || 'user'}`;
     };
@@ -310,7 +310,7 @@ export default function MessagesPage() {
                                     >
                                         <div className="w-7 h-7 rounded-full bg-[#1F8A3B] flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden">
                                             {selectedConversation.product_image ? (
-                                                <img src={selectedConversation.product_image.startsWith('http') ? selectedConversation.product_image : `http://localhost:8000${selectedConversation.product_image}`} className="w-full h-full object-cover" />
+                                                <img src={selectedConversation.product_image.startsWith('http') ? selectedConversation.product_image : `https://four-sale-backend.onrender.com${selectedConversation.product_image}`} className="w-full h-full object-cover" />
                                             ) : (
                                                 <Package size={14} />
                                             )}

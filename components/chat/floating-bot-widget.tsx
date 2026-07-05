@@ -355,7 +355,7 @@ export function FloatingBotWidget() {
                                                                         <div className="flex gap-3.5 p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-[#E5E7EB] dark:border-slate-700 hover:border-[#1F8A3B] transition-colors cursor-pointer shadow-sm group">
                                                                             <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
                                                                                 {product.images?.[0] ? (
-                                                                                    <img src={product.images[0].image?.startsWith('http') ? product.images[0].image : `http://localhost:8000${product.images[0].image}`} className="w-full h-full object-cover" />
+                                                                                    <img src={product.images[0].image?.startsWith('http') ? product.images[0].image : `https://four-sale-backend.onrender.com${product.images[0].image}`} className="w-full h-full object-cover" />
                                                                                 ) : (
                                                                                     <div className="w-full h-full flex items-center justify-center"><ShoppingBag className="w-5 h-5 text-slate-300" /></div>
                                                                                 )}

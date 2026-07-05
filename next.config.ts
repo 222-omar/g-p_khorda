@@ -15,28 +15,28 @@ const nextConfig: NextConfig = {
         source: '/api/:path*/',
         destination:
           process.env.NODE_ENV === 'development'
-            ? 'http://127.0.0.1:8000/api/:path*/'
+            ? 'https://four-sale-backend.onrender.com/api/:path*/'
             : 'https://four-sale-backend.onrender.com/api/:path*/',
       },
       {
         source: '/api/:path*',
         destination:
           process.env.NODE_ENV === 'development'
-            ? 'http://127.0.0.1:8000/api/:path*'
+            ? 'https://four-sale-backend.onrender.com/api/:path*'
             : 'https://four-sale-backend.onrender.com/api/:path*',
       },
       {
         source: '/media/:path*/',
         destination:
           process.env.NODE_ENV === 'development'
-            ? 'http://127.0.0.1:8000/media/:path*/'
+            ? 'https://four-sale-backend.onrender.com/media/:path*/'
             : 'https://four-sale-backend.onrender.com/media/:path*/',
       },
       {
         source: '/media/:path*',
         destination:
           process.env.NODE_ENV === 'development'
-            ? 'http://127.0.0.1:8000/media/:path*'
+            ? 'https://four-sale-backend.onrender.com/media/:path*'
             : 'https://four-sale-backend.onrender.com/media/:path*',
       },
     ];

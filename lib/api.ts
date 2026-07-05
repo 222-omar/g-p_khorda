@@ -1,7 +1,7 @@
 // Centralized API Base URL
 // In production on Vercel, call the backend service directly via Render URL
 // (Next.js rewrites to relative internal paths don't proxy correctly in Next.js 16+)
-// In development, NEXT_PUBLIC_API_URL from .env.local points to localhost:8000/api
+// In development, NEXT_PUBLIC_API_URL from .env.local points to the Render backend
 const getApiBase = (): string => {
     if (process.env.NEXT_PUBLIC_API_URL) {
         return process.env.NEXT_PUBLIC_API_URL;
@@ -14,7 +14,7 @@ const getApiBase = (): string => {
 
     // Server-side in development can still call the backend directly.
     if (process.env.NODE_ENV === 'development') {
-        return 'http://127.0.0.1:8000/api';
+        return 'https://four-sale-backend.onrender.com/api';
     }
 
     return '/api';
