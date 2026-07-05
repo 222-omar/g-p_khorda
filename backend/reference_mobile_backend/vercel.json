@@ -1,0 +1,17 @@
+{
+  "builds": [
+    {
+      "src": "refurbai_backend/wsgi.py",
+      "use": "@vercel/python",
+      "config": {
+        "runtime": "python3.10"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "refurbai_backend/wsgi.py"
+    }
+  ]
+}
