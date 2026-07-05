@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.utils import timezone
-from .models import UserProfile, Product, ProductImage, Auction, Bid, Conversation, Message, UserAgent, Notification, WalletTransaction, Order
+from .models import UserProfile, Product, ProductImage, Auction, Bid, Conversation, Message, UserAgent, Notification, WalletTransaction, Order, AgentPendingBid
 
 import logging
 logger = logging.getLogger(__name__)
@@ -926,3 +926,54 @@ class OrderSerializer(serializers.ModelSerializer):
                 return 'buyer'
             return 'seller'
         return None
+
+
+class AgentPendingBidSerializer(serializers.ModelSerializer):
+    """Serializer for AgentPendingBid — includes auction/product context for the UI."""
+
+    auction_id = serializers.IntegerField(source='auction.id', read_only=True)
+    product_title = serializers.CharField(source='auction.product.title', read_only=True)
+    product_image = serializers.SerializerMethodField()
+    current_bid = serializers.DecimalField(
+        source='auction.current_bid', max_digits=10, decimal_places=2, read_only=True
+    )
+    auction_end_time = serializers.DateTimeField(source='auction.end_time', read_only=True)
+    auction_is_active = serializers.BooleanField(source='auction.is_active', read_only=True)
+    agent_id = serializers.IntegerField(source='agent.id', read_only=True)
+    agent_target = serializers.CharField(source='agent.target_item', read_only=True)
+    delta_amount = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AgentPendingBid
+        fields = [
+            'id', 'agent_id', 'agent_target',
+            'auction_id', 'product_title', 'product_image',
+            'current_bid', 'auction_end_time', 'auction_is_active',
+            'proposed_amount', 'previous_amount', 'delta_amount',
+            'status', 'ai_reasoning', 'is_counter_bid', 'round_number',
+            'created_at',
+        ]
+        read_only_fields = fields
+
+    def get_product_image(self, obj):
+        try:
+            primary_img = obj.auction.product.images.filter(is_primary=True).first()
+            if not primary_img:
+                primary_img = obj.auction.product.images.first()
+            if primary_img and primary_img.image:
+                url = primary_img.image.url
+                if url.startswith('http'):
+                    return url
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(url)
+                return url
+        except Exception:
+            pass
+        return None
+
+    def get_delta_amount(self, obj):
+        """Amount the wallet will be charged on approval (proposed - previous)."""
+        from decimal import Decimal
+        delta = obj.proposed_amount - (obj.previous_amount or Decimal('0.00'))
+        return str(max(delta, Decimal('0.00')))

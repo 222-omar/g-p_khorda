@@ -69,3 +69,64 @@ class RAGQueryLog(models.Model):
 
     def __str__(self):
         return f"[{self.created_at}] {self.query_text[:60]}"
+
+
+class ChatSession(models.Model):
+    """
+    A named chat session for the Smart Search / RAG chatbot.
+    Each session contains ordered messages between user and AI.
+    """
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='chat_sessions'
+    )
+    title = models.CharField(
+        max_length=200,
+        default='محادثة جديدة',
+        help_text="Auto-generated from first message"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'chat_sessions'
+        ordering = ['-updated_at']
+        verbose_name = 'Chat Session'
+        verbose_name_plural = 'Chat Sessions'
+
+    def __str__(self):
+        return f"[{self.user.username}] {self.title[:50]}"
+
+
+class ChatMessage(models.Model):
+    """
+    A single message within a ChatSession.
+    role = 'user' | 'assistant'
+    products_data is the list of product cards returned by the assistant.
+    """
+    ROLE_CHOICES = [('user', 'User'), ('assistant', 'Assistant')]
+
+    session = models.ForeignKey(
+        ChatSession, on_delete=models.CASCADE,
+        related_name='messages'
+    )
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    content = models.TextField(help_text="Message text content")
+    products_data = models.JSONField(
+        blank=True, default=list,
+        help_text="Product cards returned by the assistant (empty for user messages)"
+    )
+    meta = models.JSONField(
+        blank=True, default=dict,
+        help_text="RAG metadata (latency, sql_results, vector_results, intent)"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'chat_messages'
+        ordering = ['created_at']
+        verbose_name = 'Chat Message'
+        verbose_name_plural = 'Chat Messages'
+
+    def __str__(self):
+        return f"[{self.session_id}] {self.role}: {self.content[:40]}"

@@ -37,6 +37,11 @@ from .views import (
     update_profile_view,
     change_password_view,
     visual_search_view,
+    agent_pending_bids_list,
+    agent_pending_bid_approve,
+    agent_pending_bid_reject,
+    get_categories,
+    health_check,
 )
 
 router = DefaultRouter()
@@ -92,6 +97,17 @@ urlpatterns = [
     
     # Visual Search
     path('visual-search/', visual_search_view, name='visual-search'),
+    
+    # Agent Pending Bids
+    path('agent-pending-bids/', agent_pending_bids_list, name='agent-pending-bids-list'),
+    path('agent-pending-bids/<int:pk>/approve/', agent_pending_bid_approve, name='agent-pending-bid-approve'),
+    path('agent-pending-bids/<int:pk>/reject/', agent_pending_bid_reject, name='agent-pending-bid-reject'),
+    
+    # Categories
+    path('categories/', get_categories, name='categories'),
+    
+    # Health check
+    path('health/', health_check, name='health-check'),
     
     # Router URLs
     path('', include(router.urls)),

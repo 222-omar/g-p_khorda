@@ -378,3 +378,59 @@ class ProductVisualEmbedding(models.Model):
 
     def __str__(self):
         return f"Visual Embedding for Product #{self.product_id}"
+
+
+class AgentPendingBid(models.Model):
+    """
+    Holds an AI-proposed bid awaiting user approval.
+    No wallet deduction or Bid creation happens until the user approves.
+    Delta deduction: on approval, only (proposed_amount - previous_amount) is charged.
+    """
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('expired', 'Expired'),
+    ]
+
+    agent = models.ForeignKey(
+        'UserAgent', on_delete=models.CASCADE, related_name='pending_bids'
+    )
+    auction = models.ForeignKey(
+        'Auction', on_delete=models.CASCADE, related_name='pending_bids'
+    )
+    proposed_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    previous_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0,
+        help_text="Amount the agent previously had locked in this auction (for delta calc)"
+    )
+    status = models.CharField(
+        max_length=10, choices=STATUS_CHOICES, default='pending'
+    )
+    ai_reasoning = models.TextField(blank=True, default='')
+    notification = models.ForeignKey(
+        'Notification', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='pending_bids'
+    )
+    is_counter_bid = models.BooleanField(
+        default=False,
+        help_text="True when this is a reaction to being outbid (outbid scenario)"
+    )
+    round_number = models.IntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'agent_pending_bids'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['agent', 'status']),
+            models.Index(fields=['auction', 'status']),
+        ]
+
+    def __str__(self):
+        return (
+            f"PendingBid [{self.status}] agent={self.agent_id} "
+            f"auction={self.auction_id} amount={self.proposed_amount}"
+        )

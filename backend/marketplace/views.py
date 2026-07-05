@@ -16,13 +16,16 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import (
     Auction,
+    Bid,
     Message,
     Notification,
     Product,
     UserProfile,
+    AgentPendingBid,
 )
 from .permissions import IsAdminRole, IsOwnerOrAdmin
 from .serializers import (
+    AgentPendingBidSerializer,
     AuctionSerializer,
     ConversationDetailSerializer,
     ConversationListSerializer,
@@ -661,3 +664,230 @@ def admin_dashboard_stats_view(request):
         'recent_users': recent_users_list,
     })
 
+
+# ──────────────────────────────────────────────────────────────
+# AGENT PENDING BIDS ENDPOINTS
+# ──────────────────────────────────────────────────────────────
+
+import logging
+_logger = logging.getLogger(__name__)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def agent_pending_bids_list(request):
+    """
+    GET /api/agent-pending-bids/
+    Return all pending (status='pending') AI proposed bids for the current user.
+    """
+    pending = AgentPendingBid.objects.filter(
+        agent__user=request.user,
+        status='pending',
+    ).select_related(
+        'agent', 'auction', 'auction__product', 'notification'
+    ).prefetch_related('auction__product__images').order_by('-created_at')
+
+    serializer = AgentPendingBidSerializer(pending, many=True, context={'request': request})
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def agent_pending_bid_approve(request, pk):
+    """
+    POST /api/agent-pending-bids/{id}/approve/
+    Approve a pending bid:
+    - Validates auction is still active.
+    - Validates proposed_amount > current_bid.
+    - Deducts delta (proposed_amount - previous_amount) from wallet.
+    - Creates Bid, updates Auction, refunds previous highest bidder.
+    - Marks pending bid as 'approved'.
+    """
+    from django.db import transaction
+    from decimal import Decimal
+    from django.utils import timezone
+
+    try:
+        pending_bid = AgentPendingBid.objects.select_related(
+            'agent', 'agent__user', 'agent__user__profile',
+            'auction', 'auction__product', 'auction__highest_bidder',
+        ).get(pk=pk, agent__user=request.user, status='pending')
+    except AgentPendingBid.DoesNotExist:
+        return Response(
+            {'error': 'المزايدة المعلقة غير موجودة أو تمت معالجتها مسبقاً'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    with transaction.atomic():
+        # Lock the auction row
+        auction = Auction.objects.select_for_update().get(pk=pending_bid.auction_id)
+
+        # Validate auction is still active
+        if not auction.is_active:
+            return Response({'error': 'المزاد غير نشط'}, status=status.HTTP_400_BAD_REQUEST)
+        if auction.end_time < timezone.now():
+            auction.is_active = False
+            auction.save(update_fields=['is_active'])
+            return Response({'error': 'انتهى وقت المزاد'}, status=status.HTTP_400_BAD_REQUEST)
+
+        proposed_amount = pending_bid.proposed_amount
+        previous_amount = pending_bid.previous_amount or Decimal('0.00')
+
+        # Validate proposed_amount is still competitive
+        if proposed_amount < auction.current_bid or (
+            proposed_amount == auction.current_bid and auction.highest_bidder is not None
+        ):
+            pending_bid.status = 'expired'
+            pending_bid.save(update_fields=['status'])
+            return Response(
+                {'error': f'المبلغ المقترح ({proposed_amount}) لم يعد صالحاً لأن المزايدة الحالية ({auction.current_bid}). تم إلغاء الطلب.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        delta = proposed_amount - previous_amount
+        if delta < Decimal('0.00'):
+            delta = Decimal('0.00')
+
+        # Check wallet
+        agent_profile = pending_bid.agent.user.profile
+        if agent_profile.wallet_balance < delta:
+            return Response(
+                {'error': f'رصيد المحفظة غير كافٍ. المطلوب: {delta} ج.م، المتاح: {agent_profile.wallet_balance} ج.م'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Refund previous highest bidder (if exists and is not the agent)
+        previous_highest_bidder = auction.highest_bidder
+        if previous_highest_bidder and previous_highest_bidder != pending_bid.agent.user:
+            highest_bid_obj = Bid.objects.filter(
+                auction=auction, bidder=previous_highest_bidder
+            ).order_by('-amount').first()
+            if highest_bid_obj:
+                prev_profile = previous_highest_bidder.profile
+                prev_profile.wallet_balance += highest_bid_obj.amount
+                prev_profile.save(update_fields=['wallet_balance'])
+                _logger.info(
+                    f"[PendingBid] Refunded {previous_highest_bidder.username} "
+                    f"amount {highest_bid_obj.amount}"
+                )
+
+        # Deduct delta from wallet
+        agent_profile.wallet_balance -= delta
+        agent_profile.save(update_fields=['wallet_balance'])
+
+        # Create the actual Bid
+        bid = Bid.objects.create(
+            auction=auction,
+            bidder=pending_bid.agent.user,
+            amount=proposed_amount,
+        )
+
+        # Update auction
+        auction.current_bid = proposed_amount
+        auction.highest_bidder = pending_bid.agent.user
+        auction.save(update_fields=['current_bid', 'highest_bidder'])
+
+        # Mark pending bid as approved
+        pending_bid.status = 'approved'
+        pending_bid.save(update_fields=['status'])
+
+        # Success notification
+        Notification.objects.create(
+            user=pending_bid.agent.user,
+            title='✅ تمت المزايدة بنجاح!',
+            message=(
+                f'تمت الموافقة على مزايدة الوكيل بمبلغ {proposed_amount} ج.م '
+                f'على "{auction.product.title}". '
+                f'تم خصم {delta} ج.م من محفظتك.'
+            ),
+            related_product=auction.product,
+        )
+
+        _logger.info(
+            f"[PendingBid] ✅ Approved bid {pending_bid.id} — "
+            f"{pending_bid.agent.user.username} bid {proposed_amount} (delta {delta})"
+        )
+
+    return Response(
+        {'status': 'approved', 'bid_id': bid.id, 'amount': str(proposed_amount), 'delta': str(delta)},
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def agent_pending_bid_reject(request, pk):
+    """
+    POST /api/agent-pending-bids/{id}/reject/
+    Reject a pending bid — marks it as 'rejected', no wallet changes.
+    """
+    try:
+        pending_bid = AgentPendingBid.objects.get(
+            pk=pk, agent__user=request.user, status='pending'
+        )
+    except AgentPendingBid.DoesNotExist:
+        return Response(
+            {'error': 'المزايدة المعلقة غير موجودة أو تمت معالجتها مسبقاً'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    pending_bid.status = 'rejected'
+    pending_bid.save(update_fields=['status'])
+    _logger.info(f"[PendingBid] ❌ Rejected pending bid {pending_bid.id}")
+    return Response({'status': 'rejected'}, status=status.HTTP_200_OK)
+
+
+# ──────────────────────────────────────────────────────────────
+# CATEGORIES ENDPOINT
+# ──────────────────────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_categories(request):
+    """
+    GET /api/categories/
+    Return all available product categories based on Product model choices.
+    """
+    categories = [
+        {'id': choice[0], 'name': choice[1]}
+        for choice in Product.CATEGORY_CHOICES
+    ]
+    return Response(categories)
+
+
+# ──────────────────────────────────────────────────────────────
+# HEALTH CHECK ENDPOINT
+# ──────────────────────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_check(request):
+    """
+    GET /api/health/
+    Returns system health for load balancers and monitoring.
+    No authentication required.
+    """
+    from django.db import connection
+    import time
+
+    health = {
+        'status': 'ok',
+        'version': '1.0.0',
+        'database': 'unknown',
+    }
+
+    # Check database connectivity
+    try:
+        start = time.time()
+        connection.ensure_connection()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        db_latency_ms = int((time.time() - start) * 1000)
+        health['database'] = 'ok'
+        health['db_latency_ms'] = db_latency_ms
+    except Exception as e:
+        health['status'] = 'degraded'
+        health['database'] = f'error: {str(e)}'
+
+    http_status = 200 if health['status'] == 'ok' else 503
+    return Response(health, status=http_status)

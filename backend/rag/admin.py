@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ProductEmbedding, RAGQueryLog
+from .models import ProductEmbedding, RAGQueryLog, ChatSession, ChatMessage
 
 
 @admin.register(ProductEmbedding)
@@ -23,3 +23,27 @@ class RAGQueryLogAdmin(admin.ModelAdmin):
     def query_text_short(self, obj):
         return obj.query_text[:60]
     query_text_short.short_description = 'Query'
+
+
+@admin.register(ChatSession)
+class ChatSessionAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'title_short', 'created_at', 'updated_at']
+    list_filter = ['created_at']
+    search_fields = ['title', 'user__username']
+    readonly_fields = ['created_at', 'updated_at']
+
+    def title_short(self, obj):
+        return obj.title[:60]
+    title_short.short_description = 'Title'
+
+
+@admin.register(ChatMessage)
+class ChatMessageAdmin(admin.ModelAdmin):
+    list_display = ['id', 'session', 'role', 'content_short', 'created_at']
+    list_filter = ['role', 'created_at']
+    search_fields = ['content']
+    readonly_fields = ['session', 'role', 'content', 'products_data', 'meta', 'created_at']
+
+    def content_short(self, obj):
+        return obj.content[:60]
+    content_short.short_description = 'Content'
