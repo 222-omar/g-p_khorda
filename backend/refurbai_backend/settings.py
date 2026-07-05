@@ -32,6 +32,9 @@ ALLOWED_HOSTS = ['*', '.vercel.app', 'localhost', '127.0.0.1']
 
 # Application definition
 INSTALLED_APPS = [
+    # Daphne ASGI server — must be BEFORE django.contrib.staticfiles
+    'daphne',
+    
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,6 +45,7 @@ INSTALLED_APPS = [
     # Third-party apps
     'rest_framework',
     'rest_framework_simplejwt',
+    'channels',
     'corsheaders',
     'django_filters',
     'drf_spectacular',
@@ -85,6 +89,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'refurbai_backend.wsgi.application'
+ASGI_APPLICATION = 'refurbai_backend.asgi.application'
 
 # Database - PostgreSQL
 import dj_database_url
@@ -186,6 +191,28 @@ SIMPLE_JWT = {
 # CORS Settings
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
+# ──────────────────────────────────────────────────────────────
+# Django Channels — WebSocket / Real-time
+# ──────────────────────────────────────────────────────────────
+# For local development: InMemoryChannelLayer (no Redis needed)
+# For production (Render/Railway/VPS): switch to RedisChannelLayer
+#
+# PRODUCTION CONFIG (uncomment and set REDIS_URL env var):
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels_redis.core.RedisChannelLayer",
+#         "CONFIG": {
+#             "hosts": [os.getenv('REDIS_URL', 'redis://localhost:6379/0')],
+#         },
+#     },
+# }
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 
 # ──────────────────────────────────────────────────────────────
 # Celery Configuration

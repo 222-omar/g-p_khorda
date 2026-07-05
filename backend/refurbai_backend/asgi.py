@@ -1,16 +1,29 @@
 """
 ASGI config for refurbai_backend project.
 
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/6.0/howto/deployment/asgi/
+Routes HTTP requests to Django and WebSocket connections
+to Django Channels consumers with JWT authentication.
 """
 
 import os
 
-from django.core.asgi import get_asgi_application
+import django
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'refurbai_backend.settings')
+django.setup()
 
-application = get_asgi_application()
+from channels.routing import ProtocolTypeRouter, URLRouter
+from django.core.asgi import get_asgi_application
+
+from marketplace.middleware import JWTAuthMiddleware
+from marketplace.routing import websocket_urlpatterns
+
+application = ProtocolTypeRouter({
+    # HTTP requests → standard Django ASGI handler
+    "http": get_asgi_application(),
+
+    # WebSocket connections → JWT auth → URL router → consumers
+    "websocket": JWTAuthMiddleware(
+        URLRouter(websocket_urlpatterns)
+    ),
+})

@@ -57,3 +57,96 @@ def trigger_agent_discovery(sender, instance, created, **kwargs):
     # All agent logic now runs only for auctions via run_auto_bidding.
     return
 
+
+# ── WebSocket Broadcast Signals ─────────────────────────────────────────────
+# These signals push new messages and notifications to connected WebSocket
+# clients in real-time. They fire on every Message/Notification creation,
+# regardless of where in the codebase the .objects.create() was called.
+
+@receiver(post_save, sender='marketplace.Message')
+def broadcast_new_message(sender, instance, created, **kwargs):
+    """
+    When a new Message is saved, broadcast it to the chat_{conversation_id}
+    WebSocket group so all connected participants see it instantly.
+    """
+    if not created:
+        return
+
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+
+        channel_layer = get_channel_layer()
+        if channel_layer is None:
+            return
+
+        group_name = f"chat_{instance.conversation_id}"
+
+        avatar_url = None
+        try:
+            if hasattr(instance.sender, 'profile') and instance.sender.profile.avatar:
+                avatar_url = instance.sender.profile.avatar.url
+        except Exception:
+            pass
+
+        message_data = {
+            "id": instance.id,
+            "conversation": instance.conversation_id,
+            "sender": instance.sender_id,
+            "sender_name": instance.sender.username,
+            "sender_avatar": avatar_url,
+            "content": instance.content,
+            "is_read": instance.is_read,
+            "created_at": instance.created_at.isoformat(),
+        }
+
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "chat_message",
+                "message": message_data,
+            },
+        )
+    except Exception as e:
+        logger.error(f"[Signal/WS] Failed to broadcast message: {e}")
+
+
+@receiver(post_save, sender='marketplace.Notification')
+def broadcast_new_notification(sender, instance, created, **kwargs):
+    """
+    When a new Notification is saved, broadcast it to the
+    notifications_{user_id} WebSocket group so the user sees it instantly.
+    """
+    if not created:
+        return
+
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+
+        channel_layer = get_channel_layer()
+        if channel_layer is None:
+            return
+
+        group_name = f"notifications_{instance.user_id}"
+
+        notification_data = {
+            "id": instance.id,
+            "title": instance.title,
+            "message": instance.message,
+            "is_read": instance.is_read,
+            "notification_type": instance.notification_type,
+            "related_product_id": instance.related_product_id,
+            "related_auction_id": instance.related_auction_id,
+            "created_at": instance.created_at.isoformat(),
+        }
+
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "new_notification",
+                "notification": notification_data,
+            },
+        )
+    except Exception as e:
+        logger.error(f"[Signal/WS] Failed to broadcast notification: {e}")
