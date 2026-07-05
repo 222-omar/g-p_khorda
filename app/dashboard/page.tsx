@@ -405,35 +405,6 @@ export default function DashboardPage() {
                                     <div className="space-y-14">
 
 
-                                        {/* SECTION 2 — مقترح لك */}
-                                        <section>
-                                            <SectionHeader
-                                                icon={Sparkles}
-                                                title="مقترح لك"
-                                                subtitle="منتجات مختارة قد تعجبك"
-                                                color="text-purple-600"
-                                                bgColor="bg-purple-100 dark:bg-purple-900/30"
-                                            />
-                                            <motion.div
-                                                variants={staggerContainer}
-                                                initial="hidden"
-                                                whileInView="visible"
-                                                viewport={{ once: true }}
-                                                className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5"
-                                            >
-                                                {nonAuctionProducts.filter((p: any) => !isOwnerOf(p)).slice(0, INITIAL_FEATURED).map((p: any) => (
-                                                    <motion.div key={p.id} variants={staggerItem}>
-                                                        <FeaturedCard
-                                                            product={toCard(p)}
-                                                            isLoggedIn={!!user}
-                                                            isOwner={isOwnerOf(p)}
-                                                            isWishlisted={wishlistIds.includes(p.id)}
-                                                            onWishlistChange={handleWishlistChange}
-                                                        />
-                                                    </motion.div>
-                                                ))}
-                                            </motion.div>
-                                        </section>
 
                                         {/* SECTION 3 — أحدث الإضافات */}
                                         <section>

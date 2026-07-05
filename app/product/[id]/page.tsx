@@ -49,6 +49,7 @@ export default function ProductPage() {
     const [purchaseError, setPurchaseError] = useState<string | null>(null);
     const [purchaseInsufficientBalance, setPurchaseInsufficientBalance] = useState(false);
     const [purchaseSuccess, setPurchaseSuccess] = useState(false);
+    const [showBidHistory, setShowBidHistory] = useState(false);
 
     // Fetch product and user details
     useEffect(() => {
@@ -83,6 +84,24 @@ export default function ProductPage() {
         if (params.id) {
             fetchData();
         }
+    }, [params.id]);
+
+    // Background polling for real-time auction updates (runs every 3 seconds)
+    useEffect(() => {
+        if (!params.id) return;
+        
+        const intervalId = setInterval(async () => {
+            try {
+                // Fetch the latest product data without showing loading indicators
+                const productData = await productsAPI.get(params.id as string);
+                setProduct(productData);
+            } catch (err) {
+                // Silent fail for background polling to not interrupt the user experience
+                console.error('Background polling failed:', err);
+            }
+        }, 3000);
+
+        return () => clearInterval(intervalId);
     }, [params.id]);
 
     const handlePlaceBid = async () => {
@@ -383,43 +402,55 @@ export default function ProductPage() {
                                         </div>
                                     )}
 
-                                    {/* Bid History */}
+                                    {/* Bidders Leaderboard */}
                                     {product.auction.bids && product.auction.bids.length > 0 && (
-                                        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden">
-                                            <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                                        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
+                                            <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex justify-between items-center">
                                                 <h3 className="font-bold text-sm flex items-center gap-2">
-                                                    📋 سجل المزايدات ({product.auction.bids.length})
+                                                    المزايدين
                                                 </h3>
+                                                <button 
+                                                    onClick={() => setShowBidHistory(true)}
+                                                    className="text-xs bg-primary/10 text-primary hover:bg-primary/20 px-3 py-1.5 rounded-lg font-bold transition-colors"
+                                                >
+                                                    سجل المزادات
+                                                </button>
                                             </div>
                                             <div className="max-h-64 overflow-y-auto">
-                                                {product.auction.bids
-                                                    .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                                                    .map((bid: any, index: number) => (
+                                                {(() => {
+                                                    const uniqueBidders = new Map();
+                                                    product.auction.bids.forEach((bid: any) => {
+                                                        const currentAmount = parseFloat(bid.amount);
+                                                        const name = bid.bidder_name || 'مستخدم';
+                                                        if (!uniqueBidders.has(name) || uniqueBidders.get(name).amount < currentAmount) {
+                                                            uniqueBidders.set(name, { ...bid, amount: currentAmount });
+                                                        }
+                                                    });
+                                                    const leaderboard = Array.from(uniqueBidders.values()).sort((a, b) => b.amount - a.amount);
+                                                    return leaderboard.map((bid: any, index: number) => (
                                                         <div
                                                             key={bid.id || index}
-                                                            className={`flex items-center justify-between p-3 px-4 ${index === 0 ? 'bg-orange-50 dark:bg-orange-900/10' : ''} ${index !== product.auction.bids.length - 1 ? 'border-b border-slate-100 dark:border-slate-700/50' : ''}`}
+                                                            className={`flex items-center justify-between p-3 px-4 ${index === 0 ? 'bg-orange-50 dark:bg-orange-900/10' : ''} ${index !== leaderboard.length - 1 ? 'border-b border-slate-100 dark:border-slate-700/50' : ''}`}
                                                         >
                                                             <div className="flex items-center gap-3">
-                                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${index === 0 ? 'bg-orange-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
+                                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${index === 0 ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30' : index === 1 ? 'bg-slate-300 text-slate-700' : index === 2 ? 'bg-amber-600/20 text-amber-700' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'}`}>
                                                                     {index === 0 ? '👑' : index + 1}
                                                                 </div>
                                                                 <div>
                                                                     <p className={`text-sm font-bold ${index === 0 ? 'text-orange-600' : ''}`}>
                                                                         {bid.bidder_name || 'مستخدم'}
                                                                     </p>
-                                                                    <p className="text-xs text-slate-400">
-                                                                        {new Date(bid.created_at).toLocaleString('ar-EG', {
-                                                                            month: 'short', day: 'numeric',
-                                                                            hour: '2-digit', minute: '2-digit'
-                                                                        })}
-                                                                    </p>
+                                                                    {index === 0 && (
+                                                                        <p className="text-[10px] text-orange-500 font-bold mt-0.5">المتصدر الحالي</p>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                             <span className={`font-black text-sm ${index === 0 ? 'text-orange-600' : 'text-slate-700 dark:text-slate-300'}`}>
-                                                                {parseFloat(bid.amount).toLocaleString()} {dict.currency}
+                                                                {bid.amount.toLocaleString()} {dict.currency}
                                                             </span>
                                                         </div>
-                                                    ))}
+                                                    ));
+                                                })()}
                                             </div>
                                         </div>
                                     )}
@@ -576,6 +607,58 @@ export default function ProductPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Bid History Modal */}
+                {showBidHistory && product?.auction && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
+                            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+                                <h3 className="font-bold text-lg flex items-center gap-2">
+                                    📋 سجل المزادات ({product.auction.bids?.length || 0})
+                                </h3>
+                                <button 
+                                    onClick={() => setShowBidHistory(false)} 
+                                    className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                            <div className="overflow-y-auto p-2 flex-1">
+                                {product.auction.bids?.length > 0 ? (
+                                    product.auction.bids
+                                        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                                        .map((bid: any, index: number) => (
+                                            <div
+                                                key={bid.id || index}
+                                                className={`flex items-center justify-between p-3 ${index !== product.auction.bids.length - 1 ? 'border-b border-slate-100 dark:border-slate-800/50' : ''}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div>
+                                                        <p className="text-sm font-bold">
+                                                            {bid.bidder_name || 'مستخدم'}
+                                                        </p>
+                                                        <p className="text-xs text-slate-500 mt-1">
+                                                            {new Date(bid.created_at).toLocaleString('ar-EG', {
+                                                                month: 'short', day: 'numeric',
+                                                                hour: '2-digit', minute: '2-digit'
+                                                            })}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <span className="font-black text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg">
+                                                    {parseFloat(bid.amount).toLocaleString()} {dict.currency}
+                                                </span>
+                                            </div>
+                                        ))
+                                ) : (
+                                    <div className="p-8 text-center text-slate-500">
+                                        لا توجد مزايدات حتى الآن
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
             <Footer />
         </>

@@ -248,21 +248,13 @@ export default function ProfilePage() {
                             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
                         >
                             {/* Quick Actions */}
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Link href="/sell" className="flex-1">
                                     <button className="w-full h-[72px] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50 hover:border-[#1F8A3B]/30 hover:bg-[#F4FBF6] dark:hover:bg-[#1F8A3B]/5 rounded-[20px] flex items-center justify-center gap-3 transition-all group shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
                                         <div className="bg-slate-50 dark:bg-slate-900/50 group-hover:bg-[#1F8A3B]/10 p-2 rounded-xl text-slate-500 dark:text-slate-400 group-hover:text-[#1F8A3B] transition-colors">
                                             <Plus size={20} strokeWidth={2.5} />
                                         </div>
                                         <span className="font-bold text-[15px] text-slate-700 dark:text-slate-200 group-hover:text-[#1F8A3B] transition-colors">إضافة إعلان</span>
-                                    </button>
-                                </Link>
-                                <Link href="/auctions/create" className="flex-1">
-                                    <button className="w-full h-[72px] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50 hover:border-orange-500/30 hover:bg-orange-50 dark:hover:bg-orange-500/5 rounded-[20px] flex items-center justify-center gap-3 transition-all group shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
-                                        <div className="bg-slate-50 dark:bg-slate-900/50 group-hover:bg-orange-500/10 p-2 rounded-xl text-slate-500 dark:text-slate-400 group-hover:text-orange-500 transition-colors">
-                                            <TrendingUp size={20} strokeWidth={2.5} />
-                                        </div>
-                                        <span className="font-bold text-[15px] text-slate-700 dark:text-slate-200 group-hover:text-orange-500 transition-colors">إضافة مزاد</span>
                                     </button>
                                 </Link>
                                 <Link href="/payment" className="flex-1">
