@@ -132,15 +132,15 @@ export default function SellPage() {
     const validateStep = (currentStep: number) => {
         setError(null);
         if (currentStep === 2) {
-            if (!formData.title.trim()) return 'يرجى إدخال اسم المنتج';
-            if (!formData.price || Number(formData.price) <= 0) return 'يرجى إدخال سعر صحيح';
-            if (!formData.category) return 'يرجى اختيار القسم';
-            if (!formData.location.trim()) return 'يرجى إدخال الموقع';
-            if (!formData.phone_number.trim()) return 'يرجى إدخال رقم الهاتف للتواصل';
+            if (!formData.title.trim()) return dict.addItem.errName;
+            if (!formData.price || Number(formData.price) <= 0) return dict.addItem.errPrice;
+            if (!formData.category) return dict.addItem.errCategory;
+            if (!formData.location.trim()) return dict.addItem.errLocation;
+            if (!formData.phone_number.trim()) return dict.addItem.errPhone;
             if (formData.is_auction) {
-                if (!formData.auction_end_time) return 'يرجى تحديد وقت وتاريخ انتهاء المزاد';
+                if (!formData.auction_end_time) return dict.addItem.errAuctionEnd;
                 if (new Date(formData.auction_end_time) <= new Date()) {
-                    return 'تاريخ الانتهاء يجب أن يكون في المستقبل';
+                    return dict.addItem.errAuctionFuture;
                 }
             }
             return null;
@@ -162,7 +162,7 @@ export default function SellPage() {
         setError(null);
 
         if (!formData.description.trim()) {
-            setError('يرجى إضافة وصف للمنتج');
+            setError(dict.addItem.errDescription);
             return;
         }
 
@@ -192,7 +192,7 @@ export default function SellPage() {
             setSubmitted(true);
         } catch (err: any) {
             console.error('Error creating product:', err);
-            setError(err.message || 'حدث خطأ في نشر الإعلان');
+            setError(err.message || dict.addItem.errPublish);
             setSubmitting(false);
         }
     };
@@ -224,16 +224,16 @@ export default function SellPage() {
                                 <Clock className="text-amber-500" size={40} />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-black mb-2">{'\u062a\u0645 \u0631\u0641\u0639 \u0625\u0639\u0644\u0627\u0646\u0643 \u0628\u0646\u062c\u0627\u062d!'}</h2>
+                                <h2 className="text-2xl font-black mb-2">{dict.addItem.successTitle}</h2>
                                 <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
-                                    {'\u0625\u0639\u0644\u0627\u0646\u0643 \u0642\u064a\u062f \u0627\u0644\u0645\u0631\u0627\u062c\u0639\u0629 \u0645\u0646 \u0641\u0631\u064a\u0642 \u0627\u0644\u0625\u062f\u0627\u0631\u0629. \u0647\u062a\u0648\u0635\u0644\u0643 \u0625\u0634\u0639\u0627\u0631 \u0641\u0648\u0631 \u0627\u0644\u0645\u0648\u0627\u0641\u0642\u0629 \u0639\u0644\u064a\u0647 \u0648\u0633\u064a\u0638\u0647\u0631 \u0641\u064a \u0627\u0644\u0645\u062a\u062c\u0631 \u0644\u0644\u0645\u0634\u062a\u0631\u064a\u0646.'}
+                                    {dict.addItem.successDesc}
                                 </p>
                             </div>
                             <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-200 dark:border-amber-800">
                                 <div className="flex items-center gap-3 justify-center">
                                     <CheckCircle2 className="text-amber-500" size={18} />
                                     <span className="text-sm font-bold text-amber-700 dark:text-amber-300">
-                                        {'\u0639\u0627\u062f\u0629\u064b \u0628\u062a\u062a\u0645 \u0627\u0644\u0645\u0631\u0627\u062c\u0639\u0629 \u062e\u0644\u0627\u0644 \u062f\u0642\u0627\u0626\u0642'}
+                                        {dict.addItem.successNote}
                                     </span>
                                 </div>
                             </div>
@@ -242,7 +242,7 @@ export default function SellPage() {
                                     onClick={() => router.push('/dashboard')}
                                     className="flex-1 bg-primary hover:bg-primary-700 text-white py-3 rounded-xl font-bold transition-all"
                                 >
-                                    {'\u0627\u0644\u0630\u0647\u0627\u0628 \u0644\u0644\u0645\u062a\u062c\u0631'}
+                                    {dict.addItem.goToStoreBtn}
                                 </button>
                                 <button
                                     onClick={() => {
@@ -255,7 +255,7 @@ export default function SellPage() {
                                     }}
                                     className="flex-1 border-2 border-slate-300 dark:border-slate-600 py-3 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
                                 >
-                                    {'\u0625\u0636\u0627\u0641\u0629 \u0645\u0646\u062a\u062c \u0622\u062e\u0631'}
+                                    {dict.addItem.addAnotherBtn}
                                 </button>
                             </div>
                         </motion.div>
@@ -313,7 +313,7 @@ export default function SellPage() {
                                                 </div>
                                                 <div>
                                                     <p className="font-bold mb-1">{dict.addItem.uploadImages}</p>
-                                                    <p className="text-sm text-slate-500 dark:text-slate-400">اسحب الصور هنا أو اضغط للاختيار</p>
+                                                    <p className="text-sm text-slate-500 dark:text-slate-400">{dict.addItem.dragDrop}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -341,14 +341,14 @@ export default function SellPage() {
                                         {classifying && (
                                             <div className="flex items-center justify-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
                                                 <Loader2 className="animate-spin text-blue-500" size={18} />
-                                                <span className="text-blue-600 dark:text-blue-400 text-sm font-bold">جاري تحليل الصورة بالذكاء الاصطناعي...</span>
+                                                <span className="text-blue-600 dark:text-blue-400 text-sm font-bold">{dict.addItem.aiAnalyzing}</span>
                                             </div>
                                         )}
                                         {aiCategory && !classifying && (
                                             <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
                                                 <Bot className="text-green-500" size={18} />
                                                 <span className="text-green-700 dark:text-green-400 text-sm font-bold">
-                                                    تم التصنيف: {aiCategory.category_label} ({Math.round(aiCategory.confidence * 100)}%)
+                                                    {dict.addItem.classified} {aiCategory.category_label} ({Math.round(aiCategory.confidence * 100)}%)
                                                 </span>
                                             </div>
                                         )}
@@ -358,7 +358,7 @@ export default function SellPage() {
                                             disabled={imagePreviews.length === 0 || classifying}
                                             className="w-full bg-primary hover:bg-primary-700 text-white py-4 rounded-xl font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            التالي
+                                            {dict.addItem.next}
                                         </button>
                                     </motion.div>
                                 )}
@@ -410,7 +410,7 @@ export default function SellPage() {
                                                         <span className="mr-2 text-green-600 dark:text-green-400 text-[10px]">🤖 AI</span>
                                                     )}
                                                     {(!aiCategory || aiCategory.category === 'other') && formData.category && formData.category !== 'other' && (
-                                                        <span className="mr-2 text-blue-600 dark:text-blue-400 text-[10px]">✨ تم تخمينه من العنوان</span>
+                                                        <span className="mr-2 text-blue-600 dark:text-blue-400 text-[10px]">{dict.addItem.aiGuessed}</span>
                                                     )}
                                                 </label>
                                                 <select
@@ -423,15 +423,15 @@ export default function SellPage() {
                                                             : 'border-slate-200 dark:border-slate-700'
                                                         }`}
                                                 >
-                                                    <option value="">اختر التصنيف</option>
-                                                    <option value="appliances">أجهزة منزلية</option>
-                                                    <option value="scrap_metals">خردة ومعادن</option>
-                                                    <option value="electronics">إلكترونيات وأجهزة</option>
-                                                    <option value="furniture">أثاث وديكور</option>
-                                                    <option value="cars">سيارات للبيع</option>
-                                                    <option value="real_estate">عقارات</option>
-                                                    <option value="books">كتب</option>
-                                                    <option value="other">أخرى</option>
+                                                    <option value="">{dict.addItem.selectCategory}</option>
+                                                    <option value="appliances">{dict.categories.appliances}</option>
+                                                    <option value="scrap_metals">{dict.categories.scrap}</option>
+                                                    <option value="electronics">{dict.categories.electronics}</option>
+                                                    <option value="furniture">{dict.categories.furniture}</option>
+                                                    <option value="cars">{dict.categories.cars}</option>
+                                                    <option value="real_estate">{dict.categories.real_estate}</option>
+                                                    <option value="books">{dict.categories.books}</option>
+                                                    <option value="other">{dict.categories.other}</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -439,19 +439,19 @@ export default function SellPage() {
 
                                         {/* Phone Number */}
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">رقم الهاتف للتواصل</label>
+                                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">{dict.addItem.phoneNumber}</label>
                                             <input
                                                 type="tel"
                                                 value={formData.phone_number}
                                                 onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-                                                placeholder="مثلاً: 010xxxxxxxx"
+                                                placeholder={dict.addItem.phonePlaceholder}
                                                 className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900"
                                             />
                                         </div>
 
                                         {/* Listing Type Toggle */}
                                         <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-700">
-                                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">نوع الإعلان</label>
+                                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">{dict.addItem.listingType}</label>
                                             <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
                                                 <button
                                                     type="button"
@@ -461,7 +461,7 @@ export default function SellPage() {
                                                         : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'
                                                         }`}
                                                 >
-                                                    بيع مباشر
+                                                    {dict.addItem.directSell}
                                                 </button>
                                                 <button
                                                     type="button"
@@ -471,7 +471,7 @@ export default function SellPage() {
                                                         : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'
                                                         }`}
                                                 >
-                                                    مزاد علني
+                                                    {dict.addItem.auction}
                                                 </button>
                                             </div>
 
@@ -483,7 +483,7 @@ export default function SellPage() {
                                                     className="mt-4"
                                                 >
                                                     <div>
-                                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">تاريخ ووقت انتهاء المزاد</label>
+                                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">{dict.addItem.auctionEndTime}</label>
                                                         <input
                                                             type="datetime-local"
                                                             value={formData.auction_end_time}
@@ -491,18 +491,18 @@ export default function SellPage() {
                                                             min={getCurrentLocalTime()}
                                                             className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900 ltr-input"
                                                         />
-                                                        <p className="text-xs text-slate-400 mt-2">⏱️ المزاد سيبدأ فوراً بعد نشر الإعلان</p>
+                                                        <p className="text-xs text-slate-400 mt-2">{dict.addItem.auctionStartNote}</p>
                                                     </div>
                                                 </motion.div>
                                             )}
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">الموقع</label>
+                                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">{dict.addItem.location}</label>
                                             <input
                                                 type="text"
                                                 value={formData.location}
                                                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                                placeholder="مثلاً: القاهرة، مدينة نصر"
+                                                placeholder={dict.addItem.locationPlaceholder}
                                                 className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900"
                                             />
                                         </div>
@@ -517,14 +517,14 @@ export default function SellPage() {
                                                 onClick={() => setStep(1)}
                                                 className="flex-1 border-2 border-slate-300 dark:border-slate-700 py-4 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
                                             >
-                                                السابق
+                                                {dict.addItem.previous}
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={handleNextStep}
                                                 className="flex-1 bg-primary hover:bg-primary-700 text-white py-4 rounded-xl font-bold transition-all shadow-md hover:shadow-lg"
                                             >
-                                                التالي
+                                                {dict.addItem.next}
                                             </button>
                                         </div>
                                     </motion.div>
@@ -539,24 +539,24 @@ export default function SellPage() {
                                         className="space-y-4"
                                     >
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">الحالة</label>
+                                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">{dict.addItem.condition}</label>
                                             <select
                                                 value={formData.condition}
                                                 onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
                                                 className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900"
                                             >
-                                                <option value="new">جديد</option>
-                                                <option value="like-new">كالجديد</option>
-                                                <option value="good">جيد</option>
-                                                <option value="fair">مقبول</option>
+                                                <option value="new">{dict.product.conditionNew}</option>
+                                                <option value="like-new">{dict.product.conditionLikeNew}</option>
+                                                <option value="good">{dict.product.conditionGood}</option>
+                                                <option value="fair">{dict.product.conditionFair}</option>
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">الوصف</label>
+                                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">{dict.addItem.description}</label>
                                             <textarea
                                                 value={formData.description}
                                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                                placeholder="اكتب وصف مفصل للمنتج..."
+                                                placeholder={dict.addItem.descriptionPlaceholder}
                                                 rows={5}
                                                 className="w-full border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900 resize-none"
                                             />
@@ -564,7 +564,7 @@ export default function SellPage() {
                                         <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl flex items-start gap-3 border border-amber-200 dark:border-amber-800">
                                             <Clock className="text-amber-500 flex-shrink-0 mt-1" size={20} />
                                             <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                                                منتجك هيتراجع من فريق الإدارة قبل ما يظهر للمشترين. هتوصلك إشعار لما يتم قبول إعلانك.
+                                                {dict.addItem.pendingReviewDesc}
                                             </p>
                                         </div>
                                         {error && (
@@ -578,7 +578,7 @@ export default function SellPage() {
                                                 onClick={() => setStep(2)}
                                                 className="flex-1 border-2 border-slate-300 dark:border-slate-700 py-4 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
                                             >
-                                                السابق
+                                                {dict.addItem.previous}
                                             </button>
                                             <button
                                                 type="submit"
@@ -586,7 +586,7 @@ export default function SellPage() {
                                                 className="flex-1 bg-primary hover:bg-primary-700 text-white py-4 rounded-xl font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                             >
                                                 {submitting && <Loader2 className="animate-spin" size={20} />}
-                                                {submitting ? 'جار النشر...' : dict.addItem.publish}
+                                                {submitting ? dict.addItem.publishing : dict.addItem.publish}
                                             </button>
                                         </div>
                                     </motion.div>

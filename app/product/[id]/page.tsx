@@ -22,12 +22,12 @@ const categoryLabels: Record<string, string> = {
     other: 'أخرى',
 };
 
-const conditionLabels: Record<string, string> = {
-    'new': 'جديد',
-    'like-new': 'كالجديد',
-    'good': 'جيد',
-    'fair': 'مقبول',
-};
+const conditionLabels = (dict: any): Record<string, string> => ({
+    'new': dict.product.conditionNew,
+    'like-new': dict.product.conditionLikeNew,
+    'good': dict.product.conditionGood,
+    'fair': dict.product.conditionFair,
+});
 
 export default function ProductPage() {
     const params = useParams();
@@ -131,7 +131,7 @@ export default function ProductPage() {
     };
 
     const handleDelete = async () => {
-        if (!confirm('هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+        if (!confirm(dict.product.confirmDelete)) return;
 
         setDeleting(true);
         try {
@@ -139,14 +139,14 @@ export default function ProductPage() {
             router.push('/dashboard');
         } catch (err: any) {
             console.error('Error deleting product:', err);
-            alert('Fشل في حذف المنتج: ' + (err.message || 'Error occurred'));
+            alert(`${dict.product.deleteFailed} ` + (err.message || 'Error occurred'));
             setDeleting(false);
         }
     };
 
     const handlePurchase = async () => {
         if (!user) { router.push('/login'); return; }
-        if (!confirm('هل أنت متأكد من شراء هذا المنتج؟ سيتم خصم المبلغ من رصيدك.')) return;
+        if (!confirm(dict.product.confirmPurchase)) return;
 
         setPurchasing(true);
         setPurchaseError(null);
@@ -170,7 +170,7 @@ export default function ProductPage() {
             if (err?.response?.data?.insufficient_balance) {
                 setPurchaseInsufficientBalance(true);
             } else {
-                setPurchaseError(err.message || 'فشل الشراء');
+                setPurchaseError(err.message || dict.product.purchaseFailed);
             }
         } finally {
             setPurchasing(false);
@@ -271,7 +271,7 @@ export default function ProductPage() {
                             {/* Title & Category */}
                             <div>
                                 <span className="inline-block bg-primary-100 dark:bg-primary-900/30 text-accent-700 dark:text-accent-300 px-3 py-1 rounded-lg text-xs font-bold mb-3">
-                                    {categoryLabels[product.category] || product.category}
+                                    {dict.categories[product.category] || categoryLabels[product.category] || product.category}
                                 </span>
                                 <div className="flex justify-between items-start gap-4">
                                     <h1 className="text-3xl md:text-4xl font-black mb-3">{product.title}</h1>
@@ -279,18 +279,18 @@ export default function ProductPage() {
                                         {product.status === 'sold' && (
                                             <span className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-xs px-3 py-1.5 rounded-lg font-bold border border-red-200 dark:border-red-800 flex items-center gap-1">
                                                 <Tag size={12} />
-                                                تم البيع
+                                                {dict.product.sold}
                                             </span>
                                         )}
                                         {product.status === 'pending' && (
                                             <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs px-3 py-1.5 rounded-lg font-bold border border-amber-200 dark:border-amber-800 flex items-center gap-1">
                                                 <Clock size={12} />
-                                                قيد المراجعة
+                                                {dict.product.pending}
                                             </span>
                                         )}
                                         {isOwner && (
                                             <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-md font-bold border border-blue-200">
-                                                منتجك
+                                                {dict.product.yourProduct}
                                             </span>
                                         )}
                                     </div>
@@ -299,7 +299,7 @@ export default function ProductPage() {
                                 {/* Location */}
                                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                                     <MapPin size={16} />
-                                    <span className="text-sm font-semibold">{product.location || 'غير محدد'}</span>
+                                    <span className="text-sm font-semibold">{product.location || dict.product.unspecifiedLocation}</span>
                                 </div>
                             </div>
 
@@ -309,12 +309,12 @@ export default function ProductPage() {
                             {/* Condition */}
                             <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
                                 <div className="flex-1">
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mb-1">الحالة</p>
-                                    <p className="font-bold">{conditionLabels[product.condition] || product.condition}</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mb-1">{dict.product.condition}</p>
+                                    <p className="font-bold">{conditionLabels(dict)[product.condition] || product.condition}</p>
                                 </div>
                                 <div className="flex-1">
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mb-1">التصنيف</p>
-                                    <p className="font-bold">{categoryLabels[product.category] || product.category}</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mb-1">{dict.product.category}</p>
+                                    <p className="font-bold">{dict.categories[product.category] || categoryLabels[product.category] || product.category}</p>
                                 </div>
                             </div>
 
@@ -323,7 +323,7 @@ export default function ProductPage() {
                                 <>
                                     <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
                                         <p className="text-slate-500 dark:text-slate-400 text-xs uppercase font-bold mb-2">
-                                            {product.auction.is_active ? 'المزايدة الحالية' : 'السعر النهائي'}
+                                            {product.auction.is_active ? dict.product.currentBid : dict.product.finalPrice}
                                         </p>
                                         <p className="text-4xl md:text-5xl font-black text-accent">
                                             {parseFloat(product.auction.current_bid || product.price).toLocaleString()}
@@ -331,7 +331,7 @@ export default function ProductPage() {
                                         </p>
                                         {product.auction.total_bids !== undefined && (
                                             <p className="text-xs text-slate-500 mt-2">
-                                                {product.auction.total_bids} مزايدة
+                                                {product.auction.total_bids} {dict.product.bidsCount}
                                             </p>
                                         )}
                                     </div>
@@ -341,10 +341,10 @@ export default function ProductPage() {
                                         <AuctionTimer endTime={product.auction.end_time} />
                                     ) : (
                                         <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-center">
-                                            <p className="text-red-600 dark:text-red-400 font-bold text-lg mb-1">🔴 المزاد انتهى</p>
+                                            <p className="text-red-600 dark:text-red-400 font-bold text-lg mb-1">{dict.product.auctionEnded}</p>
                                             {product.auction.highest_bidder_name && (
                                                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                                                    الفائز: <span className="font-bold text-accent">{product.auction.highest_bidder_name}</span>
+                                                    {dict.product.winner} <span className="font-bold text-accent">{product.auction.highest_bidder_name}</span>
                                                 </p>
                                             )}
                                         </div>
@@ -354,7 +354,7 @@ export default function ProductPage() {
                                     {!isOwner && product.status === 'pending' && (
                                         <div className="flex-1 bg-amber-50 dark:bg-amber-900/10 text-amber-600 py-4 rounded-xl font-bold flex items-center justify-center gap-2 cursor-not-allowed border border-amber-200 dark:border-amber-800 text-center px-4">
                                             <Clock size={20} />
-                                            المنتج قيد المراجعة ولن يظهر للمشترين في المتجر حتى تتم الموافقة عليه
+                                            {dict.product.pendingApprovalMsg}
                                         </div>
                                     )}
 
@@ -364,7 +364,7 @@ export default function ProductPage() {
                                             {bidSuccess && (
                                                 <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
                                                     <p className="text-green-600 dark:text-green-400 text-sm text-center font-bold">
-                                                        تم تقديم المزايدة بنجاح! ✓
+                                                        {dict.product.bidSuccess}
                                                     </p>
                                                 </div>
                                             )}
@@ -375,7 +375,7 @@ export default function ProductPage() {
                                                         <div className="text-center mt-3">
                                                             <Link href="/payment">
                                                                 <button className="bg-primary hover:bg-primary/90 text-white px-5 py-2 rounded-lg font-bold text-sm transition-all shadow-sm hover:shadow-md">
-                                                                    💰 اشحن محفظتك
+                                                                    {dict.product.topUpWalletBtn}
                                                                 </button>
                                                             </Link>
                                                         </div>
@@ -387,7 +387,7 @@ export default function ProductPage() {
                                                     type="number"
                                                     value={bidAmount}
                                                     onChange={(e) => setBidAmount(e.target.value)}
-                                                    placeholder="أدخل قيمة المزايدة"
+                                                    placeholder={dict.product.enterBidPlaceholder}
                                                     className="flex-1 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-slate-900"
                                                 />
                                                 <button
@@ -396,7 +396,7 @@ export default function ProductPage() {
                                                     className="bg-primary hover:bg-primary-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                                 >
                                                     {bidding && <Loader2 className="animate-spin" size={18} />}
-                                                    {bidding ? 'جار المزایدة...' : 'زايد الآن'}
+                                                    {bidding ? dict.product.biddingProgress : dict.product.bidNow}
                                                 </button>
                                             </div>
                                         </div>
@@ -407,13 +407,13 @@ export default function ProductPage() {
                                         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm">
                                             <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex justify-between items-center">
                                                 <h3 className="font-bold text-sm flex items-center gap-2">
-                                                    المزايدين
+                                                    {dict.product.bidders}
                                                 </h3>
                                                 <button 
                                                     onClick={() => setShowBidHistory(true)}
                                                     className="text-xs bg-primary/10 text-primary hover:bg-primary/20 px-3 py-1.5 rounded-lg font-bold transition-colors"
                                                 >
-                                                    سجل المزادات
+                                                    {dict.product.bidHistory}
                                                 </button>
                                             </div>
                                             <div className="max-h-64 overflow-y-auto">
@@ -421,7 +421,7 @@ export default function ProductPage() {
                                                     const uniqueBidders = new Map();
                                                     product.auction.bids.forEach((bid: any) => {
                                                         const currentAmount = parseFloat(bid.amount);
-                                                        const name = bid.bidder_name || 'مستخدم';
+                                                        const name = bid.bidder_name || dict.product.unknownUser;
                                                         if (!uniqueBidders.has(name) || uniqueBidders.get(name).amount < currentAmount) {
                                                             uniqueBidders.set(name, { ...bid, amount: currentAmount });
                                                         }
@@ -438,10 +438,10 @@ export default function ProductPage() {
                                                                 </div>
                                                                 <div>
                                                                     <p className={`text-sm font-bold ${index === 0 ? 'text-orange-600' : ''}`}>
-                                                                        {bid.bidder_name || 'مستخدم'}
+                                                                        {bid.bidder_name || dict.product.unknownUser}
                                                                     </p>
                                                                     {index === 0 && (
-                                                                        <p className="text-[10px] text-orange-500 font-bold mt-0.5">المتصدر الحالي</p>
+                                                                        <p className="text-[10px] text-orange-500 font-bold mt-0.5">{dict.product.currentLeader}</p>
                                                                     )}
                                                                 </div>
                                                             </div>
@@ -473,7 +473,7 @@ export default function ProductPage() {
                             {/* Seller Info */}
                             {product.owner && !isOwner && (
                                 <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl transition-colors">
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mb-3">البائع</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mb-3">{dict.product.seller}</p>
                                     <Link href={`/user/${product.owner.id}`} className="flex items-center gap-3 group">
                                         <img
                                             src={product.owner_profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${product.owner.username}`}
@@ -509,7 +509,7 @@ export default function ProductPage() {
                                         className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                                     >
                                         <Edit size={20} />
-                                        تعديل الإعلان
+                                        {dict.product.editListing}
                                     </button>
                                     <button
                                         onClick={handleDelete}
@@ -517,7 +517,7 @@ export default function ProductPage() {
                                         className="flex-1 bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
                                     >
                                         {deleting ? <Loader2 className="animate-spin" size={20} /> : <Trash2 size={20} />}
-                                        حذف المنتج
+                                        {dict.product.deleteProduct}
                                     </button>
                                 </div>
                             ) : (
@@ -526,7 +526,7 @@ export default function ProductPage() {
                                     {purchaseSuccess && (
                                         <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
                                             <p className="text-green-600 dark:text-green-400 text-sm text-center font-bold">
-                                                🎉 تم شراء المنتج بنجاح! تواصل مع البائع لإتمام التسليم.
+                                                {dict.product.purchaseSuccess}
                                             </p>
                                         </div>
                                     )}
@@ -535,12 +535,12 @@ export default function ProductPage() {
                                     {purchaseInsufficientBalance && (
                                         <div className="p-5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl flex flex-col items-center justify-center gap-3">
                                             <p className="text-amber-800 dark:text-amber-400 font-bold text-center">
-                                                عفواً، رصيد محفظتك غير كافي لإتمام هذه العملية.
+                                                {dict.product.insufficientBalance}
                                             </p>
                                             <Link href="/payment" className="w-full sm:w-auto">
                                                 <button className="w-full sm:w-auto px-8 bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-lg font-bold transition-all shadow-sm flex items-center justify-center gap-2">
                                                     <Wallet size={18} />
-                                                    شحن المحفظة الآن
+                                                    {dict.product.topUpWalletNow}
                                                 </button>
                                             </Link>
                                         </div>
@@ -562,7 +562,7 @@ export default function ProductPage() {
                                                 className="flex-1 bg-primary hover:bg-primary-700 text-white py-4 rounded-xl font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 {purchasing ? <Loader2 className="animate-spin" size={20} /> : <ShoppingCart size={20} />}
-                                                {purchasing ? 'جاري الشراء...' : `شراء الآن (${parseFloat(product.price).toLocaleString()} ${dict.currency})`}
+                                                {purchasing ? dict.product.purchasingProgress : `${dict.product.buyNow} (${parseFloat(product.price).toLocaleString()} ${dict.currency})`}
                                             </button>
                                         )}
 
@@ -570,7 +570,7 @@ export default function ProductPage() {
                                         {product.status === 'sold' && !product.is_auction && (
                                             <div className="flex-1 bg-slate-100 dark:bg-slate-800 text-slate-500 py-4 rounded-xl font-bold flex items-center justify-center gap-2 cursor-not-allowed border border-slate-200 dark:border-slate-700">
                                                 <Tag size={20} />
-                                                تم بيع هذا المنتج
+                                                {dict.product.productSoldMsg}
                                             </div>
                                         )}
 
@@ -578,7 +578,7 @@ export default function ProductPage() {
                                         {product.status === 'pending' && (
                                             <div className="flex-1 bg-amber-50 dark:bg-amber-900/10 text-amber-600 py-4 rounded-xl font-bold flex items-center justify-center gap-2 cursor-not-allowed border border-amber-200 dark:border-amber-800 text-center px-4">
                                                 <Clock size={20} />
-                                                المنتج قيد المراجعة ولن يظهر للمشترين في المتجر حتى تتم الموافقة عليه
+                                                {dict.product.pendingApprovalMsg}
                                             </div>
                                         )}
 
@@ -614,7 +614,7 @@ export default function ProductPage() {
                         <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
                             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
                                 <h3 className="font-bold text-lg flex items-center gap-2">
-                                    📋 سجل المزادات ({product.auction.bids?.length || 0})
+                                    {dict.product.bidHistoryTitle} ({product.auction.bids?.length || 0})
                                 </h3>
                                 <button 
                                     onClick={() => setShowBidHistory(false)} 
@@ -635,7 +635,7 @@ export default function ProductPage() {
                                                 <div className="flex items-center gap-3">
                                                     <div>
                                                         <p className="text-sm font-bold">
-                                                            {bid.bidder_name || 'مستخدم'}
+                                                            {bid.bidder_name || dict.product.unknownUser}
                                                         </p>
                                                         <p className="text-xs text-slate-500 mt-1">
                                                             {new Date(bid.created_at).toLocaleString('ar-EG', {
@@ -652,7 +652,7 @@ export default function ProductPage() {
                                         ))
                                 ) : (
                                     <div className="p-8 text-center text-slate-500">
-                                        لا توجد مزايدات حتى الآن
+                                        {dict.product.noBids}
                                     </div>
                                 )}
                             </div>

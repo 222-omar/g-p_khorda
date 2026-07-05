@@ -292,7 +292,7 @@ export default function MessagesPage() {
                                             {selectedConversation.other_participant?.username || dict.messages.unknownUser}
                                         </h2>
                                         <div className="flex items-center gap-1.5 mt-0.5 justify-end">
-                                            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">نشط الآن</span>
+                                            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">{dict.messages.activeNow}</span>
                                             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                                         </div>
                                     </div>
@@ -313,7 +313,7 @@ export default function MessagesPage() {
                                         </div>
                                         <div className="text-right">
                                             <p className="text-[10px] font-bold text-slate-800 dark:text-slate-100 truncate max-w-[140px] leading-tight">{selectedConversation.product_title}</p>
-                                            <p className="text-[9px] text-[#1F8A3B] font-extrabold uppercase leading-tight mt-0.5">عرض المنتج</p>
+                                            <p className="text-[9px] text-[#1F8A3B] font-extrabold uppercase leading-tight mt-0.5">{dict.messages.viewProduct}</p>
                                         </div>
                                     </Link>
 
@@ -332,7 +332,7 @@ export default function MessagesPage() {
                                                         onClick={handleDeleteConversation}
                                                         className="w-full flex items-center justify-end gap-2.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
                                                     >
-                                                        <span>حذف المحادثة</span>
+                                                        <span>{dict.messages.deleteConversation}</span>
                                                         <Trash2 size={16} />
                                                     </button>
                                                 </div>
@@ -448,7 +448,7 @@ export default function MessagesPage() {
                                             value={newMessage}
                                             onChange={(e) => setNewMessage(e.target.value)}
                                             onKeyDown={handleKeyDown}
-                                            placeholder="اكتب رسالتك هنا..."
+                                            placeholder={dict.messages.typePlaceholder}
                                             className="w-full bg-transparent border-none focus:ring-0 text-sm py-2 px-1 outline-none resize-none min-h-[40px] text-slate-800 dark:text-slate-100 font-cairo"
                                             dir="rtl"
                                         />
@@ -491,23 +491,23 @@ export default function MessagesPage() {
 
                             {/* Headline */}
                             <h2 className="font-cairo font-black text-2xl md:text-[32px] text-[#101828] dark:text-white text-center leading-none">
-                                مرحباً بك في <span className="text-[#1F8A3B]">المحادثات</span>
+                                {dict.messages.welcomeTitle}
                             </h2>
                             
                             {/* Subtitle */}
                             <p className="font-cairo text-[#667085] dark:text-slate-400 text-[14px] md:text-[15px] leading-[1.8] text-center mt-4 max-w-[460px]">
-                                اختر محادثة من القائمة على اليمين لبدء الدردشة مع المشترين أو البائعين. جميع محادثاتك محمية وخاصة.
+                                {dict.messages.welcomeDesc}
                             </p>
 
                             {/* Bottom tag pills */}
                             <div className="flex flex-wrap gap-3.5 justify-center mt-10">
                                 <div className="bg-[#F2FBF5] dark:bg-green-950/20 text-[#1F8A3B] border border-[#1F8A3B]/10 rounded-full px-5 py-2.5 text-xs md:text-sm font-bold flex items-center gap-1.5 shadow-sm">
                                     <Zap size={14} className="fill-current text-[#43A047]" />
-                                    سريع وموثوق
+                                    {dict.messages.fast}
                                 </div>
                                 <div className="bg-[#F2FBF5] dark:bg-green-950/20 text-[#1F8A3B] border border-[#1F8A3B]/10 rounded-full px-5 py-2.5 text-xs md:text-sm font-bold flex items-center gap-1.5 shadow-sm">
                                     <Lock size={14} className="fill-current text-[#1F8A3B]" />
-                                    آمن تماماً
+                                    {dict.messages.secure}
                                 </div>
                             </div>
                         </div>
@@ -519,7 +519,7 @@ export default function MessagesPage() {
                     
                     {/* Header: Title & Actions */}
                     <div className="px-6 pt-6 pb-3 flex-shrink-0 flex items-center justify-between">
-                        <h2 className="font-cairo font-black text-2xl text-[#101828] dark:text-white">المحادثات</h2>
+                        <h2 className="font-cairo font-black text-2xl text-[#101828] dark:text-white">{dict.messages.title}</h2>
                         <button className="w-10 h-10 rounded-full hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 transition-colors">
                             <MoreVertical size={18} />
                         </button>
@@ -533,7 +533,7 @@ export default function MessagesPage() {
                                 type="text" 
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="بحث في المحادثات..." 
+                                placeholder={dict.messages.searchPlaceholder} 
                                 className="w-full bg-transparent border-none focus:ring-0 text-sm px-2.5 outline-none font-cairo text-[#101828] dark:text-white"
                                 dir="rtl"
                             />
@@ -550,7 +550,7 @@ export default function MessagesPage() {
                                     : 'bg-slate-50 dark:bg-slate-700/50 text-[#667085] hover:bg-slate-100 hover:text-[#101828]'
                             }`}
                         >
-                            الكل
+                            {dict.messages.all}
                         </button>
                         <button
                             onClick={() => setFilter('unread')}
@@ -560,7 +560,7 @@ export default function MessagesPage() {
                                     : 'bg-slate-50 dark:bg-slate-700/50 text-[#667085] hover:bg-slate-100 hover:text-[#101828]'
                             }`}
                         >
-                            غير مقرودة
+                            {dict.messages.unread}
                         </button>
                         <button
                             onClick={() => setFilter('favorites')}
@@ -570,7 +570,7 @@ export default function MessagesPage() {
                                     : 'bg-slate-50 dark:bg-slate-700/50 text-[#667085] hover:bg-slate-100 hover:text-[#101828]'
                             }`}
                         >
-                            المفضلة
+                            {dict.messages.favorites}
                         </button>
                     </div>
 
@@ -579,13 +579,13 @@ export default function MessagesPage() {
                         {loading ? (
                             <div className="flex flex-col items-center justify-center py-16 gap-3">
                                 <Loader2 className="animate-spin text-[#1F8A3B]" size={28} />
-                                <p className="text-xs text-slate-400 font-cairo">جاري تحميل المحادثات...</p>
+                                <p className="text-xs text-slate-400 font-cairo">{dict.messages.loading}</p>
                             </div>
                         ) : filteredConversations.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20 text-center px-4">
                                 <MessageCircle size={36} className="text-slate-300 dark:text-slate-600 mb-3" />
-                                <h3 className="font-bold text-sm text-[#101828] dark:text-slate-200">لا توجد محادثات</h3>
-                                <p className="text-xs text-slate-500 mt-1">المحادثات الخاصة بك ستظهر هنا بمجرد بدئها.</p>
+                                <h3 className="font-bold text-sm text-[#101828] dark:text-slate-200">{dict.messages.noConversations}</h3>
+                                <p className="text-xs text-slate-500 mt-1">{dict.messages.noConversationsDesc}</p>
                             </div>
                         ) : (
                             filteredConversations.map(conv => {
@@ -626,7 +626,7 @@ export default function MessagesPage() {
                                             </div>
 
                                             <p className={`text-xs truncate ${conv.unread_count > 0 ? 'text-[#101828] dark:text-white font-extrabold' : 'text-slate-500 dark:text-slate-400'}`}>
-                                                {conv.last_message?.content || 'ابدأ المحادثة الآن...'}
+                                                {conv.last_message?.content || dict.messages.startChat}
                                             </p>
                                         </div>
 

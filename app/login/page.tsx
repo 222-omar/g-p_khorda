@@ -77,7 +77,7 @@ export default function LoginPage() {
                     transition={{ delay: 0.1 }}
                     className="flex justify-center mb-8"
                 >
-                    <Logo />
+                    <Logo className="scale-125 md:scale-150 transform transition-transform" />
                 </motion.div>
 
                 {/* Login Card */}

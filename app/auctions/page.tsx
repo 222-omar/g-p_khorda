@@ -12,7 +12,7 @@ import { motion } from 'framer-motion';
 import { auctionsAPI } from '@/lib/api';
 import { SidebarFilters } from '@/components/ui/sidebar-filters';
 
-function CountdownTimer({ endTime }: { endTime: string }) {
+function CountdownTimer({ endTime, dict }: { endTime: string, dict: any }) {
     const [timeLeft, setTimeLeft] = useState('');
     const [isUrgent, setIsUrgent] = useState(false);
 
@@ -23,7 +23,7 @@ function CountdownTimer({ endTime }: { endTime: string }) {
             const diff = end - now;
 
             if (diff <= 0) {
-                setTimeLeft('انتهى');
+                setTimeLeft(dict.auctions.ended);
                 setIsUrgent(true);
                 return;
             }
@@ -36,11 +36,11 @@ function CountdownTimer({ endTime }: { endTime: string }) {
             setIsUrgent(diff < 1000 * 60 * 60); // Less than 1 hour
 
             if (days > 0) {
-                setTimeLeft(`${days}ي ${hours}س ${minutes}د`);
+                setTimeLeft(`${days}${dict.auctions.days} ${hours}${dict.auctions.hours} ${minutes}${dict.auctions.minutes}`);
             } else if (hours > 0) {
-                setTimeLeft(`${hours}س ${minutes}د ${seconds}ث`);
+                setTimeLeft(`${hours}${dict.auctions.hours} ${minutes}${dict.auctions.minutes} ${seconds}${dict.auctions.seconds}`);
             } else {
-                setTimeLeft(`${minutes}د ${seconds}ث`);
+                setTimeLeft(`${minutes}${dict.auctions.minutes} ${seconds}${dict.auctions.seconds}`);
             }
         };
 
@@ -123,12 +123,15 @@ export default function AuctionsPage() {
                 const bEnded = isEnded(b);
                 if (aEnded && !bEnded) return 1;
                 if (!aEnded && bEnded) return -1;
-                return 0;
+                
+                const aDate = new Date(a.created_at || 0).getTime();
+                const bDate = new Date(b.created_at || 0).getTime();
+                return bDate - aDate;
             });
             setAuctions(sorted);
         } catch (err: any) {
             console.error('Error fetching auctions:', err);
-            setError(err.message || 'فشل في تحميل المزادات');
+            setError(err.message || dict.auctions.loadFailed);
         } finally {
             setLoading(false);
         }
@@ -172,10 +175,10 @@ export default function AuctionsPage() {
                     >
                         <div>
                             <h2 className="text-[32px] md:text-[40px] font-black text-slate-900 dark:text-white leading-tight">
-                                🔥 المزادات
+                                {dict.auctions.title}
                             </h2>
                             <p className="text-slate-500 dark:text-slate-400 text-[16px] mt-2 font-medium">
-                                زايد الآن واحصل على أفضل الأسعار
+                                {dict.auctions.subtitle}
                             </p>
                         </div>
 
@@ -184,7 +187,7 @@ export default function AuctionsPage() {
                             <div className="relative max-w-md w-full shadow-[0_8px_30px_rgba(0,0,0,0.04)] rounded-[20px]">
                                 <input
                                     type="text"
-                                    placeholder="ابحث في المزادات..."
+                                    placeholder={dict.auctions.searchPlaceholder}
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && fetchAuctions()}
@@ -225,7 +228,7 @@ export default function AuctionsPage() {
                                 onClick={fetchAuctions}
                                 className="bg-primary hover:bg-primary-700 text-white px-6 py-3 rounded-xl font-bold transition-all"
                             >
-                                إعادة المحاولة
+                                {dict.auctions.retryBtn}
                             </button>
                         </div>
                     )}
@@ -246,7 +249,7 @@ export default function AuctionsPage() {
                                 <div className="lg:col-span-3">
                                     {/* Premium Sort Bar (Visual Only for now) */}
                                     <div className="flex items-center gap-3 overflow-x-auto pb-6 scrollbar-hide">
-                                        {['الأحدث', 'ينتهي قريباً', 'الأعلى سعراً', 'الأقل سعراً', 'الأكثر نشاطاً'].map((sort, idx) => (
+                                        {[dict.auctions.sortLatest, dict.auctions.sortEndingSoon, dict.auctions.sortHighestPrice, dict.auctions.sortLowestPrice, dict.auctions.sortMostActive].map((sort, idx) => (
                                             <button
                                                 key={idx}
                                                 className={`flex items-center gap-2 px-5 h-[42px] rounded-full whitespace-nowrap transition-all font-bold text-[14px] shadow-sm ${
@@ -287,11 +290,11 @@ export default function AuctionsPage() {
                                                         {auction.is_active ? (
                                                             <div className="absolute top-4 right-4 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[12px] px-4 py-1.5 rounded-full font-bold shadow-[0_4px_12px_rgba(249,115,22,0.3)] flex items-center gap-1.5 backdrop-blur-md">
                                                                 <Gavel size={14} />
-                                                                مزاد نشط
+                                                                {dict.auctions.activeBadge}
                                                             </div>
                                                         ) : (
                                                             <div className="absolute top-4 right-4 bg-slate-800/80 dark:bg-black/80 text-white text-[12px] px-4 py-1.5 rounded-full font-bold shadow-md flex items-center gap-1.5 backdrop-blur-md">
-                                                                🔴 المزاد انتهى
+                                                                {dict.auctions.endedBadge}
                                                             </div>
                                                         )}
 
@@ -307,14 +310,14 @@ export default function AuctionsPage() {
                                                         <div className="flex items-center gap-4 mb-4 pb-4 border-b border-slate-100 dark:border-slate-700/50">
                                                             <div className="flex items-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400 font-medium bg-slate-50 dark:bg-slate-800 p-2 rounded-lg flex-1 justify-center">
                                                                 <Users size={14} className="text-blue-500" />
-                                                                {auction.total_bids} مزايد
+                                                                {auction.total_bids} {dict.auctions.bidderCount}
                                                             </div>
                                                             <div className="flex items-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400 font-medium bg-slate-50 dark:bg-slate-800 p-2 rounded-lg flex-1 justify-center">
                                                                 {auction.is_active ? (
-                                                                    <CountdownTimer endTime={auction.end_time} />
+                                                                    <CountdownTimer endTime={auction.end_time} dict={dict} />
                                                                 ) : (
                                                                     <div className="flex items-center gap-1 text-red-500">
-                                                                        <Clock size={12} /> منتهي
+                                                                        <Clock size={12} /> {dict.auctions.ended}
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -323,7 +326,7 @@ export default function AuctionsPage() {
                                                         {/* Price Footer */}
                                                         <div className="flex justify-between items-end mt-auto">
                                                             <div>
-                                                                <span className="text-[12px] text-slate-400 block mb-1 font-medium">السعر الحالي</span>
+                                                                <span className="text-[12px] text-slate-400 block mb-1 font-medium">{dict.auctions.currentPrice}</span>
                                                                 <div className="flex items-baseline gap-1">
                                                                     <span className="text-orange-500 font-black text-[22px] leading-none">
                                                                         {parseFloat(auction.current_bid).toLocaleString()}
@@ -334,7 +337,7 @@ export default function AuctionsPage() {
                                                             <div>
                                                                 {!auction.is_active && auction.highest_bidder_name ? (
                                                                     <div className="text-[12px] bg-green-50 text-green-600 dark:bg-green-900/20 px-3 py-1.5 rounded-full font-bold">
-                                                                        🏆 الفائز: {auction.highest_bidder_name}
+                                                                        {dict.auctions.winner} {auction.highest_bidder_name}
                                                                     </div>
                                                                 ) : (
                                                                     <div className="bg-orange-50 dark:bg-orange-900/20 p-2.5 rounded-xl group-hover:bg-orange-500 transition-colors">
@@ -360,7 +363,7 @@ export default function AuctionsPage() {
                                         onClick={() => setShowAll(!showAll)}
                                         className="bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/20 dark:hover:bg-orange-900/40 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 px-8 py-3 rounded-xl font-bold text-sm transition-all shadow-sm"
                                     >
-                                        {showAll ? 'عرض أقل ▲' : `عرض الكل (${filteredAuctions.length}) ▼`}
+                                        {showAll ? dict.auctions.showLess : `${dict.auctions.showAll} (${filteredAuctions.length}) ▼`}
                                     </motion.button>
                                 </div>
                             )}
@@ -370,11 +373,11 @@ export default function AuctionsPage() {
                                     <div className="bg-slate-100 dark:bg-slate-800 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <Gavel size={32} className="text-slate-400" />
                                     </div>
-                                    <p className="text-slate-400 text-lg mb-2">لا توجد مزادات نشطة حالياً</p>
-                                    <p className="text-slate-400 text-sm mb-6">يمكنك إضافة منتج كمزاد من صفحة البيع</p>
+                                    <p className="text-slate-400 text-lg mb-2">{dict.auctions.noAuctions}</p>
+                                    <p className="text-slate-400 text-sm mb-6">{dict.auctions.noAuctionsDesc}</p>
                                     <Link href="/sell">
                                         <button className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md hover:shadow-lg">
-                                            أضف مزاد جديد
+                                            {dict.auctions.addNewAuctionBtn}
                                         </button>
                                     </Link>
                                 </div>

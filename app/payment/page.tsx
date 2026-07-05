@@ -84,7 +84,7 @@ export default function PaymentPage() {
     const handleTopUp = async () => {
         const amount = getTopUpAmount();
         if (amount <= 0) {
-            setError(isRtl ? 'اختار مبلغ أو ادخل مبلغ مخصص' : 'Select or enter an amount');
+            setError(dict.payment.errSelectAmount);
             return;
         }
 
@@ -99,7 +99,7 @@ export default function PaymentPage() {
         setCardErrors(errors);
         
         if (Object.keys(errors).length > 0) {
-            setError(isRtl ? 'برجاء ملء بيانات البطاقة بالكامل' : 'Please fill in all card details');
+            setError(dict.payment.errFillCard);
             return;
         }
 
@@ -121,7 +121,7 @@ export default function PaymentPage() {
             // Clear success after 4s
             setTimeout(() => setSuccess(null), 4000);
         } catch (err: any) {
-            setError(err.message || 'فشل الشحن');
+            setError(err.message || dict.payment.errTopUpFailed);
         } finally {
             setTopUpLoading(false);
         }
@@ -165,7 +165,7 @@ export default function PaymentPage() {
                         <Link href="/profile">
                             <button className="mb-4 flex items-center gap-2 text-sm font-bold text-accent hover:text-accent/80 transition-colors">
                                 <ArrowRight size={16} className={isRtl ? '' : 'rotate-180'} />
-                                {isRtl ? 'العودة للبروفايل' : 'Back to Profile'}
+                                {dict.payment.backToProfile}
                             </button>
                         </Link>
                         <div className="flex items-center gap-3 mb-2">
@@ -221,7 +221,7 @@ export default function PaymentPage() {
                                         <div>
                                             <p className="font-bold text-emerald-700 dark:text-emerald-300 text-sm">{dict.payment.success}</p>
                                             <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                                                +{(success.amount || 0).toLocaleString()} {dict.currency} → {isRtl ? 'الرصيد الجديد' : 'New balance'}: {(success.newBalance || 0).toLocaleString()} {dict.currency}
+                                                +{(success.amount || 0).toLocaleString()} {dict.currency} → {dict.payment.newBalance}: {(success.newBalance || 0).toLocaleString()} {dict.currency}
                                             </p>
                                         </div>
                                     </motion.div>
@@ -324,7 +324,7 @@ export default function PaymentPage() {
                             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                                 <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
                                     <CreditCard size={16} className="text-accent" />
-                                    {isRtl ? 'بيانات البطاقة' : 'Card Details'}
+                                    {dict.payment.cardDetails}
                                     <span className="text-red-500 text-xs">*</span>
                                 </h3>
 

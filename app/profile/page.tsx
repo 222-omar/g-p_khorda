@@ -69,7 +69,7 @@ export default function ProfilePage() {
             await refreshUser();
         } catch (err) {
             console.error('Failed to update avatar', err);
-            alert('تعذر تحديث الصورة الشخصية');
+            alert(dict.profile.avatarUpdateFailed);
         }
     };
 
@@ -110,8 +110,8 @@ export default function ProfilePage() {
                         transition={{ duration: 0.5 }}
                         className="mb-12"
                     >
-                        <h1 className="text-[32px] md:text-[40px] font-black text-slate-900 dark:text-white mb-3">إحصائيات حسابك</h1>
-                        <p className="text-slate-500 dark:text-slate-400 text-[16px] font-medium">تابع أداء حسابك وإعلاناتك ومبيعاتك في مكان واحد.</p>
+                        <h1 className="text-[32px] md:text-[40px] font-black text-slate-900 dark:text-white mb-3">{dict.profile.accountStatsTitle}</h1>
+                        <p className="text-slate-500 dark:text-slate-400 text-[16px] font-medium">{dict.profile.accountStatsSubtitle}</p>
                     </motion.div>
 
                     <div className="grid lg:grid-cols-12 gap-8">
@@ -182,7 +182,7 @@ export default function ProfilePage() {
                                     
                                     <div className="mt-4 bg-slate-50 dark:bg-slate-900/50 py-2 px-4 rounded-[16px] flex items-center gap-2 border border-slate-100 dark:border-slate-700/50">
                                         <div className="w-2 h-2 rounded-full bg-[#1F8A3B]" />
-                                        <span className="text-[13px] font-bold text-slate-600 dark:text-slate-300">نقاط الثقة {trustScore}%</span>
+                                        <span className="text-[13px] font-bold text-slate-600 dark:text-slate-300">{dict.profile.trustScore} {trustScore}%</span>
                                     </div>
                                 </div>
 
@@ -196,7 +196,7 @@ export default function ProfilePage() {
                                     {[
                                         { icon: Plus, bg: 'group-hover:bg-[#1F8A3B]/10', color: 'group-hover:text-[#1F8A3B]', label: dict.profile.myListings, badge: myListings.length },
                                         { icon: ShoppingCart, bg: 'group-hover:bg-blue-500/10', color: 'group-hover:text-blue-600', label: dict.profile.myPurchases },
-                                        { icon: Heart, bg: 'group-hover:bg-red-500/10', color: 'group-hover:text-red-500', label: 'المفضلة', badge: wishlistItems.length },
+                                        { icon: Heart, bg: 'group-hover:bg-red-500/10', color: 'group-hover:text-red-500', label: dict.profile.wishlist, badge: wishlistItems.length },
                                     ].map((item, i) => (
                                         <motion.button
                                             key={i}
@@ -254,7 +254,7 @@ export default function ProfilePage() {
                                         <div className="bg-slate-50 dark:bg-slate-900/50 group-hover:bg-[#1F8A3B]/10 p-2 rounded-xl text-slate-500 dark:text-slate-400 group-hover:text-[#1F8A3B] transition-colors">
                                             <Plus size={20} strokeWidth={2.5} />
                                         </div>
-                                        <span className="font-bold text-[15px] text-slate-700 dark:text-slate-200 group-hover:text-[#1F8A3B] transition-colors">إضافة إعلان</span>
+                                        <span className="font-bold text-[15px] text-slate-700 dark:text-slate-200 group-hover:text-[#1F8A3B] transition-colors">{dict.profile.addListing}</span>
                                     </button>
                                 </Link>
                                 <Link href="/payment" className="flex-1">
@@ -262,7 +262,7 @@ export default function ProfilePage() {
                                         <div className="bg-slate-50 dark:bg-slate-900/50 group-hover:bg-blue-500/10 p-2 rounded-xl text-slate-500 dark:text-slate-400 group-hover:text-blue-500 transition-colors">
                                             <Wallet size={20} strokeWidth={2.5} />
                                         </div>
-                                        <span className="font-bold text-[15px] text-slate-700 dark:text-slate-200 group-hover:text-blue-500 transition-colors">شحن المحفظة</span>
+                                        <span className="font-bold text-[15px] text-slate-700 dark:text-slate-200 group-hover:text-blue-500 transition-colors">{dict.profile.topUpWallet}</span>
                                     </button>
                                 </Link>
                             </div>
@@ -288,7 +288,7 @@ export default function ProfilePage() {
                                         <Link href="/payment">
                                             <button className="w-full bg-white text-[#166534] hover:bg-emerald-50 py-3.5 rounded-[16px] font-bold text-[15px] flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
                                                 <Plus size={18} strokeWidth={2.5} />
-                                                شحن المحفظة
+                                                {dict.profile.topUpWallet}
                                             </button>
                                         </Link>
                                     </div>
@@ -303,12 +303,12 @@ export default function ProfilePage() {
                                             <Star className="fill-orange-500 text-orange-500" size={28} />
                                         </div>
                                         <div className="text-left">
-                                            <p className="text-[13px] font-bold text-slate-400">تقييم البائع</p>
+                                            <p className="text-[13px] font-bold text-slate-400">{dict.profile.sellerRating}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-baseline gap-3 mb-4">
                                         <p className="text-[36px] font-black text-slate-900 dark:text-white">{profile.seller_rating || 0}</p>
-                                        <p className="text-[14px] font-medium text-slate-500">من 5.0</p>
+                                        <p className="text-[14px] font-medium text-slate-500">{dict.profile.outOf5}</p>
                                     </div>
                                     <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden mb-3">
                                         <motion.div
@@ -318,7 +318,7 @@ export default function ProfilePage() {
                                             transition={{ duration: 1, delay: 0.2 }}
                                         />
                                     </div>
-                                    <p className="text-[14px] text-slate-500 font-medium">بناءً على {profile.total_reviews || 0} مراجعة</p>
+                                    <p className="text-[14px] text-slate-500 font-medium">{dict.profile.basedOn} {profile.total_reviews || 0} {dict.profile.reviews}</p>
                                 </motion.div>
 
                                 {/* Total Sales */}
@@ -328,7 +328,7 @@ export default function ProfilePage() {
                                     <div className="bg-blue-50 dark:bg-blue-500/10 p-4 rounded-[16px] w-fit mb-6">
                                         <TrendingUp className="text-blue-600 dark:text-blue-400" size={28} />
                                     </div>
-                                    <p className="text-[14px] font-medium text-slate-500 mb-1">إجمالي المبيعات</p>
+                                    <p className="text-[14px] font-medium text-slate-500 mb-1">{dict.profile.totalSales}</p>
                                     <p className="text-[36px] font-black text-slate-900 dark:text-white">{profile.total_sales || 0}</p>
                                 </motion.div>
 
@@ -339,7 +339,7 @@ export default function ProfilePage() {
                                     <div className="bg-emerald-50 dark:bg-emerald-500/10 p-4 rounded-[16px] w-fit mb-6">
                                         <Package className="text-[#1F8A3B]" size={28} />
                                     </div>
-                                    <p className="text-[14px] font-medium text-slate-500 mb-1">الإعلانات النشطة</p>
+                                    <p className="text-[14px] font-medium text-slate-500 mb-1">{dict.profile.activeListings}</p>
                                     <p className="text-[36px] font-black text-slate-900 dark:text-white">{myListings.filter(i => i.status === 'active').length}</p>
                                 </motion.div>
                             </div>
@@ -347,10 +347,10 @@ export default function ProfilePage() {
                             {/* Advertisements */}
                             <motion.div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-3xl p-8 rounded-[32px] border border-white/40 dark:border-slate-700/50 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)]">
                                 <div className="flex items-center justify-between mb-8">
-                                    <h3 className="font-black text-[20px] text-slate-900 dark:text-white">إعلاناتي ({myListings.length})</h3>
+                                    <h3 className="font-black text-[20px] text-slate-900 dark:text-white">{dict.profile.myListings} ({myListings.length})</h3>
                                     <Link href="/sell">
                                         <button className="text-[#1F8A3B] font-bold text-[14px] hover:bg-[#1F8A3B]/10 px-4 py-2 rounded-[12px] transition-colors">
-                                            إضافة إعلان
+                                            {dict.profile.addListing}
                                         </button>
                                     </Link>
                                 </div>
@@ -373,7 +373,7 @@ export default function ProfilePage() {
                                                             item.status === 'sold' ? 'bg-blue-50/95 text-blue-600 border-blue-200/50' :
                                                             'bg-slate-50/95 text-slate-600 border-slate-200/50'
                                                         }`}>
-                                                            {item.status === 'active' ? 'نشط' : item.status === 'pending' ? 'قيد المراجعة' : item.status === 'inactive' ? 'مرفوض' : item.status === 'sold' ? 'مباع' : item.status}
+                                                            {item.status === 'active' ? dict.profile.statusActive : item.status === 'pending' ? dict.profile.statusPending : item.status === 'inactive' ? dict.profile.statusRejected : item.status === 'sold' ? dict.profile.statusSold : item.status}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -381,13 +381,13 @@ export default function ProfilePage() {
                                                     <h4 className="font-bold text-[16px] text-slate-900 dark:text-white mb-1.5 line-clamp-1 group-hover:text-[#1F8A3B] transition-colors cursor-pointer" onClick={() => router.push(`/product/${item.id}`)}>{item.title}</h4>
                                                     <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[13px] font-medium mb-3">
                                                         <Calendar size={14} />
-                                                        تم النشر في {new Date(item.created_at || Date.now()).toLocaleDateString('ar-EG')}
+                                                        {dict.profile.publishedOn} {new Date(item.created_at || Date.now()).toLocaleDateString(dict.currency === 'ج.م' ? 'ar-EG' : 'en-US')}
                                                     </div>
                                                     <div className="flex items-center gap-4">
                                                         <span className="font-black text-[18px] text-[#1F8A3B]">{item.price} {dict.currency}</span>
                                                         <div className="flex items-center gap-1.5 text-slate-400 text-[12px] font-bold bg-slate-50 dark:bg-slate-900/50 px-2.5 py-1 rounded-[10px] border border-slate-100 dark:border-slate-800">
                                                             <Eye size={14} />
-                                                            {item.views || 0} مشاهدة
+                                                            {item.views || 0} {dict.profile.views}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -407,8 +407,8 @@ export default function ProfilePage() {
                                         <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-[20px] mb-4 text-[#1F8A3B]/40">
                                             <Package size={32} />
                                         </div>
-                                        <p className="text-[16px] font-bold text-slate-900 dark:text-white mb-2">ليس لديك أي إعلانات بعد</p>
-                                        <p className="text-[14px] font-medium text-slate-500 max-w-[250px]">ابدأ ببيع أشيائك القديمة واربح المال اليوم</p>
+                                        <p className="text-[16px] font-bold text-slate-900 dark:text-white mb-2">{dict.profile.noListings}</p>
+                                        <p className="text-[14px] font-medium text-slate-500 max-w-[250px]">{dict.profile.startSelling}</p>
                                     </div>
                                 )}
                             </motion.div>
@@ -421,7 +421,7 @@ export default function ProfilePage() {
                                     <div className="bg-red-50 dark:bg-red-500/10 p-2.5 rounded-[12px] text-red-500">
                                         <Heart size={20} className="fill-red-500" />
                                     </div>
-                                    المفضلة ({wishlistItems.length})
+                                    {dict.profile.wishlist} ({wishlistItems.length})
                                 </h3>
                                 {wishlistItems.length > 0 ? (
                                     <div className="grid gap-4">
@@ -455,7 +455,7 @@ export default function ProfilePage() {
                                                     whileHover={{ scale: 1.1 }}
                                                     whileTap={{ scale: 0.9 }}
                                                     className="bg-slate-50 dark:bg-slate-900/50 hover:bg-red-50 dark:hover:bg-red-500/10 text-slate-400 hover:text-red-500 p-3 rounded-[14px] transition-colors ml-2"
-                                                    title="إزالة من المفضلة"
+                                                    title={dict.profile.removeFromWishlist}
                                                 >
                                                     <Heart size={18} fill="currentColor" />
                                                 </motion.button>
@@ -467,8 +467,8 @@ export default function ProfilePage() {
                                         <div className="bg-red-50 dark:bg-red-500/10 p-4 rounded-[20px] mb-4 text-red-400">
                                             <Heart size={32} />
                                         </div>
-                                        <p className="text-[16px] font-bold text-slate-900 dark:text-white mb-2">ليس لديك أي إعلانات في المفضلة</p>
-                                        <p className="text-[14px] font-medium text-slate-500 max-w-[250px]">احفظ الإعلانات التي تعجبك هنا للعودة إليها لاحقاً</p>
+                                        <p className="text-[16px] font-bold text-slate-900 dark:text-white mb-2">{dict.profile.noWishlist}</p>
+                                        <p className="text-[14px] font-medium text-slate-500 max-w-[250px]">{dict.profile.saveAds}</p>
                                     </div>
                                 )}
                             </motion.div>

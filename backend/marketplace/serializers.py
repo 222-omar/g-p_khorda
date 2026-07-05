@@ -118,9 +118,9 @@ class AuctionSerializer(serializers.ModelSerializer):
             'id', 'product', 'product_title', 'product_image',
             'starting_bid', 'current_bid', 'highest_bidder', 
             'highest_bidder_name', 'start_time', 'end_time', 
-            'is_active', 'total_bids', 'bids'
+            'is_active', 'total_bids', 'bids', 'created_at'
         ]
-        read_only_fields = ['id', 'current_bid', 'highest_bidder']
+        read_only_fields = ['id', 'current_bid', 'highest_bidder', 'created_at']
 
     def get_total_bids(self, obj):
         return obj.bids.count()

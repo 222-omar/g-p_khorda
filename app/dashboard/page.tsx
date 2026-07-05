@@ -91,7 +91,7 @@ function FeaturedCard({ product, isWishlisted, onWishlistChange, isLoggedIn, isO
                     />
                     {product.isAuction && (
                         <div className="absolute top-4 right-4 bg-orange-500/90 backdrop-blur-md text-white text-[12px] px-3 py-1.5 rounded-full font-bold shadow-md flex items-center gap-1.5">
-                            <Clock size={12} /> مزاد نشط
+                            <Clock size={12} /> {dict.dashboard.activeAuction}
                         </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -100,7 +100,7 @@ function FeaturedCard({ product, isWishlisted, onWishlistChange, isLoggedIn, isO
                     <h4 className="font-bold text-[16px] line-clamp-2 mb-4 group-hover:text-[#1F8A3B] transition-colors">{product.title}</h4>
                     <div className="flex items-center justify-between">
                         <span className="text-[#1F8A3B] font-black text-[22px]">{Number(product.price).toLocaleString()} <span className="text-sm text-slate-400 font-bold">{dict.currency}</span></span>
-                        <span className="text-[12px] bg-[#1F8A3B]/10 text-[#1F8A3B] font-bold px-3 py-1.5 rounded-full group-hover:bg-[#1F8A3B] group-hover:text-white transition-all shadow-sm">عرض</span>
+                        <span className="text-[12px] bg-[#1F8A3B]/10 text-[#1F8A3B] font-bold px-3 py-1.5 rounded-full group-hover:bg-[#1F8A3B] group-hover:text-white transition-all shadow-sm">{dict.dashboard.view}</span>
                     </div>
                 </div>
             </Link>
@@ -157,7 +157,10 @@ export default function DashboardPage() {
                 const bEnded = isEndedOrSold(b);
                 if (aEnded && !bEnded) return 1;
                 if (!aEnded && bEnded) return -1;
-                return 0;
+                
+                const aDate = new Date(a.created_at || 0).getTime();
+                const bDate = new Date(b.created_at || 0).getTime();
+                return bDate - aDate;
             });
             setAllProducts(sortedProducts);
         } catch (err: any) {
@@ -256,9 +259,9 @@ export default function DashboardPage() {
                         className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-10"
                     >
                         <motion.div variants={staggerItem}>
-                            <h2 className="text-2xl md:text-3xl font-black">المتجر</h2>
+                            <h2 className="text-2xl md:text-3xl font-black">{dict.dashboard.storeTitle}</h2>
                             <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                                اكتشف أحدث العروض والمزادات
+                                {dict.dashboard.storeSubtitle}
                             </p>
                         </motion.div>
 
@@ -289,7 +292,7 @@ export default function DashboardPage() {
                                     className="bg-gradient-to-r from-[#1F8A3B] to-[#43A047] hover:from-[#186a2c] hover:to-[#388e3c] text-white px-6 h-[56px] rounded-[18px] font-bold text-[15px] shadow-[0_8px_20px_rgba(31,138,59,0.25)] flex items-center gap-2 whitespace-nowrap transition-all"
                                 >
                                     <Plus size={20} strokeWidth={2.5} />
-                                    أضف إعلان
+                                    {dict.dashboard.addListing}
                                 </motion.button>
                             </Link>
                         </motion.div>
@@ -298,13 +301,13 @@ export default function DashboardPage() {
                     {/* ── Category Chips ── */}
                     <motion.div variants={staggerItem} className="flex items-center gap-3 overflow-x-auto pb-4 mb-10 scrollbar-hide">
                         {[
-                            { id: '', label: 'الكل', icon: '✨' },
-                            { id: 'cars', label: 'سيارات', icon: '🚗' },
-                            { id: 'real_estate', label: 'عقارات', icon: '🏠' },
-                            { id: 'electronics', label: 'إلكترونيات', icon: '💻' },
-                            { id: 'phones', label: 'هواتف', icon: '📱' },
-                            { id: 'furniture', label: 'أثاث', icon: '🪑' },
-                            { id: 'appliances', label: 'أجهزة منزلية', icon: '🧺' },
+                            { id: '', label: dict.dashboard.all, icon: '✨' },
+                            { id: 'cars', label: dict.categories?.cars || 'سيارات', icon: '🚗' },
+                            { id: 'real_estate', label: dict.categories?.real_estate || 'عقارات', icon: '🏠' },
+                            { id: 'electronics', label: dict.categories?.electronics || 'إلكترونيات', icon: '💻' },
+                            { id: 'phones', label: dict.categories?.phones || 'هواتف', icon: '📱' },
+                            { id: 'furniture', label: dict.categories?.furniture || 'أثاث', icon: '🪑' },
+                            { id: 'appliances', label: dict.categories?.appliances || 'أجهزة منزلية', icon: '🧺' },
                         ].map((cat) => (
                             <button
                                 key={cat.id}
@@ -342,7 +345,7 @@ export default function DashboardPage() {
                                 <p className="text-red-500 mb-4">{error}</p>
                                 <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={fetchProducts}
                                     className="bg-primary text-white px-6 py-3 rounded-xl font-bold">
-                                    إعادة المحاولة
+                                    {dict.dashboard.retry}
                                 </motion.button>
                             </motion.div>
                         )}
@@ -360,8 +363,8 @@ export default function DashboardPage() {
                                         <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 2.5, repeat: Infinity }}>
                                             <PackageOpen size={64} className="mx-auto text-slate-300 dark:text-slate-600" />
                                         </motion.div>
-                                        <p className="text-slate-500 text-lg font-medium mt-4">لا توجد منتجات حالياً</p>
-                                        <p className="text-slate-400 text-sm mt-2">جرب تغيير الفلاتر أو ابحث بكلمات مختلفة</p>
+                                        <p className="text-slate-500 text-lg font-medium mt-4">{dict.dashboard.noProducts}</p>
+                                        <p className="text-slate-400 text-sm mt-2">{dict.dashboard.tryDifferentFilters}</p>
                                     </motion.div>
                                 ) : isFiltering ? (
                                     /* ── Search / Filter results (flat grid + sidebar) ── */
@@ -377,7 +380,7 @@ export default function DashboardPage() {
                                         <div className="lg:col-span-3">
                                             <div className="flex justify-between items-center mb-4">
                                                 <p className="text-slate-500 text-sm">
-                                                    {allProducts.length} نتيجة {searchQuery ? `لـ "${searchQuery}"` : ''}
+                                                    {allProducts.length} {dict.dashboard.results} {searchQuery ? `${dict.dashboard.resultsFor} "${searchQuery}"` : ''}
                                                 </p>
                                             </div>
                                             <motion.div
@@ -410,8 +413,8 @@ export default function DashboardPage() {
                                         <section>
                                             <SectionHeader
                                                 icon={Clock}
-                                                title="أحدث الإضافات"
-                                                subtitle="آخر ما أُضيف للمتجر"
+                                                title={dict.dashboard.latestAdditions}
+                                                subtitle={dict.dashboard.latestSubtitle}
                                                 color="text-blue-600"
                                                 bgColor="bg-blue-100 dark:bg-blue-900/30"
                                             />
@@ -440,8 +443,8 @@ export default function DashboardPage() {
                                         <section>
                                             <SectionHeader
                                                 icon={LayoutGrid}
-                                                title="كل المنتجات"
-                                                subtitle={`${allProducts.length} منتج متاح`}
+                                                title={dict.dashboard.allProducts}
+                                                subtitle={`${allProducts.length} ${dict.dashboard.productsAvailable}`}
                                             />
                                             <div className="grid lg:grid-cols-4 gap-6">
                                                 {/* Sidebar */}

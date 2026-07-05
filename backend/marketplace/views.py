@@ -168,7 +168,10 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         if self.request.user.is_staff or serializer.instance.owner == self.request.user:
-            serializer.save()
+            product = serializer.save()
+            if not self.request.user.is_staff and product.owner == self.request.user:
+                product.status = 'pending'
+                product.save(update_fields=['status'])
             return
         raise PermissionDenied('You do not have permission to edit this product.')
 
@@ -212,7 +215,7 @@ class AuctionViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return AuctionService.get_visible_auctions_queryset(
-            super().get_queryset(), self.request.user, self.request.query_params,
+            super().get_queryset(), self.request.user, self.action, self.request.query_params,
         )
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])

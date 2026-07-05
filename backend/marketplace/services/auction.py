@@ -79,7 +79,7 @@ class AuctionService:
                 ChatService.send_winner_message(auction)
 
     @staticmethod
-    def get_visible_auctions_queryset(base_qs, user, query_params):
+    def get_visible_auctions_queryset(base_qs, user, action, query_params):
         AuctionService.close_expired_auctions()
 
         queryset = base_qs
@@ -94,9 +94,12 @@ class AuctionService:
                 pass
 
             if not is_admin:
-                queryset = queryset.filter(
-                    models.Q(product__status__in=['active', 'sold']) | models.Q(product__owner=user)
-                )
+                if action == 'list':
+                    queryset = queryset.filter(product__status__in=['active', 'sold'])
+                else:
+                    queryset = queryset.filter(
+                        models.Q(product__status__in=['active', 'sold']) | models.Q(product__owner=user)
+                    )
 
         active_only = query_params.get('active_only', 'false')
         if active_only == 'true':

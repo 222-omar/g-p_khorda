@@ -39,6 +39,7 @@ class ProductService:
         queryset = base_qs
 
         if not user.is_authenticated:
+            print(f"[get_visible_products_queryset] User is not authenticated. Action: {action}")
             queryset = queryset.filter(status__in=['active', 'sold'])
         else:
             is_admin = False
@@ -46,10 +47,15 @@ class ProductService:
                 is_admin = user.is_staff or getattr(user.profile, 'role', '') == 'admin'
             except Exception:
                 pass
+            print(f"[get_visible_products_queryset] User: {user.username}, Is Admin: {is_admin}, Action: {action}")
             if not is_admin:
-                queryset = queryset.filter(
-                    models.Q(status__in=['active', 'sold']) | models.Q(owner=user)
-                )
+                if action == 'list':
+                    queryset = queryset.filter(status__in=['active', 'sold'])
+                else:
+                    queryset = queryset.filter(
+                        models.Q(status__in=['active', 'sold']) | models.Q(owner=user)
+                    )
+                    print(f"[get_visible_products_queryset] Queryset count after filter: {queryset.count()}")
 
         min_price = query_params.get('min_price')
         max_price = query_params.get('max_price')

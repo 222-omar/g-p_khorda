@@ -147,7 +147,7 @@ export default function RegisterPage() {
             >
                 {/* Logo */}
                 <div className="flex justify-center mb-8">
-                    <Logo />
+                    <Logo className="scale-125 md:scale-150 transform transition-transform" />
                 </div>
 
                 {/* Register Card */}

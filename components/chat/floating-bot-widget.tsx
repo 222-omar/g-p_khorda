@@ -3,7 +3,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { ragAPI, productsAPI } from '@/lib/api';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useLanguage } from '@/components/providers/language-provider';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
     Bot, Loader2, Sparkles, X,
     ShoppingBag, Gavel, BarChart3, Settings,
@@ -35,33 +37,28 @@ interface ChatMessage {
     timestamp: Date;
 }
 
-const SUGGESTED_QUERIES = [
-    { emoji: '🏠', text: 'عايز غسالة رخيصة', sub: 'ساعدتك في العثور على أفضل العروض' },
-    { emoji: '🚗', text: 'عربيات أقل من 200 ألف', sub: 'ابحث عن سيارات تناسب ميزانيتك' },
-    { emoji: '💻', text: 'لابتوب ألعاب', sub: 'أقوى الأجهزة بأفضل الأسعار' },
-    { emoji: '❄️', text: 'ثلاجة حالة كويسة', sub: 'ثلاجات موثوقة بحالة ممتازة' },
-];
-
-const ACTION_ICONS: Record<string, any> = {
-    view_listing: ShoppingBag,
-    place_bid: Gavel,
-    compare_prices: BarChart3,
-    set_agent: Settings,
-};
-
-const ACTION_LABELS: Record<string, string> = {
-    view_listing: 'عرض المنتجات',
-    place_bid: 'المزايدة',
-    compare_prices: 'مقارنة الأسعار',
-    set_agent: 'إعداد وكيل ذكي',
-};
-
-function formatTime(date: Date) {
-    return date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+function formatTime(date: Date, dict: any) {
+    return date.toLocaleTimeString(dict.currency === 'ج.م' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
 export function FloatingBotWidget() {
+    const { dict } = useLanguage();
     const { user } = useAuth();
+    
+    const SUGGESTED_QUERIES = [
+        { emoji: '🏠', text: dict.chatWidget.q1Text, sub: dict.chatWidget.q1Sub },
+        { emoji: '🚗', text: dict.chatWidget.q2Text, sub: dict.chatWidget.q2Sub },
+        { emoji: '💻', text: dict.chatWidget.q3Text, sub: dict.chatWidget.q3Sub },
+        { emoji: '❄️', text: dict.chatWidget.q4Text, sub: dict.chatWidget.q4Sub },
+    ];
+
+    const ACTION_LABELS: Record<string, string> = {
+        view_listing: dict.chatWidget.viewListing,
+        place_bid: dict.chatWidget.placeBid,
+        compare_prices: dict.chatWidget.comparePrices,
+        set_agent: dict.chatWidget.setAgent,
+    };
+
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
@@ -69,7 +66,8 @@ export function FloatingBotWidget() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
-    const userName = user?.user?.first_name || user?.user?.username?.split('@')[0] || 'ضيف';
+    const userName = user?.user?.first_name || user?.user?.username?.split('@')[0] || dict.chatWidget.guest;
+    const pathname = usePathname();
 
     useEffect(() => {
         if (isOpen) {
@@ -78,7 +76,7 @@ export function FloatingBotWidget() {
     }, [messages, loading, isOpen]);
 
     // Auto-resize textarea is handled by h-[62px] wrapper, keeping it single line scrollable
-    if (!user) return null;
+    if (!user || pathname?.startsWith('/admin')) return null;
 
     const handleSearch = async (query: string) => {
         if (!query.trim() || loading) return;
@@ -98,7 +96,7 @@ export function FloatingBotWidget() {
                 let text = m.content;
                 if (m.role === 'assistant' && m.products && m.products.length > 0) {
                     const productsInfo = m.products.map(p => {
-                        const seller = p.owner_name || p.owner?.username || 'غير معروف';
+                        const seller = p.owner_name || p.owner?.username || dict.chatWidget.unknownSeller;
                         return `- ${p.title} (${p.price} EGP, البائع: ${seller})`;
                     }).join('\n');
                     text += `\n\n[معلومات إضافية في الواجهة للمنتجات المعروضة:\n${productsInfo}]`;
@@ -143,7 +141,7 @@ export function FloatingBotWidget() {
             const errorMsg: ChatMessage = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: 'عذراً، حصلت مشكلة. جرب تاني بعد شوية 🙏',
+                content: dict.chatWidget.errorMsg,
                 timestamp: new Date(),
             };
             setMessages(prev => [...prev, errorMsg]);
@@ -165,7 +163,7 @@ export function FloatingBotWidget() {
     };
 
     return (
-        <div className="fixed bottom-6 right-6 z-[999] flex flex-col items-end font-cairo" dir="rtl">
+        <div className={`fixed bottom-6 ${dict.currency === 'ج.م' ? 'right-6' : 'left-6'} z-[999] flex flex-col items-end font-cairo`} dir={dict.currency === 'ج.م' ? 'rtl' : 'ltr'}>
             <style jsx global>{`
                 #bot-scroll::-webkit-scrollbar { width: 4px; }
                 #bot-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -198,13 +196,13 @@ export function FloatingBotWidget() {
                                     <Bot className="w-7 h-7 text-white" />
                                 </div>
                                 <div className="leading-tight text-right">
-                                    <h3 className="text-[#101828] dark:text-white font-cairo font-black text-[18px]">مساعدك الذكي</h3>
+                                    <h3 className="text-[#101828] dark:text-white font-cairo font-black text-[18px]">{dict.chatWidget.title}</h3>
                                     <p className="text-[12px] text-[#1F8A3B] font-bold flex items-center gap-1.5 mt-0.5 justify-end">
                                         <span className="relative flex h-1.5 w-1.5">
                                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#1F8A3B] opacity-75"></span>
                                             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#1F8A3B]"></span>
                                         </span>
-                                        نشط الآن
+                                        {dict.chatWidget.activeNow}
                                     </p>
                                 </div>
                             </div>
@@ -256,12 +254,12 @@ export function FloatingBotWidget() {
                                         </div>
 
                                         <h2 className="text-[#101828] dark:text-white font-cairo font-black text-[36px] mb-2 leading-none">
-                                            👋 أهلاً {userName}
+                                            👋 {dict.chatWidget.welcome} {userName}
                                         </h2>
                                         <p className="text-[#667085] dark:text-slate-400 font-cairo text-[16px] leading-relaxed max-w-[340px] mx-auto">
-                                            أنا بوت تدويرة الذكي.
+                                            {dict.chatWidget.description1}
                                             <br />
-                                            اسألني عن أي حاجة عايز تشتريها.
+                                            {dict.chatWidget.description2}
                                         </p>
                                     </div>
 
@@ -310,7 +308,7 @@ export function FloatingBotWidget() {
                                                         <div className="bg-[#1F8A3B] text-white px-4.5 py-3 rounded-[20px] rounded-tr-sm shadow-[0_4px_12px_rgba(31,138,59,0.15)]">
                                                             <p className="text-[15px] leading-relaxed font-semibold">{msg.content}</p>
                                                         </div>
-                                                        <span className="text-[10px] text-[#667085] mt-1 mr-1.5 font-bold">{formatTime(msg.timestamp)}</span>
+                                                        <span className="text-[10px] text-[#667085] mt-1 mr-1.5 font-bold">{formatTime(msg.timestamp, dict)}</span>
                                                     </div>
                                                 </div>
                                             ) : (
@@ -357,7 +355,7 @@ export function FloatingBotWidget() {
                                                                             </div>
                                                                             <div className="flex-1 min-w-0 flex flex-col justify-center">
                                                                                 <p className="text-sm font-bold text-[#101828] dark:text-slate-200 truncate group-hover:text-[#1F8A3B] transition-colors">{product.title}</p>
-                                                                                <span className="text-xs font-black text-[#1F8A3B] mt-1">{Number(product.price).toLocaleString('ar-EG')} ج.م</span>
+                                                                                <span className="text-xs font-black text-[#1F8A3B] mt-1">{Number(product.price).toLocaleString(dict.currency === 'ج.م' ? 'ar-EG' : 'en-US')} {dict.currency}</span>
                                                                             </div>
                                                                         </div>
                                                                     </Link>
@@ -366,7 +364,7 @@ export function FloatingBotWidget() {
                                                         )}
 
                                                         <div className="flex items-center gap-3 ml-2 mt-1.5 w-full">
-                                                            <span className="text-[10px] text-[#667085] font-bold">{formatTime(msg.timestamp)}</span>
+                                                            <span className="text-[10px] text-[#667085] font-bold">{formatTime(msg.timestamp, dict)}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -402,11 +400,11 @@ export function FloatingBotWidget() {
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={handleKeyDown}
-                                    placeholder="اكتب استفسارك هنا..."
+                                    placeholder={dict.chatWidget.placeholder}
                                     rows={1}
                                     className="flex-grow bg-transparent text-sm font-cairo font-medium text-[#101828] dark:text-slate-100 placeholder-[#667085] outline-none resize-none pt-2.5 h-full align-middle scrollbar-none"
                                     disabled={loading}
-                                    dir="rtl"
+                                    dir={dict.currency === 'ج.م' ? 'rtl' : 'ltr'}
                                 />
                                 <button
                                     type="submit"
