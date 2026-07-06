@@ -230,7 +230,8 @@ export default function AgentPage() {
                                 {agents.map((agent) => (
                                     <div
                                         key={agent.id}
-                                        className={`bg-white dark:bg-slate-800 rounded-[30px] border border-[#E7ECEA] dark:border-slate-700 p-8 shadow-[0_12px_45px_rgba(0,0,0,0.02)] transition-all ${
+                                        onClick={() => router.push(`/agent/${agent.id}`)}
+                                        className={`bg-white dark:bg-slate-800 rounded-[30px] border border-[#E7ECEA] dark:border-slate-700 p-8 shadow-[0_12px_45px_rgba(0,0,0,0.02)] transition-all cursor-pointer hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)] hover:border-[#1F8A3B]/30 hover:scale-[1.01] group ${
                                             agent.is_active ? 'opacity-100' : 'opacity-70 dark:opacity-60'
                                         }`}
                                     >
@@ -276,7 +277,10 @@ export default function AgentPage() {
                                             </div>
 
                                             {/* Left Column: Menu Button (Leftmost) */}
-                                            <button className="w-10 h-10 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center text-[#667085] hover:text-[#101828] hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                                            <button 
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="w-10 h-10 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center text-[#667085] hover:text-[#101828] hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                                            >
                                                 <MoreVertical size={18} />
                                             </button>
                                         </div>
@@ -299,11 +303,17 @@ export default function AgentPage() {
                                             </div>
                                         </div>
 
+                                        {/* View Details Link */}
+                                        <div className="text-[#1F8A3B] text-[13px] font-bold mt-4 flex items-center justify-end gap-1.5 transition-all group-hover:-translate-x-1">
+                                            <span>عرض التفاصيل والإشعارات الخاصة بالوكيل</span>
+                                            <span className="text-[16px] leading-none">←</span>
+                                        </div>
+
                                         {/* Card Bottom Area: Actions */}
-                                        <div className="flex items-center gap-3 mt-6 pt-5 border-t border-[#E5E7EB] dark:border-slate-700/50">
+                                        <div className="flex items-center gap-3 mt-5 pt-5 border-t border-[#E5E7EB] dark:border-slate-700/50">
                                             {/* Delete button (حذف) */}
                                             <motion.button
-                                                onClick={() => handleDelete(agent.id)}
+                                                onClick={(e) => { e.stopPropagation(); handleDelete(agent.id); }}
                                                 whileHover={{ scale: 1.015 }}
                                                 whileTap={{ scale: 0.985 }}
                                                 className="flex-1 h-[60px] rounded-[20px] bg-red-50/40 hover:bg-red-50 dark:bg-red-950/10 border border-red-200 dark:border-red-900/30 text-[#D92D20] font-cairo font-bold text-[15px] flex items-center justify-center gap-2 transition-all cursor-pointer"
@@ -314,7 +324,7 @@ export default function AgentPage() {
                                             
                                             {/* Pause Agent (وقف الوكيل) */}
                                             <motion.button
-                                                onClick={() => handleToggle(agent)}
+                                                onClick={(e) => { e.stopPropagation(); handleToggle(agent); }}
                                                 whileHover={{ scale: 1.015 }}
                                                 whileTap={{ scale: 0.985 }}
                                                 className={`flex-1 h-[60px] rounded-[20px] font-cairo font-bold text-[15px] flex items-center justify-center gap-2 transition-all cursor-pointer ${

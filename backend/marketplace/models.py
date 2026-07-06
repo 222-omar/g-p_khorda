@@ -288,6 +288,7 @@ class Notification(models.Model):
     notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='info')
     is_approved = models.BooleanField(null=True, blank=True, default=None, help_text="User's response to bid_approval: True=approved, False=rejected, None=pending")
     suggested_bid = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Suggested bid amount for bid_approval notifications")
+    agent = models.ForeignKey('UserAgent', on_delete=models.SET_NULL, null=True, blank=True, related_name='notifications')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

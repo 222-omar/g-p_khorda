@@ -853,6 +853,10 @@ export const agentAPI = {
         return Array.isArray(data) ? data : (data.results || []);
     },
 
+    async get(id: number | string) {
+        return apiFetch<any>(`/agents/${id}/`);
+    },
+
     async create(data: { target_item: string; max_budget: number; requirements_prompt?: string }) {
         return apiFetch<any>('/agents/', {
             method: 'POST',

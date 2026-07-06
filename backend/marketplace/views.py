@@ -794,6 +794,7 @@ def agent_pending_bid_approve(request, pk):
         # Success notification
         Notification.objects.create(
             user=pending_bid.agent.user,
+            agent=pending_bid.agent,
             title='✅ تمت المزايدة بنجاح!',
             message=(
                 f'تمت الموافقة على مزايدة الوكيل بمبلغ {proposed_amount} ج.م '

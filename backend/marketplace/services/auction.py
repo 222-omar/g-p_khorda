@@ -398,6 +398,7 @@ class AuctionService:
 
         Notification.objects.create(
             user=user,
+            agent=notif.agent,
             title=f'✅ تم المزايدة بنجاح على: {auction.product.title}',
             message=(
                 f'وافقت على مزايدة الوكيل الذكي بمبلغ {bid_amount} جنيه '

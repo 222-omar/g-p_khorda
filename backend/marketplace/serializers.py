@@ -356,6 +356,7 @@ def _send_bid_approval_notification(agent, auction, suggested_amount, detected_i
     
     Notification.objects.create(
         user=agent.user,
+        agent=agent,
         title=title,
         message=message,
         related_product=product,
@@ -402,6 +403,7 @@ def _notify_agent_rejection(agent, product, reason, decision_type=''):
     
     Notification.objects.create(
         user=agent.user,
+        agent=agent,
         title=title,
         message=message,
         related_product=product,
@@ -424,6 +426,7 @@ def _notify_agent_insufficient_balance(agent, auction, amount):
     
     Notification.objects.create(
         user=agent.user,
+        agent=agent,
         title='⛔ الوكيل مقدرش يزايد - رصيد غير كافي',
         message=message,
         related_product=product,
@@ -875,20 +878,31 @@ class UserAgentSerializer(serializers.ModelSerializer):
 class NotificationSerializer(serializers.ModelSerializer):
     """Serializer for user notifications"""
     product_title = serializers.CharField(source='related_product.title', read_only=True, allow_null=True)
+    product_image = serializers.SerializerMethodField()
+    product_price = serializers.DecimalField(source='related_product.price', read_only=True, allow_null=True, max_digits=10, decimal_places=2)
 
     class Meta:
         model = Notification
         fields = [
             'id', 'title', 'message', 'reasoning', 'is_read',
-            'related_product', 'product_title', 'related_auction',
+            'related_product', 'product_title', 'product_image', 'product_price', 'related_auction',
             'notification_type', 'is_approved', 'suggested_bid',
-            'created_at'
+            'agent', 'created_at'
         ]
         read_only_fields = [
             'id', 'title', 'message', 'reasoning',
             'related_product', 'related_auction',
-            'notification_type', 'suggested_bid', 'created_at'
+            'notification_type', 'suggested_bid', 'agent', 'created_at'
         ]
+
+    def get_product_image(self, obj):
+        if obj.related_product:
+            primary_img = obj.related_product.images.filter(is_primary=True).first()
+            if primary_img:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(primary_img.image.url)
+        return None
 
 
 # ──────────────────────────────────────────────────────────────
