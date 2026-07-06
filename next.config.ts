@@ -15,29 +15,29 @@ const nextConfig: NextConfig = {
         source: '/api/:path*/',
         destination:
           process.env.NODE_ENV === 'development'
-            ? 'https://four-sale-backend.onrender.com/api/:path*/'
-            : 'https://four-sale-backend.onrender.com/api/:path*/',
+            ? 'https://tadwera-backend.onrender.com/api/:path*/'
+            : 'https://tadwera-backend.onrender.com/api/:path*/',
       },
       {
         source: '/api/:path*',
         destination:
           process.env.NODE_ENV === 'development'
-            ? 'https://four-sale-backend.onrender.com/api/:path*'
-            : 'https://four-sale-backend.onrender.com/api/:path*',
+            ? 'https://tadwera-backend.onrender.com/api/:path*'
+            : 'https://tadwera-backend.onrender.com/api/:path*',
       },
       {
         source: '/media/:path*/',
         destination:
           process.env.NODE_ENV === 'development'
-            ? 'https://four-sale-backend.onrender.com/media/:path*/'
-            : 'https://four-sale-backend.onrender.com/media/:path*/',
+            ? 'https://tadwera-backend.onrender.com/media/:path*/'
+            : 'https://tadwera-backend.onrender.com/media/:path*/',
       },
       {
         source: '/media/:path*',
         destination:
           process.env.NODE_ENV === 'development'
-            ? 'https://four-sale-backend.onrender.com/media/:path*'
-            : 'https://four-sale-backend.onrender.com/media/:path*',
+            ? 'https://tadwera-backend.onrender.com/media/:path*'
+            : 'https://tadwera-backend.onrender.com/media/:path*',
       },
     ];
   },
